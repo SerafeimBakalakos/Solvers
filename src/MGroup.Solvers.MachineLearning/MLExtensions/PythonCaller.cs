@@ -6,6 +6,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 	using System.IO;
 	using System.Text;
 
+
 	public class PythonCaller
 	{
 		private readonly string workDir;
@@ -13,6 +14,8 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private readonly string pythonScript;
 		private readonly bool cleanupIOFiles;
 		private readonly int timeoutMilliseconds;
+
+		private readonly ArrayTextFileIO arrayIO;
 
 		public PythonCaller(string workDir, string pythonInterpreter, string pythonScript, bool cleanupIOFiles = true, 
 			int timeoutMilliseconds = -1)
@@ -22,9 +25,11 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			this.pythonScript = pythonScript;
 			this.cleanupIOFiles = cleanupIOFiles;
 			this.timeoutMilliseconds = timeoutMilliseconds;
+
+			this.arrayIO = new ArrayTextFileIO(' ');
 		}
 
-		public float CallPython(float input)
+		public double[] CallPython(double[] input)
 		{
 			// Setup IO files
 			var time = DateTime.Now;
@@ -33,15 +38,28 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 			string inputFile = $"{workDir}\\{filename}_in.txt";
 			string outputFile = $"{workDir}\\{filename}_out.txt";
-			using (var f = File.Open(inputFile, FileMode.OpenOrCreate))
+
+			try
 			{
-				using (var writer = new StreamWriter(f))
+				arrayIO.WriteArray1DToFile(input, inputFile);
+				CallPythonScript(inputFile, outputFile);
+				double[] output = new double[input.Length];
+				arrayIO.ReadArray1DFromFile(output, outputFile);
+				return output;
+			}
+			finally
+			{
+				// Cleanup
+				if (cleanupIOFiles)
 				{
-					writer.Write(input);
+					File.Delete(inputFile);
+					File.Delete(outputFile);
 				}
 			}
+		}
 
-			// Run process
+		private void CallPythonScript(string inputFile, string outputFile)
+		{
 			var startInfo = new ProcessStartInfo(pythonInterpreter);
 			startInfo.FileName = pythonInterpreter;
 			startInfo.Arguments = $"{pythonScript} {inputFile} {outputFile}";
@@ -51,22 +69,6 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			{
 				process.WaitForExit(timeoutMilliseconds);
 			}
-
-			// Read result from output file
-			float result = float.NaN;
-			using (var reader = new StreamReader(outputFile))
-			{
-				result = float.Parse(reader.ReadLine());
-			}
-
-			// Cleanup
-			if (cleanupIOFiles)
-			{
-				File.Delete(inputFile);
-				File.Delete(outputFile);
-			}
-
-			return result;
 		}
 	}
 }

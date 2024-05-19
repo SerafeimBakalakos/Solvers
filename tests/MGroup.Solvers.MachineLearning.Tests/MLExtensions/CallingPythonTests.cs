@@ -21,10 +21,17 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 			//string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\main.py";
 			string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\evaluate.py";
 
-			var pythonCaller = new PythonCaller(workDir, pythonInterpreter, pythonScript, true);
+			var pythonCaller = new PythonCaller(workDir, pythonInterpreter, pythonScript, false);
 
-			float result = pythonCaller.CallPython(1.11f);
-			Assert.Equal(2.22f, result);
+			double[] x = { 1.11, 3.33, -2.22 };
+			double[] yExpected = { 2.22, 6.66, -4.44 };
+			double[] yComputed = pythonCaller.CallPython(x);
+
+			double tol = 1E-10;
+			for (int i = 0; i < x.Length; i++)
+			{
+				Assert.Equal(yExpected[i], yComputed[i], tol);
+			}
 		}
 	}
 }
