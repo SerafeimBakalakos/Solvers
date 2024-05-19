@@ -14,12 +14,11 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 	public static class CallingPythonTests
 	{
 		[Fact]
-		public static void RunTest()
+		public static void TestDouble()
 		{
 			string workDir = "C:\\Users\\Serafeim\\Desktop\\AISolve\\PythonCSharpBridge";
 			string pythonInterpreter = "C:\\Coding\\Dev\\Python\\DDM_ML\\venv\\Scripts\\python.exe";
-			//string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\main.py";
-			string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\evaluate.py";
+			string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\evaluate_double.py";
 
 			var pythonCaller = new PythonCaller(workDir, pythonInterpreter, pythonScript, false);
 
@@ -28,6 +27,26 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 			double[] yComputed = pythonCaller.CallPython(x);
 
 			double tol = 1E-10;
+			for (int i = 0; i < x.Length; i++)
+			{
+				Assert.Equal(yExpected[i], yComputed[i], tol);
+			}
+		}
+
+		[Fact]
+		public static void TestSingle()
+		{
+			string workDir = "C:\\Users\\Serafeim\\Desktop\\AISolve\\PythonCSharpBridge";
+			string pythonInterpreter = "C:\\Coding\\Dev\\Python\\DDM_ML\\venv\\Scripts\\python.exe";
+			string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\evaluate_single.py";
+
+			var pythonCaller = new PythonCaller(workDir, pythonInterpreter, pythonScript, false);
+
+			float[] x = { 1.11f, 3.33f, -2.22f };
+			float[] yExpected = { 2.22f, 6.66f, -4.44f };
+			float[] yComputed = pythonCaller.CallPython(x);
+
+			double tol = 1E-8;
 			for (int i = 0; i < x.Length; i++)
 			{
 				Assert.Equal(yExpected[i], yComputed[i], tol);

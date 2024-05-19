@@ -53,5 +53,21 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 				}
 			}
 		}
+
+		public void WriteArray1DToFile(float[] array, string file)
+		{
+			using (var f = File.Open(file, FileMode.OpenOrCreate))
+			{
+				using (var writer = new StreamWriter(f))
+				{
+					writer.Write(array[0]);
+					for (int i = 1; i < array.Length; i++)
+					{
+						writer.Write(separator);
+						writer.Write(array[i].ToString("G"));
+					}
+				}
+			}
+		}
 	}
 }

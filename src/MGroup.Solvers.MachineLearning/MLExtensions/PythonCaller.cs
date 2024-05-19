@@ -6,7 +6,6 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 	using System.IO;
 	using System.Text;
 
-
 	public class PythonCaller
 	{
 		private readonly string workDir;
@@ -31,19 +30,36 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		public double[] CallPython(double[] input)
 		{
-			// Setup IO files
-			var time = DateTime.Now;
-			string filename = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}{time.Second}";
-			//string filename = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}_{Guid.NewGuid()}";
-
-			string inputFile = $"{workDir}\\{filename}_in.txt";
-			string outputFile = $"{workDir}\\{filename}_out.txt";
+			(string inputFile, string outputFile) = CreateFilenames();
 
 			try
 			{
 				arrayIO.WriteArray1DToFile(input, inputFile);
 				CallPythonScript(inputFile, outputFile);
-				double[] output = new double[input.Length];
+				var output = new double[input.Length];
+				arrayIO.ReadArray1DFromFile(output, outputFile);
+				return output;
+			}
+			finally
+			{
+				// Cleanup
+				if (cleanupIOFiles)
+				{
+					File.Delete(inputFile);
+					File.Delete(outputFile);
+				}
+			}
+		}
+
+		public float[] CallPython(float[] input)
+		{
+			(string inputFile, string outputFile) = CreateFilenames();
+
+			try
+			{
+				arrayIO.WriteArray1DToFile(input, inputFile);
+				CallPythonScript(inputFile, outputFile);
+				var output = new float[input.Length];
 				arrayIO.ReadArray1DFromFile(output, outputFile);
 				return output;
 			}
@@ -69,6 +85,19 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			{
 				process.WaitForExit(timeoutMilliseconds);
 			}
+		}
+
+		private (string inputFile, string outputFile) CreateFilenames()
+		{
+			// Setup IO files
+			var time = DateTime.Now;
+			string filename = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}{time.Second}";
+			//string filename = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}_{Guid.NewGuid()}";
+
+			string inputFile = $"{workDir}\\{filename}_in.txt";
+			string outputFile = $"{workDir}\\{filename}_out.txt";
+
+			return (inputFile, outputFile);
 		}
 	}
 }
