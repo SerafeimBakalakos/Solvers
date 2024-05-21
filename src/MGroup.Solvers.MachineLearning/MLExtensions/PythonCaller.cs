@@ -81,6 +81,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			startInfo.Arguments = $"{pythonScript} {inputFile} {outputFile}";
 			startInfo.UseShellExecute = false;
 			startInfo.RedirectStandardOutput = true;
+			//startInfo.RedirectStandardError = true;
 			using (var process = Process.Start(startInfo))
 			{
 				process.WaitForExit(timeoutMilliseconds);

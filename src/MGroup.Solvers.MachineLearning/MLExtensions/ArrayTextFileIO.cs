@@ -69,5 +69,57 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 				}
 			}
 		}
+
+		public void WriteArray2DToFile(double[,] array, string file)
+		{
+			int m = array.GetLength(0);
+			int n = array.GetLength(1);
+			using (var f = File.Open(file, FileMode.OpenOrCreate))
+			{
+				using (var writer = new StreamWriter(f))
+				{
+					for (int i = 0; i < m; i++)
+					{
+						writer.Write(array[i, 0]);
+						for (int j = 1; j < n; j++)
+						{
+							writer.Write(separator);
+							writer.Write(array[i, j].ToString("G"));
+						}
+
+						if (i < m-1)
+						{
+							writer.WriteLine();
+						}
+					}
+				}
+			}
+		}
+
+		public void WriteArray2DToFile(float[,] array, string file)
+		{
+			int m = array.GetLength(0);
+			int n = array.GetLength(1);
+			using (var f = File.Open(file, FileMode.OpenOrCreate))
+			{
+				using (var writer = new StreamWriter(f))
+				{
+					for (int i = 0; i < m; i++)
+					{
+						writer.Write(array[i, 0]);
+						for (int j = 1; j < n; j++)
+						{
+							writer.Write(separator);
+							writer.Write(array[i, j].ToString("G"));
+						}
+
+						if (i < m - 1)
+						{
+							writer.WriteLine();
+						}
+					}
+				}
+			}
+		}
 	}
 }
