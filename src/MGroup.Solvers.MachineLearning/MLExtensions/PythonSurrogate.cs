@@ -142,9 +142,15 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			startInfo.UseShellExecute = false;
 			startInfo.RedirectStandardOutput = true;
 			//startInfo.RedirectStandardError = true;
+			int exitCode = -1;
 			using (var process = Process.Start(startInfo))
 			{
 				process.WaitForExit(timeoutMilliseconds);
+				exitCode = process.ExitCode;
+			}
+			if (exitCode != 0)
+			{
+				throw new Exception($"Python script exited with code {exitCode}, instead of 0 (successful)");
 			}
 			Console.WriteLine();
 		}
