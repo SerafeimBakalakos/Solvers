@@ -97,7 +97,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 			float[] yComputed = surrogate.CallPredictScript(x);
 
 			float tol = 0.1f;
-			for (int i = 0; i < x.Length; i++)
+			for (int i = 0; i < yComputed.Length; i++)
 			{
 				Assert.Equal(yExpected[i], yComputed[i], tol);
 			}
@@ -146,7 +146,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 			double[] yComputed = surrogate.CallPredictScript(x);
 
 			double tol = 0.1;
-			for (int i = 0; i < x.Length; i++)
+			for (int i = 0; i < yComputed.Length; i++)
 			{
 				Assert.Equal(yExpected[i], yComputed[i], tol);
 			}
