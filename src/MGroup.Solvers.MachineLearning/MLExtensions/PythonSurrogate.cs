@@ -5,6 +5,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 	using System.Diagnostics;
 	using System.IO;
 	using System.Text;
+	using Google.Protobuf;
 
 	public class PythonSurrogate
 	{
@@ -14,13 +15,14 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private readonly string predictScript;
 		private readonly int sizeInput;
 		private readonly int sizeOutput;
+		private readonly bool binaryFiles;
 		private readonly bool cleanupIOFiles;
 		private readonly int timeoutMilliseconds;
 
-		private readonly ArrayTextFileIO arrayIO;
+		private readonly IArrayFileIO arrayIO;
 
 		public PythonSurrogate(string workDir, string pythonInterpreter, string trainScript, string predictScript,
-			int sizeInput, int sizeOutput, bool cleanupIOFiles = true, int timeoutMilliseconds = -1)
+			int sizeInput, int sizeOutput, bool binaryFiles = false, bool cleanupIOFiles = true, int timeoutMilliseconds = -1)
 		{
 			this.workDir = workDir;
 			this.pythonInterpreter = pythonInterpreter;
@@ -30,16 +32,24 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			this.sizeOutput = sizeOutput;
 			this.cleanupIOFiles = cleanupIOFiles;
 			this.timeoutMilliseconds = timeoutMilliseconds;
-
-			this.arrayIO = new ArrayTextFileIO(' ');
+			this.binaryFiles = binaryFiles;
+			if (binaryFiles)
+			{
+				this.arrayIO = new ArrayBinaryFIleIO();
+			}
+			else
+			{
+				this.arrayIO = new ArrayTextFileIO(' ');
+			}
 		}
 
 		public double[] CallPredictScript(double[] input)
 		{
 			CheckPredictionData(input);
 			string tempFilePrefix = GetTempFilePathPrefix();
-			string pathInput = tempFilePrefix + "_input.txt";
-			string pathOutput = tempFilePrefix + "_output.txt";
+			string extension = binaryFiles ? ".npy" : ".txt";
+			string pathInput = tempFilePrefix + "_input" + extension;
+			string pathOutput = tempFilePrefix + "_output" + extension;
 			string pathModel = GetModelPath();
 			try
 			{
@@ -64,8 +74,9 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		{
 			CheckPredictionData(input);
 			string tempFilePrefix = GetTempFilePathPrefix();
-			string pathInput = tempFilePrefix + "_input.txt";
-			string pathOutput = tempFilePrefix + "_output.txt";
+			string extension = binaryFiles ? ".npy" : ".txt";
+			string pathInput = tempFilePrefix + "_input" + extension;
+			string pathOutput = tempFilePrefix + "_output" + extension;
 			string pathModel = GetModelPath();
 			try
 			{
@@ -90,8 +101,9 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		{
 			CheckTrainData(features, labels);
 			string tempFilePrefix = GetTempFilePathPrefix();
-			string pathFeatures = tempFilePrefix + "_features.txt";
-			string pathLabels = tempFilePrefix + "_labels.txt";
+			string extension = binaryFiles ? ".npy" : ".txt";
+			string pathFeatures = tempFilePrefix + "_features" + extension;
+			string pathLabels = tempFilePrefix + "_labels" + extension;
 			string pathModel = GetModelPath();
 			try
 			{
@@ -114,8 +126,9 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		{
 			CheckTrainData(features, labels);
 			string tempFilePrefix = GetTempFilePathPrefix();
-			string pathFeatures = tempFilePrefix + "_features.txt";
-			string pathLabels = tempFilePrefix + "_labels.txt";
+			string extension = binaryFiles ? ".npy" : ".txt";
+			string pathFeatures = tempFilePrefix + "_features" + extension;
+			string pathLabels = tempFilePrefix + "_labels" + extension;
 			string pathModel = GetModelPath();
 			try
 			{

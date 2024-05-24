@@ -11,21 +11,29 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private readonly string workDir;
 		private readonly string pythonInterpreter;
 		private readonly string pythonScript;
+		private readonly bool binaryFiles;
 		private readonly bool cleanupIOFiles;
 		private readonly int timeoutMilliseconds;
 
-		private readonly ArrayTextFileIO arrayIO;
+		private readonly IArrayFileIO arrayIO;
 
-		public PythonCaller(string workDir, string pythonInterpreter, string pythonScript, bool cleanupIOFiles = true, 
-			int timeoutMilliseconds = -1)
+		public PythonCaller(string workDir, string pythonInterpreter, string pythonScript, bool binaryFiles=false, 
+			bool cleanupIOFiles = true, int timeoutMilliseconds = -1)
 		{
 			this.workDir = workDir;
 			this.pythonInterpreter = pythonInterpreter;
 			this.pythonScript = pythonScript;
 			this.cleanupIOFiles = cleanupIOFiles;
 			this.timeoutMilliseconds = timeoutMilliseconds;
-
-			this.arrayIO = new ArrayTextFileIO(' ');
+			this.binaryFiles = binaryFiles;
+			if (binaryFiles)
+			{
+				this.arrayIO = new ArrayBinaryFIleIO();
+			}
+			else
+			{
+				this.arrayIO = new ArrayTextFileIO(' ');
+			}	
 		}
 
 		public double[] CallPython(double[] input)
@@ -101,8 +109,9 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			string filename = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}{time.Second}";
 			//string filename = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}_{Guid.NewGuid()}";
 
-			string inputFile = $"{workDir}\\{filename}_in.txt";
-			string outputFile = $"{workDir}\\{filename}_out.txt";
+			string extension = binaryFiles ? "npy" : "txt";
+			string inputFile = $"{workDir}\\{filename}_in.{extension}";
+			string outputFile = $"{workDir}\\{filename}_out.{extension}";
 
 			return (inputFile, outputFile);
 		}

@@ -5,7 +5,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 	using System.IO;
 	using System.Text;
 
-	public class ArrayTextFileIO
+	public class ArrayTextFileIO : IArrayFileIO
 	{
 		private readonly char separator;
 
