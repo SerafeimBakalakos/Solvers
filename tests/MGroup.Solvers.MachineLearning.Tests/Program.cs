@@ -12,7 +12,7 @@ namespace MGroup.Solvers.MachineLearning.Tests
 	{
 		public static void Main(string[] args)
 		{
-			CallingPythonTests.TestTrainAndPredictDouble();
+			CallingPythonTests.TestTrainAndPredict(false, false);
 		}
 	}
 }

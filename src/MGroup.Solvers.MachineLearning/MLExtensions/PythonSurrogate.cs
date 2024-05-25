@@ -6,6 +6,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 	using System.IO;
 	using System.Text;
 	using Google.Protobuf;
+	using Newtonsoft.Json;
 
 	public class PythonSurrogate
 	{
@@ -16,13 +17,15 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private readonly int sizeInput;
 		private readonly int sizeOutput;
 		private readonly bool binaryFiles;
+		private readonly int tensorFlowSeed;
 		private readonly bool cleanupIOFiles;
 		private readonly int timeoutMilliseconds;
 
 		private readonly IArrayFileIO arrayIO;
 
 		public PythonSurrogate(string workDir, string pythonInterpreter, string trainScript, string predictScript,
-			int sizeInput, int sizeOutput, bool binaryFiles = false, bool cleanupIOFiles = true, int timeoutMilliseconds = -1)
+			int sizeInput, int sizeOutput, bool binaryFiles = false, int tensorFlowSeed = -1,
+			bool cleanupIOFiles = true, int timeoutMilliseconds = -1)
 		{
 			this.workDir = workDir;
 			this.pythonInterpreter = pythonInterpreter;
@@ -30,6 +33,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			this.predictScript = predictScript;
 			this.sizeInput = sizeInput;
 			this.sizeOutput = sizeOutput;
+			this.tensorFlowSeed = tensorFlowSeed;
 			this.cleanupIOFiles = cleanupIOFiles;
 			this.timeoutMilliseconds = timeoutMilliseconds;
 			this.binaryFiles = binaryFiles;
@@ -46,112 +50,104 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		public double[] CallPredictScript(double[] input)
 		{
 			CheckPredictionData(input);
-			string tempFilePrefix = GetTempFilePathPrefix();
-			string extension = binaryFiles ? ".npy" : ".txt";
-			string pathInput = tempFilePrefix + "_input" + extension;
-			string pathOutput = tempFilePrefix + "_output" + extension;
-			string pathModel = GetModelPath();
-			try
-			{
-				arrayIO.WriteArray1DToFile(input, pathInput);
-				CallPythonScript(predictScript, pathInput, pathOutput, pathModel);
-				var output = new double[sizeOutput];
-				arrayIO.ReadArray1DFromFile(output, pathOutput);
-				return output;
-			}
-			finally
-			{
-				// Cleanup
-				if (cleanupIOFiles)
-				{
-					File.Delete(pathInput);
-					File.Delete(pathOutput);
-				}
-			}
+			var output = new double[sizeOutput];
+			CallPredictScript(true,
+				(pathInput) => arrayIO.WriteArray1DToFile(input, pathInput),
+				(pathOutput) => arrayIO.ReadArray1DFromFile(output, pathOutput)
+			);
+			return output;
 		}
 
 		public float[] CallPredictScript(float[] input)
 		{
 			CheckPredictionData(input);
-			string tempFilePrefix = GetTempFilePathPrefix();
-			string extension = binaryFiles ? ".npy" : ".txt";
-			string pathInput = tempFilePrefix + "_input" + extension;
-			string pathOutput = tempFilePrefix + "_output" + extension;
-			string pathModel = GetModelPath();
-			try
-			{
-				arrayIO.WriteArray1DToFile(input, pathInput);
-				CallPythonScript(predictScript, pathInput, pathOutput, pathModel);
-				var output = new float[sizeOutput];
-				arrayIO.ReadArray1DFromFile(output, pathOutput);
-				return output;
-			}
-			finally
-			{
-				// Cleanup
-				if (cleanupIOFiles)
-				{
-					File.Delete(pathInput);
-					File.Delete(pathOutput);
-				}
-			}
+			var output = new float[sizeOutput];
+			CallPredictScript(false,
+				(pathInput) => arrayIO.WriteArray1DToFile(input, pathInput),
+				(pathOutput) => arrayIO.ReadArray1DFromFile(output, pathOutput)
+			);
+			return output;
 		}
 
 		public void CallTrainScript(double[,] features, double[,] labels)
 		{
 			CheckTrainData(features, labels);
-			string tempFilePrefix = GetTempFilePathPrefix();
-			string extension = binaryFiles ? ".npy" : ".txt";
-			string pathFeatures = tempFilePrefix + "_features" + extension;
-			string pathLabels = tempFilePrefix + "_labels" + extension;
-			string pathModel = GetModelPath();
-			try
+			CallTrainScript(true, (string pathFeatures, string pathLabels) =>
 			{
 				arrayIO.WriteArray2DToFile(features, pathFeatures);
 				arrayIO.WriteArray2DToFile(labels, pathLabels);
-				CallPythonScript(trainScript, pathFeatures, pathLabels, pathModel);
-			}
-			finally
-			{
-				// Cleanup
-				if (cleanupIOFiles)
-				{
-					File.Delete(pathFeatures);
-					File.Delete(pathLabels);
-				}
-			}
+			});
 		}
 
 		public void CallTrainScript(float[,] features, float[,] labels)
 		{
 			CheckTrainData(features, labels);
-			string tempFilePrefix = GetTempFilePathPrefix();
-			string extension = binaryFiles ? ".npy" : ".txt";
-			string pathFeatures = tempFilePrefix + "_features" + extension;
-			string pathLabels = tempFilePrefix + "_labels" + extension;
-			string pathModel = GetModelPath();
-			try
+			CallTrainScript(false, (string pathFeatures, string pathLabels) =>
 			{
 				arrayIO.WriteArray2DToFile(features, pathFeatures);
 				arrayIO.WriteArray2DToFile(labels, pathLabels);
-				CallPythonScript(trainScript, pathFeatures, pathLabels, pathModel);
+			});
+		}
+
+		private void CallPredictScript(bool doublePrecision, Action<string> writeInputToFile, Action<string> readOutputFromFile)
+		{
+			string tempFilePrefix = GetTempFilePathPrefix();
+			string extension = binaryFiles ? ".npy" : ".txt";
+			string pathInput = tempFilePrefix + "_input" + extension;
+			string pathOutput = tempFilePrefix + "_output" + extension;
+			string pathSettings = tempFilePrefix + "_settings.json";
+			string pathModel = GetModelPath();
+			string processArgs = $"{predictScript} {pathSettings} {pathInput} {pathOutput} {pathModel}";
+			try
+			{
+				WriteSettingsFile(doublePrecision, pathSettings);
+				writeInputToFile(pathInput);
+				CallPythonScript(processArgs);
+				readOutputFromFile(pathOutput);
 			}
 			finally
 			{
 				// Cleanup
 				if (cleanupIOFiles)
 				{
+					File.Delete(pathSettings);
+					File.Delete(pathInput);
+					File.Delete(pathOutput);
+				}
+			}
+		}
+		private void CallTrainScript(bool doublePrecision, Action<string, string> writeFeaturesAndLabelsToFiles)
+		{
+			string tempFilePrefix = GetTempFilePathPrefix();
+			string extension = binaryFiles ? ".npy" : ".txt";
+			string pathFeatures = tempFilePrefix + "_features" + extension;
+			string pathLabels = tempFilePrefix + "_labels" + extension;
+			string pathSettings = tempFilePrefix + "_settings.json";
+			string pathModel = GetModelPath();
+			string processArgs = $"{trainScript} {pathSettings} {pathFeatures} {pathLabels} {pathModel}";
+			try
+			{
+				WriteSettingsFile(doublePrecision, pathSettings);
+				writeFeaturesAndLabelsToFiles(pathFeatures, pathLabels);
+				CallPythonScript(processArgs);
+			}
+			finally
+			{
+				// Cleanup
+				if (cleanupIOFiles)
+				{
+					File.Delete(pathSettings);
 					File.Delete(pathFeatures);
 					File.Delete(pathLabels);
 				}
 			}
 		}
 
-		private void CallPythonScript(string scriptFile, string pathFeatures, string pathLabels, string pathModel)
+		private void CallPythonScript(string processArgs)
 		{
 			var startInfo = new ProcessStartInfo(pythonInterpreter);
 			startInfo.FileName = pythonInterpreter;
-			startInfo.Arguments = $"{scriptFile} {pathFeatures} {pathLabels} {pathModel}";
+			startInfo.Arguments = processArgs;
 			startInfo.UseShellExecute = false;
 			startInfo.RedirectStandardOutput = true;
 			//startInfo.RedirectStandardError = true;
@@ -207,6 +203,38 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			var time = DateTime.Now;
 			string prefix = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}_{Guid.NewGuid()}";
 			return $"{workDir}\\{prefix}";
+		}
+
+		private void WriteSettingsFile(bool doublePrecision, string path)
+		{
+			var settings = new Settings()
+			{
+				Float64 = doublePrecision,
+				Seed = tensorFlowSeed
+			};
+
+			using (StreamWriter file = File.CreateText(path))
+			{
+				var serializer = new JsonSerializer();
+				serializer.Serialize(file, settings);
+			}
+
+			// For .NET Core 3.0+ and .NET 5+, instead of Newtonsoft lib:
+			//string json = JsonSerializer.Serialize(settings);
+			//File.WriteAllText(path, json);
+		}
+
+		private class Settings
+		{
+			/// <summary>
+			/// TensorFlow will use: double precision if true, else single precision.
+			/// </summary>
+			public bool Float64 { get; set; } = false;
+
+			/// <summary>
+			/// If the value is not -1, TensorFlow will use this seed for all RNG (useful to reproduce results).
+			/// </summary>
+			public int Seed { get; set; } = -1;
 		}
 	}
 }
