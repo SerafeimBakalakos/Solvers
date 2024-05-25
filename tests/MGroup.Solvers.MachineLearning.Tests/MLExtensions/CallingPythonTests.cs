@@ -25,8 +25,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 			string pythonInterpreter = "C:\\Coding\\Dev\\Python\\DDM_ML\\venv\\Scripts\\python.exe";
 			string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\evaluate.py";
 
-			var pythonCaller = new PythonCaller(workDir, pythonInterpreter, pythonScript,
-				binaryFiles: binaryIOFiles, cleanupIOFiles: false);
+			var pythonCaller = new PythonCaller(workDir, pythonInterpreter, pythonScript);
+			pythonCaller.UseBinaryIOFilesForArrays = binaryIOFiles;
+			pythonCaller.CleanupIOFiles = true;
 
 			double[] x = { 1.11, 3.33, -2.22 };
 			double[] yExpected = { 2.22, 6.66, -4.44 };
@@ -55,9 +56,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 			string trainScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\train.py";
 			string predictScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\predict.py";
 
-			int seed = 40;
-			var surrogate = new PythonSurrogate(workDir, pythonInterpreter, trainScript, predictScript, 2, 3,
-				binaryFiles: binaryIOFiles, tensorFlowSeed:seed, cleanupIOFiles: true);
+			var surrogate = new PythonSurrogate(workDir, pythonInterpreter, trainScript, predictScript, 2, 3);
+			surrogate.UseBinaryIOFilesForArrays = binaryIOFiles;
+			surrogate.TensorFlowSeed = 40;
+			surrogate.CleanupIOFiles = true;
 
 			double[,] features =
 			{

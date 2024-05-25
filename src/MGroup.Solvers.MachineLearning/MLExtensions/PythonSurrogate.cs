@@ -16,16 +16,11 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private readonly string predictScript;
 		private readonly int sizeInput;
 		private readonly int sizeOutput;
-		private readonly bool binaryFiles;
-		private readonly int tensorFlowSeed;
-		private readonly bool cleanupIOFiles;
-		private readonly int timeoutMilliseconds;
 
-		private readonly IArrayFileIO arrayIO;
+		private IArrayFileIO arrayIO = new ArrayTextFileIO(' ');
 
 		public PythonSurrogate(string workDir, string pythonInterpreter, string trainScript, string predictScript,
-			int sizeInput, int sizeOutput, bool binaryFiles = false, int tensorFlowSeed = -1,
-			bool cleanupIOFiles = true, int timeoutMilliseconds = -1)
+			int sizeInput, int sizeOutput)
 		{
 			this.workDir = workDir;
 			this.pythonInterpreter = pythonInterpreter;
@@ -33,17 +28,44 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			this.predictScript = predictScript;
 			this.sizeInput = sizeInput;
 			this.sizeOutput = sizeOutput;
-			this.tensorFlowSeed = tensorFlowSeed;
-			this.cleanupIOFiles = cleanupIOFiles;
-			this.timeoutMilliseconds = timeoutMilliseconds;
-			this.binaryFiles = binaryFiles;
-			if (binaryFiles)
+		}
+
+		/// <summary>
+		/// True (default) to delete any files created by this class. False to retain the files for manual inspection.
+		/// </summary>
+		public bool CleanupIOFiles { get; set; } = true;
+
+		/// <summary>
+		/// Sets a seed value for all random number generations used by TensorFlow in Python scipt. No seed will be 
+		/// used, if <see cref="TensorFlowSeed"/> == -1 (default). Setting a seed is useful to obtain reproducible results.
+		/// </summary>
+		public int TensorFlowSeed { get; set; } = -1;
+
+		/// <summary>
+		/// Specifies the milliseconds to wait before aborting the call to a Python script. 
+		/// Indefinite waiting if <see cref="TimeoutMilliseconds"/> == -1 (default).
+		/// </summary>
+		public int TimeoutMilliseconds { get; set; } = -1;
+
+		/// <summary>
+		/// If true, arrays will be transfered between C# and Python using the binary .npy format. These are not readable by
+		/// humans, but are more efficient.
+		/// If false (default), text files (.txt extension) will be used instead, where each array entry is separated by a single 
+		/// whitespace char and each row (for 2D arrays) by a newline char. These are readable by humans, but less efficient.
+		/// </summary>
+		public bool UseBinaryIOFilesForArrays
+		{
+			get => arrayIO is ArrayBinaryFileIO;
+			set
 			{
-				this.arrayIO = new ArrayBinaryFIleIO();
-			}
-			else
-			{
-				this.arrayIO = new ArrayTextFileIO(' ');
+				if (value)
+				{
+					arrayIO = new ArrayBinaryFileIO();
+				}
+				else
+				{
+					arrayIO = new ArrayTextFileIO(' ');
+				}
 			}
 		}
 
@@ -92,7 +114,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private void CallPredictScript(bool doublePrecision, Action<string> writeInputToFile, Action<string> readOutputFromFile)
 		{
 			string tempFilePrefix = GetTempFilePathPrefix();
-			string extension = binaryFiles ? ".npy" : ".txt";
+			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
 			string pathInput = tempFilePrefix + "_input" + extension;
 			string pathOutput = tempFilePrefix + "_output" + extension;
 			string pathSettings = tempFilePrefix + "_settings.json";
@@ -108,7 +130,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			finally
 			{
 				// Cleanup
-				if (cleanupIOFiles)
+				if (CleanupIOFiles)
 				{
 					File.Delete(pathSettings);
 					File.Delete(pathInput);
@@ -119,7 +141,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private void CallTrainScript(bool doublePrecision, Action<string, string> writeFeaturesAndLabelsToFiles)
 		{
 			string tempFilePrefix = GetTempFilePathPrefix();
-			string extension = binaryFiles ? ".npy" : ".txt";
+			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
 			string pathFeatures = tempFilePrefix + "_features" + extension;
 			string pathLabels = tempFilePrefix + "_labels" + extension;
 			string pathSettings = tempFilePrefix + "_settings.json";
@@ -134,7 +156,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			finally
 			{
 				// Cleanup
-				if (cleanupIOFiles)
+				if (CleanupIOFiles)
 				{
 					File.Delete(pathSettings);
 					File.Delete(pathFeatures);
@@ -154,7 +176,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			int exitCode = -1;
 			using (var process = Process.Start(startInfo))
 			{
-				process.WaitForExit(timeoutMilliseconds);
+				process.WaitForExit(TimeoutMilliseconds);
 				exitCode = process.ExitCode;
 			}
 			if (exitCode != 0)
@@ -210,7 +232,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			var settings = new Settings()
 			{
 				Float64 = doublePrecision,
-				Seed = tensorFlowSeed
+				Seed = TensorFlowSeed
 			};
 
 			using (StreamWriter file = File.CreateText(path))

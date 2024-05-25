@@ -14,29 +14,47 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private readonly string workDir;
 		private readonly string pythonInterpreter;
 		private readonly string pythonScript;
-		private readonly bool binaryFiles;
-		private readonly bool cleanupIOFiles;
-		private readonly int timeoutMilliseconds;
 
-		private readonly IArrayFileIO arrayIO;
+		private IArrayFileIO arrayIO = new ArrayTextFileIO(' ');
 
-		public PythonCaller(string workDir, string pythonInterpreter, string pythonScript, bool binaryFiles=false, 
-			bool cleanupIOFiles = true, int timeoutMilliseconds = -1)
+		public PythonCaller(string workDir, string pythonInterpreter, string pythonScript)
 		{
 			this.workDir = workDir;
 			this.pythonInterpreter = pythonInterpreter;
 			this.pythonScript = pythonScript;
-			this.cleanupIOFiles = cleanupIOFiles;
-			this.timeoutMilliseconds = timeoutMilliseconds;
-			this.binaryFiles = binaryFiles;
-			if (binaryFiles)
+		}
+
+		/// <summary>
+		/// True (default) to delete any files created by this class. False to retain the files for manual inspection.
+		/// </summary>
+		public bool CleanupIOFiles { get; set; } = true;
+
+		/// <summary>
+		/// Specifies the milliseconds to wait before aborting the call to a Python script. 
+		/// Indefinite waiting if <see cref="TimeoutMilliseconds"/> == -1 (default).
+		/// </summary>
+		public int TimeoutMilliseconds { get; set; } = -1;
+
+		/// <summary>
+		/// If true, arrays will be transfered between C# and Python using the binary .npy format. These are not readable by
+		/// humans, but are more efficient.
+		/// If false (default), text files (.txt extension) will be used instead, where each array entry is separated by a single 
+		/// whitespace char and each row (for 2D arrays) by a newline char. These are readable by humans, but less efficient.
+		/// </summary>
+		public bool UseBinaryIOFilesForArrays 
+		{ 
+			get => arrayIO is ArrayBinaryFileIO; 
+			set
 			{
-				this.arrayIO = new ArrayBinaryFIleIO();
+				if (value)
+				{
+					arrayIO = new ArrayBinaryFileIO();
+				}
+				else
+				{
+					arrayIO = new ArrayTextFileIO(' ');
+				}
 			}
-			else
-			{
-				this.arrayIO = new ArrayTextFileIO(' ');
-			}	
 		}
 
 		public double[] CallPython(double[] input)
@@ -55,7 +73,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			finally
 			{
 				// Cleanup
-				if (cleanupIOFiles)
+				if (CleanupIOFiles)
 				{
 					File.Delete(settingsFile);
 					File.Delete(inputFile);
@@ -80,7 +98,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			finally
 			{
 				// Cleanup
-				if (cleanupIOFiles)
+				if (CleanupIOFiles)
 				{
 					File.Delete(settingsFile);
 					File.Delete(inputFile);
@@ -100,7 +118,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			int exitCode = -1;
 			using (var process = Process.Start(startInfo))
 			{
-				process.WaitForExit(timeoutMilliseconds);
+				process.WaitForExit(TimeoutMilliseconds);
 				exitCode = process.ExitCode;
 			}
 			if (exitCode != 0)
@@ -116,7 +134,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			string filename = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}{time.Second}";
 			//string filename = $"{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}_{Guid.NewGuid()}";
 
-			string extension = binaryFiles ? "npy" : "txt";
+			string extension = (arrayIO is ArrayBinaryFileIO) ? "npy" : "txt";
 			string settingsFile = $"{workDir}\\{filename}_settings.json";
 			string inputFile = $"{workDir}\\{filename}_in.{extension}";
 			string outputFile = $"{workDir}\\{filename}_out.{extension}";

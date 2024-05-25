@@ -7,7 +7,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 	using NumSharp;
 
-	public class ArrayBinaryFIleIO : IArrayFileIO
+	public class ArrayBinaryFileIO : IArrayFileIO
 	{
 		public void ReadArray1DFromFile(double[] array, string file)
 		{
