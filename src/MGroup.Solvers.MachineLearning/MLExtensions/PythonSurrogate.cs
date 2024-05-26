@@ -124,7 +124,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			{
 				WriteSettingsFile(doublePrecision, pathSettings);
 				writeInputToFile(pathInput);
-				CallPythonScript(processArgs);
+				CallPythonScript(processArgs, pathSettings);
 				readOutputFromFile(pathOutput);
 			}
 			finally
@@ -138,6 +138,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 				}
 			}
 		}
+
 		private void CallTrainScript(bool doublePrecision, Action<string, string> writeFeaturesAndLabelsToFiles)
 		{
 			string tempFilePrefix = GetTempFilePathPrefix();
@@ -151,7 +152,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			{
 				WriteSettingsFile(doublePrecision, pathSettings);
 				writeFeaturesAndLabelsToFiles(pathFeatures, pathLabels);
-				CallPythonScript(processArgs);
+				CallPythonScript(processArgs, pathSettings);
 			}
 			finally
 			{
@@ -165,7 +166,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			}
 		}
 
-		private void CallPythonScript(string processArgs)
+		private void CallPythonScript(string processArgs, string pathSettings)
 		{
 			var startInfo = new ProcessStartInfo(pythonInterpreter);
 			startInfo.FileName = pythonInterpreter;
@@ -179,11 +180,21 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 				process.WaitForExit(TimeoutMilliseconds);
 				exitCode = process.ExitCode;
 			}
+
 			if (exitCode != 0)
 			{
-				throw new Exception($"Python script exited with code {exitCode}, instead of 0 (successful)");
+				// The settings file will be overwritten with the error message
+				using (var reader = new StreamReader(pathSettings))
+				{
+					var pythonErrorMsg = reader.ReadToEnd();
+					var csharpErrorMsg = new StringBuilder();
+					csharpErrorMsg.AppendLine($"Python script exited with code {exitCode}, instead of 0 (successful).");
+					csharpErrorMsg.AppendLine($"**** Start of Python error message ***");
+					csharpErrorMsg.AppendLine(pythonErrorMsg);
+					csharpErrorMsg.AppendLine($"**** End of Python error message ***");
+					throw new Exception(csharpErrorMsg.ToString());
+				}
 			}
-			Console.WriteLine();
 		}
 
 		[Conditional("DEBUG")]

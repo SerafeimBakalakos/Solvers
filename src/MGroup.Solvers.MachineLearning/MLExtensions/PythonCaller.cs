@@ -121,9 +121,17 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 				process.WaitForExit(TimeoutMilliseconds);
 				exitCode = process.ExitCode;
 			}
-			if (exitCode != 0)
+
+			// The settings file will be overwritten with the error message
+			using (var reader = new StreamReader(settingsFile))
 			{
-				throw new Exception($"Python script exited with code {exitCode}, instead of 0 (successful)");
+				var pythonErrorMsg = reader.ReadToEnd();
+				var csharpErrorMsg = new StringBuilder();
+				csharpErrorMsg.AppendLine($"Python script exited with code {exitCode}, instead of 0 (successful).");
+				csharpErrorMsg.AppendLine($"**** Start of Python error message ***");
+				csharpErrorMsg.AppendLine(pythonErrorMsg);
+				csharpErrorMsg.AppendLine($"**** End of Python error message ***");
+				throw new Exception(csharpErrorMsg.ToString());
 			}
 		}
 
