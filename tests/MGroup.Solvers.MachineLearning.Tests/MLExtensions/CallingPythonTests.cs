@@ -23,7 +23,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 		{
 			string workDir = "C:\\Users\\Serafeim\\Desktop\\AISolve\\PythonCSharpBridge\\eval";
 			string pythonInterpreter = "C:\\Coding\\Dev\\Python\\DDM_ML\\venv\\Scripts\\python.exe";
-			string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\evaluate.py";
+			string pythonScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\src\\surrogates\\evaluate.py";
 
 			var pythonCaller = new PythonCaller(workDir, pythonInterpreter, pythonScript);
 			pythonCaller.UseBinaryIOFilesForArrays = binaryIOFiles;
@@ -53,8 +53,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 		{
 			string workDir = "C:\\Users\\Serafeim\\Desktop\\AISolve\\PythonCSharpBridge\\sample_surrogate";
 			string pythonInterpreter = "C:\\Coding\\Dev\\Python\\DDM_ML\\venv\\Scripts\\python.exe";
-			string trainScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\train.py";
-			string predictScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\surrogates\\predict.py";
+			string trainScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\src\\surrogates\\train.py";
+			string predictScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\src\\surrogates\\predict.py";
 
 			var surrogate = new PythonSurrogate(workDir, pythonInterpreter, trainScript, predictScript, 2, 3);
 			surrogate.UseBinaryIOFilesForArrays = binaryIOFiles;

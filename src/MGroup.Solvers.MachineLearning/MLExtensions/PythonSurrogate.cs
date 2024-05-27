@@ -183,16 +183,24 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 			if (exitCode != 0)
 			{
-				// The settings file will be overwritten with the error message
-				using (var reader = new StreamReader(pathSettings))
+				if (exitCode == 100)
 				{
-					var pythonErrorMsg = reader.ReadToEnd();
-					var csharpErrorMsg = new StringBuilder();
-					csharpErrorMsg.AppendLine($"Python script exited with code {exitCode}, instead of 0 (successful).");
-					csharpErrorMsg.AppendLine($"**** Start of Python error message ***");
-					csharpErrorMsg.AppendLine(pythonErrorMsg);
-					csharpErrorMsg.AppendLine($"**** End of Python error message ***");
-					throw new Exception(csharpErrorMsg.ToString());
+					// The settings file will be overwritten with the error message
+					using (var reader = new StreamReader(pathSettings))
+					{
+						var pythonErrorMsg = reader.ReadToEnd();
+						var csharpErrorMsg = new StringBuilder();
+						csharpErrorMsg.AppendLine($"Python script terminated with errors:");
+						csharpErrorMsg.AppendLine($"**** Start of Python error message ***");
+						csharpErrorMsg.AppendLine(pythonErrorMsg);
+						csharpErrorMsg.AppendLine($"**** End of Python error message ***");
+						throw new Exception(csharpErrorMsg.ToString());
+					}
+				}
+				else
+				{
+					throw new Exception(
+						$"Python script exited with code {exitCode}, instead of 0 (successful) or 100 (handled error).");
 				}
 			}
 		}
