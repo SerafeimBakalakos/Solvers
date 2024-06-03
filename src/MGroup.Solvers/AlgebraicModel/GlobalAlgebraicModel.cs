@@ -146,14 +146,32 @@ namespace MGroup.Solvers.AlgebraicModel
 			return subdomainDofs.ExtractVectorElementFromSubdomain(element, globalVector.SingleVector);
 		}
 
+		/// <summary>
+		/// Returns the values solution at free dofs of a node, as well as the prescribed values at constrained dofs.
+		/// </summary>
 		public double[] ExtractNodalValues(IGlobalVector vector, INode node, IDofType[] dofs)
 		{
 			GlobalVector globalVector = CheckCompatibleVector(vector);
 			ISubdomainFreeDofOrdering subdomainDofs = SubdomainFreeDofOrdering;
-			var nodeConstraints = model.EnumerateBoundaryConditions(subdomain.ID)
-				.Select(x => x.EnumerateNodalBoundaryConditions(model.EnumerateElements(subdomain.ID))).OfType<INodalDirichletBoundaryCondition<IDofType>>()
-				.Where(x => x.Node.ID == node.ID)
-				.ToArray();
+
+			IEnumerable<IElementType> elements = model.EnumerateElements(subdomain.ID);
+			var nodeConstraints = new List<INodalDirichletBoundaryCondition<IDofType>>();
+			foreach (IBoundaryConditionSet<IDofType> bcSet in model.EnumerateBoundaryConditions(subdomain.ID))
+			{
+				foreach (INodalBoundaryCondition<IDofType> bc in bcSet.EnumerateNodalBoundaryConditions(elements))
+				{
+					if (bc is INodalDirichletBoundaryCondition<IDofType> dirichletBC)
+					{
+						nodeConstraints.Add(dirichletBC);
+					}
+				}
+			}
+
+			//var nodeConstraints = model.EnumerateBoundaryConditions(subdomain.ID)
+			//	.Select(x => x.EnumerateNodalBoundaryConditions(model.EnumerateElements(subdomain.ID))) // after projecting them, I need to gather them in one collection
+			//	.OfType<INodalDirichletBoundaryCondition<IDofType>>()
+			//	.Where(x => x.Node.ID == node.ID)
+			//	.ToArray();
 			var result = new double[dofs.Length];
 			for (int i = 0; i < dofs.Length; ++i)
 			{
