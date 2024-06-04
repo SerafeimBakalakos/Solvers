@@ -56,7 +56,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 			string trainScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\src\\surrogates\\train.py";
 			string predictScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\src\\surrogates\\predict.py";
 
-			var surrogate = new PythonSurrogate(workDir, pythonInterpreter, trainScript, predictScript, 2, 3);
+			var surrogate = new PythonSurrogate(workDir, pythonInterpreter, trainScript, predictScript, sizeInput:2, sizeOutput:3);
 			surrogate.UseBinaryIOFilesForArrays = binaryIOFiles;
 			surrogate.TensorFlowSeed = 40;
 			surrogate.CleanupIOFiles = true;

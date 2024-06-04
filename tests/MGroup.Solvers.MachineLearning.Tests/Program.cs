@@ -6,13 +6,14 @@ namespace MGroup.Solvers.MachineLearning.Tests
 	using System.Text;
 	using System.Threading.Tasks;
 
+	using MGroup.Solvers.MachineLearning.Tests.Dynamic;
 	using MGroup.Solvers.MachineLearning.Tests.MLExtensions;
 
 	public class Program
 	{
 		public static void Main(string[] args)
 		{
-			CallingPythonTests.TestTrainAndPredict(false, false);
+			CantileverDynamicAnalysis.RunAnalysis();
 		}
 	}
 }
