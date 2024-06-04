@@ -13,7 +13,7 @@ namespace MGroup.Solvers.MachineLearning.Tests
 	{
 		public static void Main(string[] args)
 		{
-			CantileverDynamicAnalysis.RunAnalysis();
+			CantileverDynamicAnalysis.RunStandAloneAnalysis();
 		}
 	}
 }

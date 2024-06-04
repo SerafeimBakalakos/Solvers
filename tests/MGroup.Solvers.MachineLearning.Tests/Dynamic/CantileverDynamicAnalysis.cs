@@ -14,6 +14,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Constitutive.Structural.Planar;
 	using MGroup.Constitutive.Structural.Transient;
 	using MGroup.FEM.Structural.Continuum;
+	using MGroup.LinearAlgebra.Iterative.Termination.Iterations;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.BoundaryConditions;
@@ -33,7 +34,27 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 	public class CantileverDynamicAnalysis
 	{
-		public static void RunAnalysis()
+		public static void RunStochasticAnalysis()
+		{
+			//int numAnalysesTotal = 300;
+			//int numSolutionsForTraining = 50;
+			//int numPrincipalComponents = 8;
+
+			//var solverFactory = new TempAiSolver.Factory(numSolutionsForTraining, numPrincipalComponents);
+			//solverFactory.PcgConvergenceTolerance = 1E-6;
+			//solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
+			//AmgAISolver solver = solverFactory.BuildSolver();
+
+			//int[] numElements = { 4, 20 };
+			//var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
+			//example.Rng = new Random(Seed: 23);
+
+			//string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
+			//double timeStep = 0.05;
+			//double totalDuration = 3;
+		}
+
+		public static void RunStandAloneAnalysis()
 		{
 			string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
 			int[] numElements = { 4, 20 };
@@ -41,7 +62,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			double totalDuration = 3;
 
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
-			Model model = example.CreateFemModel();
+			example.ElasticityModulusMean = 200E6;
+			//example.ElasticityModulusMean = 15E6;
+			(Model model, double[] parameters) = example.CreateFemModel();
 
 			var solverFactory = new TempAiSolver.Factory()
 			{
