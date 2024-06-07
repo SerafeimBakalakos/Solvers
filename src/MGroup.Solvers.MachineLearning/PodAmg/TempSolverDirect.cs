@@ -26,8 +26,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using System.Diagnostics;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.MSolve.Solution.AlgebraicModel;
 
-	public class TempAiSolver: SingleSubdomainSolverBase<SkylineMatrix>
+	public class TempSolverDirect: SingleSubdomainSolverBase<SkylineMatrix>, ITempSolver
 	{
 		private readonly double factorizationPivotTolerance;
 
@@ -38,11 +39,13 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private int currentParameterSet;
 		private int currentTimeStep;
 
-		private TempAiSolver(GlobalAlgebraicModel<SkylineMatrix> model, double factorizationPivotTolerance)
+		private TempSolverDirect(GlobalAlgebraicModel<SkylineMatrix> model, double factorizationPivotTolerance)
 			: base(model, "TempAiSolver")
 		{
 			this.factorizationPivotTolerance = factorizationPivotTolerance;
 		}
+
+		public IAlgebraicModel Model => model;
 
 		public SolutionDatabase SavedSolutions { get; } = new SolutionDatabase();
 
@@ -67,6 +70,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		/// </summary>
 		public override void Solve()
 		{
+			Console.WriteLine("new timestep");
 			var watch = new Stopwatch();
 			SkylineMatrix matrix = LinearSystem.Matrix.SingleMatrix;
 			int systemSize = matrix.NumRows;
@@ -113,9 +117,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			public double FactorizationPivotTolerance { get; set; } = 1E-15;
 
-			public TempAiSolver BuildSolver(GlobalAlgebraicModel<SkylineMatrix> model)
+			public TempSolverDirect BuildSolver(GlobalAlgebraicModel<SkylineMatrix> model)
 			{
-				return new TempAiSolver(model, FactorizationPivotTolerance);
+				return new TempSolverDirect(model, FactorizationPivotTolerance);
 			}
 
 			public GlobalAlgebraicModel<SkylineMatrix> BuildAlgebraicModel(IModel model)
