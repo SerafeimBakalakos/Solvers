@@ -3,6 +3,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
+	using DotNumerics.ODE.Radau5;
 	using DotNumerics.Optimization;
 
 	using MathNet.Numerics.Distributions;
@@ -82,7 +84,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			return new CantileverDynamicModel(true, new int[] { numElementsX, numElementsY, numElementsZ });
 		}
 
-		public (Model model, double[] parameters) CreateFemModel()
+		public (Model model, double[] parameters, int monitorNodeId) CreateFemModel()
 		{
 			double[] elementElasticities = GenerateRandomElementElasticities();
 			Model model = use3DElements ? CreateMesh3D(elementElasticities) : CreateMesh2D(elementElasticities);
@@ -90,13 +92,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			ApplyInitialConditions(model);
 			ApplyDynamicTopLoad(model);
 
-			return (model, elementElasticities);
+			int monitorNodeId = FindMonitorNode(model);
+			return (model, elementElasticities, monitorNodeId);
 		}
 
 		private Model CreateMesh2D(double[] elementElasticities)
 		{
 			// Mesh
-			double[] minCoords = { 0.0, 0.0, };
+			double[] minCoords = { 0.0, 0.0 };
 			double[] maxCoords = { BeamSectionHeight, BeamLength };
 			var meshBuilder = new UniformCartesianMesh2D.Builder(minCoords, maxCoords, numElementsPerAxis);
 			meshBuilder.SetElementNodeOrderCounterClockwise();
@@ -221,13 +224,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				spatialLoadDistribution.Add(new NodalLoad(node, StructuralDof.TranslationX, amount: 1.0));
 			}
 
+			var load = new DynamicLoad(ExternalLoadAmplitude, ExternalLoadCyclicFrequency, TimeStep);
 			var transientConstraints = new List<INodalDisplacementBoundaryCondition>(); // Empty: no transient constraints
 			var transientBoundaryConditions = new StructuralTransientBoundaryConditionSet(
 				new List<IBoundaryConditionSet<IStructuralDofType>>()
 				{
 					new StructuralBoundaryConditionSet(transientConstraints, spatialLoadDistribution)
 				},
-				EvaluateExternalLoad);
+				load.Evaluate/*EvaluateExternalLoad*/);
 			model.BoundaryConditions.Add(transientBoundaryConditions);
 		}
 
@@ -249,7 +253,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		}
 
 		private double EvaluateExternalLoad(double t, double spatialLoadComponent)
-			=> spatialLoadComponent * ExternalLoadAmplitude * Math.Sin(ExternalLoadCyclicFrequency * t);
+		{
+			Console.WriteLine(t);
+			return spatialLoadComponent * ExternalLoadAmplitude * Math.Sin(ExternalLoadCyclicFrequency * t);
+		}
 
 		private IEnumerable<INode> FindNodesAtSection(double distanceOnAxis, Model model)
 		{
@@ -260,11 +267,65 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				model.NodesDictionary.Values.Where(node => Math.Abs(node.Y - distanceOnAxis) <= tol);
 		}
 
+		private int FindMonitorNode(Model model)
+		{
+			double distHeight = BeamSectionHeight / numElementsPerAxis[0];
+			double distLength = BeamLength / numElementsPerAxis[numElementsPerAxis.Length - 1];
+			INode monitorNode;
+			if (use3DElements)
+			{
+				double distWidth = BeamSectionWidth / numElementsPerAxis[1];
+				monitorNode = model.NodesDictionary.Values
+					.Where(node => Math.Abs(node.Z - BeamLength) <= distLength / 10)
+					.Where(node => Math.Abs(node.X - BeamSectionHeight) <= distHeight / 10)
+					.Where(node => Math.Abs(node.Y - BeamSectionWidth) <= distWidth / 10)
+					.FirstOrDefault();
+			}
+			else
+			{
+				monitorNode = monitorNode = model.NodesDictionary.Values
+					.Where(node => Math.Abs(node.Y - BeamLength) <= distLength / 10)
+					.Where(node => Math.Abs(node.X - BeamSectionHeight) <= distHeight / 10)
+					.FirstOrDefault();
+			}
+
+			if (monitorNode != null)
+			{
+				return monitorNode.ID;
+			}
+			else
+			{
+				throw new Exception("No monitor node found. This is a bug.");
+			}
+		}
+
 		private double[] GenerateRandomElementElasticities()
 		{
 			var samples = new double[CountElements()];
 			Normal.Samples(Rng, samples, ElasticityModulusMean, ElasticityModulusStdDev);
 			return samples;
+		}
+
+		private class DynamicLoad
+		{
+			private readonly double amplitude;
+			private readonly double frequency;
+			private readonly double delay;
+
+			public DynamicLoad(double amplitude, double frequency, double delay)
+			{
+				this.amplitude = amplitude;
+				this.frequency = frequency;
+				this.delay = delay;
+			}
+
+			public double Evaluate(double t, double spatialLoadComponent)
+			{
+				double time = t;
+				//double time = t + delay;
+				Console.WriteLine(time);
+				return spatialLoadComponent * amplitude * Math.Sin(frequency * time);
+			}
 		}
 	}
 }
