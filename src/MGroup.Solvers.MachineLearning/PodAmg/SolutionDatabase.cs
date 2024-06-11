@@ -2,6 +2,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Text;
 
 	using MGroup.LinearAlgebra.Vectors;
@@ -15,6 +16,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		{
 			savedSolutions = new Dictionary<int, Dictionary<int, IGlobalVector>>();
 		}
+
+		public int NumTimeSteps => savedSolutions.Values.First().Count;
 
 		public IGlobalVector GetSolution(int parameterSet, int timeStep)
 		{

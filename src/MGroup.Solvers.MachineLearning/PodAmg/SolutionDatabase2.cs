@@ -10,26 +10,28 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 	public class SolutionDatabase2
 	{
+		private readonly bool ensureSameLengthVectors;
 		private readonly Dictionary<int, double[]> savedModelParameters;
 		private readonly Dictionary<int, SortedDictionary<int, Vector>> savedSolutions;
 
-		public SolutionDatabase2()
+		private int commonVectorLength = -1;
+
+		public SolutionDatabase2(bool ensureSameLengthVectors=true)
 		{
 			savedModelParameters = new Dictionary<int, double[]>();
 			savedSolutions = new Dictionary<int, SortedDictionary<int, Vector>>();
+			this.ensureSameLengthVectors = ensureSameLengthVectors;
 		}
 
 		public bool CopyParametersArray { get; set; } = true;
 
 		public bool IsEmpty { get; private set; } = true;
 
-		public int VectorLength { get; private set; } = -1;
-
 		public void Clear()
 		{
 			savedModelParameters.Clear();
 			savedSolutions.Clear();
-			VectorLength = -1;
+			commonVectorLength = -1;
 			IsEmpty = true;
 		}
 
@@ -78,7 +80,16 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			if (IsEmpty)
 			{
 				IsEmpty = false;
-				VectorLength = solution.Length;
+				commonVectorLength = solution.Length;
+			}
+			else
+			{
+				if (solution.Length != commonVectorLength)
+				{
+					throw new Exception("All solution vectors must have the same length, but the solution vector corresponding" +
+						$" to parameter set = {parameterSetId} and time step = {timeStep} has length={solution.Length}, " +
+						$"while the previous ones had length={commonVectorLength}");
+				}
 			}
 
 			SortedDictionary<int, Vector> solutionsOfRealization;

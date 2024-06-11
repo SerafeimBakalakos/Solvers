@@ -1,7 +1,5 @@
 namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 {
-
-
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -10,25 +8,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using System.Threading.Tasks;
 
 	using MGroup.Constitutive.Structural;
-	using MGroup.Constitutive.Structural.BoundaryConditions;
-	using MGroup.Constitutive.Structural.Continuum;
-	using MGroup.Constitutive.Structural.Planar;
-	using MGroup.Constitutive.Structural.Transient;
-	using MGroup.FEM.Structural.Continuum;
 	using MGroup.LinearAlgebra.Iterative.Termination.Iterations;
-	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.MSolve.Discretization;
-	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.MSolve.Discretization.Meshes.Output.VTK;
-	using MGroup.MSolve.Discretization.Meshes.Structured;
-	using MGroup.MSolve.Solution.AlgebraicModel;
 	using MGroup.MSolve.Solution.LinearSystem;
 	using MGroup.NumericalAnalyzers;
-	using MGroup.NumericalAnalyzers.Logging;
-	using MGroup.Solvers.AlgebraicModel;
-	using MGroup.Solvers.Direct;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.MachineLearning.AnalyzersExtensions;
@@ -38,6 +21,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	public class CantileverDynamicAnalysis
 	{
 		//private const string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
+		private const int numTimeSteps = 60;
+		private const double timeStepSize = 0.05;
+		private const bool printMsgsToConsole = true;
 
 		public static void RunStochasticAnalysis()
 		{
@@ -51,31 +37,35 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
 			AmgAiSolver2 solver = solverFactory.BuildSolver();
 
-			int[] numElements = { 4, 20 };
+			//int[] numElements = { 4, 20 };
+			int[] numElements = { 16, 80 };
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
+			example.SetTime(numTimeSteps * timeStepSize, numTimeSteps);
 			example.Rng = new Random(Seed: 23);
 
 			var responses = new List<double>(numAnalysesTotal);
-			for (int i = 1; i <= numAnalysesTotal; i++)
+			for (int i = 0; i < numAnalysesTotal; i++)
 			{
-				(double monitoredResponse, int numDofs, int numPcgIterations) = RunSingleAnalysis(i, solver, example);
-				responses.Add(monitoredResponse);
+				AnalysisResults results = RunSingleAnalysis(i, solver, example);
+				responses.Add(results.MonitorDofRespose);
 
-				Debug.WriteLine($"*************** Analysis {i}/{numAnalysesTotal} ***************");
-				Debug.WriteLine($"Number of PCG iterations = {numPcgIterations}. Dofs = {numDofs}.");
+				PrintLine($"*************** Analysis {i+1}/{numAnalysesTotal} ***************");
+				var msg = new StringBuilder();
+				msg.Append($"Dofs = {results.NumDofs}. Preconditioner = {results.PreconditionerName}. ");
+				msg.Append($"Average number of PCG iterations per timestep = {Math.Round(results.AveragePcgIterations)}. ");
+				msg.Append($"Preconditioner calculation duration = {results.PreconditionerCalculationDuration} ms. ");
+				msg.Append($"PCG solution duration (sum of all timesteps) = {results.TotalPcgDuration} ms.");
+				PrintLine(msg.ToString());
 			}
 
 			double mean = responses.Average();
-			Debug.WriteLine($"Total analyses: {numAnalysesTotal}. Training analyses: {numAnalysesForTraining}. " +
+			PrintLine($"Total analyses: {numAnalysesTotal}. Training analyses: {numAnalysesForTraining}. " +
 				$"Mean uTop={mean}");
 		}
 
-		private static (double monitoredResponse, int numDofs, int numPcgIterations) RunSingleAnalysis(
+		private static AnalysisResults RunSingleAnalysis(
 			int analysisNo, AmgAiSolver2 solver, CantileverDynamicModel example)
 		{
-			double timeStep = 0.05;
-			double totalDuration = 3;
-
 			(Model model, double[] parameters, int monitorNodeId) = example.CreateFemModel();
 			INode monitorNode = model.GetNode(monitorNodeId);
 
@@ -84,32 +74,49 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			var linearAnalyzer = new LinearAnalyzer(solver.AlgebraicModel, solver, problem);
 			var dynamicAnalyzerBuilder = new NewmarkDynamicAnalyzer.Builder(solver.AlgebraicModel, problem, linearAnalyzer,
-				timeStep, totalDuration, calculateInitialDerivativeVectors: false);
+				timeStepSize, timeStepSize * numTimeSteps, calculateInitialDerivativeVectors: false);
 			dynamicAnalyzerBuilder.SetNewmarkParametersForConstantAcceleration();
 			var dynamicAnalyzer = dynamicAnalyzerBuilder.Build();
 
 			dynamicAnalyzer.Initialize();
 			dynamicAnalyzer.Solve();
 
-			double computedDisplacement = solver.AlgebraicModel.ExtractSingleValue(
-				solver.LinearSystem.Solution, monitorNode, StructuralDof.TranslationZ);
-			int numPcgIterations = solver.Logger.GetNumIterationsOfIterativeAlgorithm(analysisNo - 1);
-			return (computedDisplacement, solver.LinearSystem.Solution.SingleVector.Length, numPcgIterations);
+			double response = solver.AlgebraicModel.ExtractSingleValue(
+				solver.LinearSystem.Solution, monitorNode, StructuralDof.TranslationX);
+
+			int numPcgIterations = 0;
+			long duration = 0;
+			for (int t = 0; t < numTimeSteps; t++)
+			{
+				numPcgIterations += solver.Logger.GetNumIterationsOfIterativeAlgorithm(t);
+			}
+
+			solver.Logger.TryGetTaskDuration(AmgAiSolver2.Subtask.CreatePreconditioner.ToString(), out long createDuration);
+			solver.Logger.TryGetTaskDuration(AmgAiSolver2.Subtask.SolveWithPcg.ToString(), out long solveDuration);
+
+			var results = new AnalysisResults()
+			{
+				MonitorDofRespose = response,
+				NumDofs = solver.LinearSystem.Solution.SingleVector.Length,
+				PreconditionerName = solver.CurrentPreconditionerName,
+				AveragePcgIterations = ((double)numPcgIterations) / numTimeSteps,
+				PreconditionerCalculationDuration = createDuration,
+				TotalPcgDuration = solveDuration,
+			};
+
+			return results;
 		}
 
 		public static void RunStandAloneAnalysis()
 		{
 			string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
 			int[] numElements = { 4, 20 };
-			double timeStep = 0.05;
-			int numSteps = 60;
-			double totalDuration = timeStep * numSteps;
-			bool useIterativeSolver = false;
+			bool useIterativeSolver = true;
 
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
 			example.ElasticityModulusMean = 200E6;
 			//example.ElasticityModulusMean = 15E6;
-			example.SetTime(totalDuration, numSteps);
+			example.SetTime(timeStepSize * numTimeSteps, numTimeSteps);
 			(Model model, _, _) = example.CreateFemModel();
 
 			ITempSolver solver;
@@ -135,7 +142,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			var linearAnalyzer = new LinearAnalyzer(solver.Model, solver, problem);
 			var dynamicAnalyzerBuilder = new NewmarkDynamicAnalyzer.Builder(solver.Model, problem, linearAnalyzer,
-				timeStep, totalDuration, calculateInitialDerivativeVectors: false);
+				timeStepSize, timeStepSize * numTimeSteps, calculateInitialDerivativeVectors: false);
 			dynamicAnalyzerBuilder.SetNewmarkParametersForConstantAcceleration();
 			var analyzer = dynamicAnalyzerBuilder.Build();
 			//var analyzer = new StaticAnalyzer(solver.Model, problem, linearAnalyzer);
@@ -147,11 +154,44 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			// Plotting
 			var plotter = new DisplacementFieldWriter(2, model, workDirectory);
-			for (int t = 0; t < analyzer.Steps; t++)
+			for (int t = 0; t < solver.SavedSolutions.NumTimeSteps; t++)
 			{
 				IGlobalVector solution = solver.SavedSolutions.GetSolution(parameterSet, t);
 				plotter.WriteResults(solver.Model, solution);
 			}
+		}
+
+		private static void PrintLine(string msg)
+		{
+			if (printMsgsToConsole)
+			{
+				Console.WriteLine(msg);
+			}
+			else
+			{
+				Debug.WriteLine(msg);
+			}
+		}
+
+		private class AnalysisResults
+		{
+			public double MonitorDofRespose { get; set; }
+
+			public int NumDofs { get; set; }
+
+			public double AveragePcgIterations { get; set; }
+
+			public string PreconditionerName { get; set; }
+
+			/// <summary>
+			/// In milliseconds
+			/// </summary>
+			public long PreconditionerCalculationDuration { get; set; }
+
+			/// <summary>
+			/// In milliseconds
+			/// </summary>
+			public double TotalPcgDuration { get; set; }
 		}
 	}
 }

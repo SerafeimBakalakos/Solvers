@@ -27,12 +27,24 @@ namespace MGroup.Solvers.Logging
 
 		public string ExtraInfo { get; set; }
 
+		public void Clear()
+		{
+			currentStep = 0;
+			iterativeAlgorithmData.Clear();
+			taskDurations.Clear();
+			taskDurations.Add(new SortedDictionary<string, long>());
+			numDofsPerCategory.Clear();
+			numDofsPerCategory.Add(new SortedDictionary<string, int>());
+		}
 
 		public int GetNumDofs(int analysisStep, string category) => numDofsPerCategory[analysisStep][category];
 
 		public int GetNumIterationsOfIterativeAlgorithm(int analysisStep) => iterativeAlgorithmData[analysisStep].iterations;
 		public double GetResidualNormRatioOfIterativeAlgorithm(int analysisStep) 
 			=> iterativeAlgorithmData[analysisStep].residualNormRatio;
+
+		public bool TryGetTaskDuration(string task, out long duration) 
+			=> taskDurations[currentStep].TryGetValue(task, out duration);
 
 		/// <summary>
 		/// Adds the duration of the selected task to the duration of the same task during the current analysis step.

@@ -323,7 +323,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			{
 				double time = t;
 				//double time = t + delay;
-				Console.WriteLine(time);
+				//Console.WriteLine(time);
 				return spatialLoadComponent * amplitude * Math.Sin(frequency * time);
 			}
 		}
