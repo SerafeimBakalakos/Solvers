@@ -133,7 +133,7 @@ namespace MGroup.Solvers.MachineLearning.AnalyzersExtensions
 
 		public int CurrentStep { get => currentStep; }
 
-		public int Steps { get => (int)(totalTime / timeStep); }
+		public int Steps => (int)(totalTime / timeStep) + 1;
 
 		public IList<IterativeStatistics> AnalysisStatistics => analysisStatistics;
 
@@ -280,7 +280,8 @@ namespace MGroup.Solvers.MachineLearning.AnalyzersExtensions
 		/// </summary>
 		public void Solve()
 		{
-			for (int i = 0; i < Steps; ++i)
+			AdvanceStep();
+			for (int i = 1; i < Steps; ++i)
 			{
 				SolveCurrentTimestep();
 				AdvanceStep();
