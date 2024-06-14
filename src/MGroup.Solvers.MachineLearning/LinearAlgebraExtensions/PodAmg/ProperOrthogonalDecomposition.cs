@@ -36,6 +36,8 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 		/// <returns></returns>
 		public Matrix CalculatePrincipalComponents(int numSampleVectors, Matrix sampleVectors, int numPrincipalComponents)
 		{
+			CheckDependentEigenvectors(sampleVectors, "sample solutions");
+
 			if (sampleVectors.NumColumns != numSampleVectors)
 			{
 				throw new ArgumentException("The matrix containing the sample vectors must have " +
@@ -56,26 +58,34 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 			if (sampleVectors.NumRows > sampleVectors.NumColumns)
 			{
 				Matrix correlation = sampleVectors.MultiplyRight(sampleVectors, transposeThis: true, transposeOther: false);
-				var svd = SingularValueDecomposition.Calculate(correlation);
+				(Vector eigenValues, Matrix eigenVectors) = PerformEigenDecomposition(correlation, false);
 
-				int numComponentsToKeep = CountPrincipalComponentsToKeep(numPrincipalComponents, svd.SingularValues);
-				Matrix principalComponents = sampleVectors * svd.SingularVectors;
-				return principalComponents.GetSubmatrix(0, principalComponents.NumRows, 0, numComponentsToKeep); //TODO: discard the unneeded vectors earlier.
+				int numComponentsToKeep = CountPrincipalComponentsToKeep(numPrincipalComponents, eigenValues);
+				Matrix importantEigenVectors = eigenVectors.GetSubmatrix(0, eigenVectors.NumRows, 0, numComponentsToKeep); //TODO: discard the unneeded vectors earlier.
+				Matrix principalComponents = sampleVectors * importantEigenVectors;
+				return principalComponents;
 			}
 			else
 			{
 				//throw new NotImplementedException();
 				Matrix correlation = sampleVectors.MultiplyRight(sampleVectors, transposeThis: false, transposeOther: true);
-				var svd = SingularValueDecomposition.Calculate(correlation);
-				int numComponentsToKeep = CountPrincipalComponentsToKeep(numPrincipalComponents, svd.SingularValues);
+				(Vector eigenValues, Matrix eigenVectors) = PerformEigenDecomposition(correlation, false);
 
-				Matrix principalComponents = svd.SingularVectors;
-				return principalComponents.GetSubmatrix(0, principalComponents.NumRows, 0, numComponentsToKeep); //TODO: discard the unneeded vectors earlier.
+				int numComponentsToKeep = CountPrincipalComponentsToKeep(numPrincipalComponents, eigenValues);
+				Matrix importantEigenVectors = eigenVectors.GetSubmatrix(0, eigenVectors.NumRows, 0, numComponentsToKeep); //TODO: discard the unneeded vectors earlier.
+				Matrix principalComponents = importantEigenVectors;
+				return principalComponents;
 			}
 		}
 
 		private int CountPrincipalComponentsToKeep(int numComponentsRequested, Vector eigenvaluesDescending)
 		{
+			#region debug
+			// να εκτυπωνω ποσα κραταω τελικα, και ποια απο αυτα ειναι γραμμικως εξαρτημενα
+			var msg = new StringBuilder();
+			msg.Append($"Num eigenvectors total = {eigenvaluesDescending.Length}. ");
+			msg.Append($"Num eigenvectors requested = {numComponentsRequested}. ");
+			#endregion
 			if (_keepOnlyNonZeroEigenvalues)
 			{
 				var numComponentsToKeep = 0;
@@ -83,16 +93,48 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 				{
 					if (Math.Abs(eigenvaluesDescending[i]) <= _zeroEigenvalueTolerance) // Only keep eigenvectors of non-zero eigenvalues
 					{
+						#region debug
+						msg.Append($"Num eigenvalues above zero tolerance (so far) = {i}. ");
+						#endregion
 						break;
 					}
 					++numComponentsToKeep;
 				}
+				msg.Append($"Num eigenvectors kept finally = {numComponentsToKeep}. ");
+				Console.WriteLine(msg);
 				return numComponentsToKeep;
 			}
 			else
 			{
+				msg.Append($"Num eigenvectors kept finally = {numComponentsRequested}. ");
+				Console.WriteLine(msg);
 				return numComponentsRequested;
 			}
 		}
+
+		private (Vector eigenValues, Matrix eigenVectors) PerformEigenDecomposition(Matrix matrix, bool useSvdAlgorithm)
+		{
+			if (useSvdAlgorithm)
+			{
+				var svd = SingularValueDecomposition.Calculate(matrix);
+				CheckDependentEigenvectors(svd.SingularVectors, "eigenvectors");
+				return (svd.SingularValues, svd.SingularVectors);
+			}
+			else
+			{
+				//TODO: Make sure the eigenvalues are in descending order (and eigenvectors match them)
+				var eigenDecomp = SymmetricEigensystemFull.Create(matrix.NumColumns, matrix.RawData, true);
+				CheckDependentEigenvectors(eigenDecomp.EigenvectorsRight, "eigenvectors");
+				return (eigenDecomp.EigenvaluesReal, eigenDecomp.EigenvectorsRight);
+			}
+		}
+
+		#region debug
+		private void CheckDependentEigenvectors(Matrix samples, string columnVectorsDescription)
+		{
+			(Matrix rref, List<int> independentCols) = samples.ReducedRowEchelonForm();
+			Console.WriteLine($"Independent {columnVectorsDescription}: {independentCols.Count}");
+		}
+		#endregion
 	}
 }
