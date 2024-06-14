@@ -7,8 +7,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using DotNumerics.ODE.Radau5;
 	using DotNumerics.Optimization;
 
-	using MathNet.Numerics.Distributions;
-
 	using MGroup.Constitutive.Structural;
 	using MGroup.Constitutive.Structural.BoundaryConditions;
 	using MGroup.Constitutive.Structural.Continuum;
@@ -20,6 +18,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Meshes.Structured;
+	using MGroup.Solvers.MachineLearning.Tests.StatisticsExtensions;
 
 	using Tensorflow.Keras.Metrics;
 
@@ -57,6 +56,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public double PoissonRatio { get; set; } = 0.3;
 
 		public Random Rng { get; set; } = new Random();
+
+		public bool UseLogNormalDistribution { get; set; } = false;
 
 		/// <summary>
 		/// In seconds.
@@ -301,8 +302,21 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		private double[] GenerateRandomElementElasticities()
 		{
-			var samples = new double[CountElements()];
-			Normal.Samples(Rng, samples, ElasticityModulusMean, ElasticityModulusStdDev);
+			IDistribution distribution = UseLogNormalDistribution 
+				? LogNormalDistribution.CreateWithMeanStddev(Rng, ElasticityModulusMean, ElasticityModulusStdDev)
+				: NormalDistribution.CreateWithMeanStddev(Rng, ElasticityModulusMean, ElasticityModulusStdDev);
+
+			int numSamples = CountElements();
+			double[] samples = distribution.GenerateSamples(numSamples);
+
+			#region debug
+			//Console.WriteLine("Elasticities: ");
+			//for (int i = 0; i < samples.Length; i++)
+			//{
+			//	Console.WriteLine($"{samples[i]}");
+			//}
+			//Console.WriteLine();
+			#endregion
 			return samples;
 		}
 
