@@ -32,18 +32,22 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	{
 		public enum Subtask 
 		{ 
-			CreatePreconditioner, SolveWithPcg
+			UpdatePreconditioner, SolveWithPcg, TrainML
 		}
 
-		private enum Stage { Start, CreateInitPrecond, UseInitPrecond, CreateMLPrecond, UseMLPrecond }
+		private enum Stage 
+		{ 
+			Start, UpdateInitPrecond, SolveWithInitPrecond, TrainMLModels, UpdateMLPrecond, SolveWithMLPrecond 
+		}
 
 		private const string name = "POD-AMG solver"; // for error messages
 
 		private readonly IDofOrderer dofOrderer;
 		private readonly PcgAlgorithm pcgAlgorithm;
-		private readonly IPreconditioner initialPreconditioner;
-		private readonly PodAmgPreconditioner amgPreconditioner;
 		private readonly bool matrixPatternWillNotBeModified;
+		private readonly IPreconditioner initialPreconditioner;
+		private readonly PodAmgPreconditioner mlPreconditioner;
+		private readonly ISolutionTrainingStrategy trainingStrategy;
 		private readonly int numParameterSetsBeforeTraining;
 		private readonly int numPrincipalComponentsInPod;
 
@@ -56,14 +60,15 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private int currentTimeStep;
 
 		private AmgAiSolver2(IDofOrderer dofOrderer, PcgAlgorithm pcgAlgorithm, bool matrixPatternWillNotBeModified,
-			IPreconditioner initialPreconditioner, PodAmgPreconditioner amgPreconditioner,
+			IPreconditioner initialPreconditioner, PodAmgPreconditioner mlPreconditioner, ISolutionTrainingStrategy trainingStrategy,
 			int numParameterSetsBeforeTraining, int numPrincipalComponentsInPod/*, CaeFffnSurrogate surrogate*/)
 		{
 			this.dofOrderer = dofOrderer;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.matrixPatternWillNotBeModified = matrixPatternWillNotBeModified;
+			this.trainingStrategy = trainingStrategy;
 			this.initialPreconditioner = initialPreconditioner;
-			this.amgPreconditioner = amgPreconditioner;
+			this.mlPreconditioner = mlPreconditioner;
 			this.numParameterSetsBeforeTraining = numParameterSetsBeforeTraining;
 			this.numPrincipalComponentsInPod = numPrincipalComponentsInPod;
 			//this.surrogate = surrogate;
@@ -86,7 +91,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		public string Name => name;
 
 		public string CurrentPreconditionerName 
-			=> currentStage == Stage.UseMLPrecond ? "POD-2D preconditioner" : initialPreconditioner.ToString();
+			=> currentStage == Stage.SolveWithMLPrecond ? "POD-2D preconditioner" : initialPreconditioner.GetType().Name;
 
 		public SolutionDatabase2 SavedSolutions { get; } = new SolutionDatabase2(ensureSameLengthVectors: true);
 
@@ -124,10 +129,15 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			if (currentParameterSetIdx < numParameterSetsBeforeTraining)
 			{ 
 				SavedSolutions.SaveModelParameters(parameterSetId, modelParameters);
+				currentStage = Stage.UpdateInitPrecond;
 			}
-			else if (currentParameterSetIdx == numParameterSetsBeforeTraining)
+			else if (currentParameterSetIdx > numParameterSetsBeforeTraining)
 			{
-				currentStage = Stage.CreateMLPrecond;
+				currentStage = Stage.UpdateMLPrecond;
+			}
+			else
+			{
+				currentStage = Stage.TrainMLModels;
 			}
 		}
 
@@ -135,95 +145,42 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		{
 			if (currentStage == Stage.Start)
 			{
-				currentStage = Stage.CreateInitPrecond;
-				CreateInitialPreconditioner();
-				currentStage = Stage.UseInitPrecond;
+				throw new InvalidOperationException("The model parameters must be set before calling this.");
 			}
 
-			if (currentStage == Stage.UseInitPrecond)
+			if (currentStage == Stage.UpdateInitPrecond)
+			{
+				UpdateInitialPreconditioner();
+				currentStage = Stage.SolveWithInitPrecond;
+			}
+
+			if (currentStage == Stage.SolveWithInitPrecond)
 			{
 				Vector solution = SolveUsingInitialPreconditioner();
-				SavedSolutions.SaveSolution(currentParameterSetId, currentTimeStep, LinearSystem.Solution.SingleVector);
+				if (trainingStrategy.MustSaveSolution(currentTimeStep))
+				{
+					SavedSolutions.SaveSolution(currentParameterSetId, currentTimeStep, LinearSystem.Solution.SingleVector);
+				}
 			}
 
-			if (currentStage == Stage.CreateMLPrecond)
+			if (currentStage == Stage.TrainMLModels)
 			{
-				CreateMLPreconditioner();
-				currentStage = Stage.UseMLPrecond;
+				TrainMLModels();
+				currentStage = Stage.UpdateMLPrecond;
 			}
 
-			if (currentStage == Stage.UseMLPrecond)
+			if (currentStage == Stage.UpdateMLPrecond)
+			{
+				UpdateMLPreconditioner();
+				currentStage = Stage.SolveWithMLPrecond;
+			}
+
+			if (currentStage == Stage.SolveWithMLPrecond)
 			{
 				SolveUsingPodAmgPreconditioner();
 			}
 
 			++currentTimeStep;
-		}
-
-		private void CreateInitialPreconditioner()
-		{
-			Console.WriteLine("******************* Calculate initial preconditioner ********************************");
-			var watch = new Stopwatch();
-			watch.Start();
-
-			IMatrix matrix = LinearSystem.Matrix.SingleMatrix;
-			initialPreconditioner.UpdateMatrix(matrix, !matrixPatternWillNotBeModified);
-			
-			watch.Stop();
-			Logger.LogTaskDuration(Subtask.CreatePreconditioner.ToString(), watch.ElapsedMilliseconds);
-		}
-
-		private void CreateMLPreconditioner()
-		{
-			Console.WriteLine("******************* Create ML preconditioner ********************************");
-			var watch = new Stopwatch();
-			watch.Start();
-
-			// Gather all previous solution vectors as columns of a matrix
-			int numSamples = SavedSolutions.CountAllSolutions();
-			int numDofs = AlgebraicModel.LinearSystem.Solution.Length;
-			Matrix solutionVectors = Matrix.CreateZero(numDofs, numSamples);
-			int col = 0;
-			foreach (Vector solution in SavedSolutions.EnumerateAllSolutions())
-			{
-				solutionVectors.SetSubcolumn(col, solution);
-			}
-
-			// AMG-POD training
-			amgPreconditioner.Initialize(solutionVectors, numPrincipalComponentsInPod);
-			amgPreconditioner.UpdateMatrix(LinearSystem.Matrix.SingleMatrix, !matrixPatternWillNotBeModified);
-
-			//// CAE-FFNN training: Gather all previous model parameters
-			//if (PreviousModelParameters.Count != numSamples)
-			//{
-			//	throw new Exception($"Have gathered {PreviousModelParameters.Count} sets of model parameters, " +
-			//		$"but {numSamples} solution vectors, while using initial preconditioner.");
-			//}
-
-			//int numParameters = modelParametersCurrent.Length;
-			//var parametersAsArray = new double[numSamples, numParameters];
-			//for (int i = 0; i < numSamples; ++i)
-			//{
-			//	if (PreviousModelParameters[i].Length != numParameters)
-			//	{
-			//		throw new Exception("The model parameter sets do not all have the same size");
-			//	}
-
-			//	for (int j = 0; j < numParameters; ++j)
-			//	{
-			//		parametersAsArray[i, j] = PreviousModelParameters[i][j];
-			//	}
-			//}
-
-			//// CAE-FFNN training:  Dimension 0 must be the number of samples.
-			//double[,] solutionsAsArray = solutionVectors.Transpose().CopytoArray2D();
-			//surrogate.TrainAndEvaluate(parametersAsArray, solutionsAsArray, null);
-
-			// Free up some memory by deleting the stored solution vectors
-			SavedSolutions.Clear();
-
-			watch.Stop();
-			Logger.LogTaskDuration(Subtask.CreatePreconditioner.ToString(), watch.ElapsedMilliseconds);
 		}
 
 		private Vector SolveUsingInitialPreconditioner()
@@ -275,10 +232,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			//double[] prediction = surrogate.Predict(parameters);
 			//var solution = Vector.CreateFromArray(prediction);
 			//LinearSystem.Solution.SingleVector = solution;
-			//also set true to false in 290
+			//also set true to false in 236
 
 
-			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, amgPreconditioner, rhs, LinearSystem.Solution.SingleVector,
+			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, LinearSystem.Solution.SingleVector,
 				true, () => Vector.CreateZero(systemSize));
 			if (!stats.HasConverged)
 			{
@@ -290,6 +247,81 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			watch.Stop();
 			Logger.LogTaskDuration(Subtask.SolveWithPcg.ToString(), watch.ElapsedMilliseconds);
 			Logger.LogIterativeAlgorithm(stats.NumIterationsRequired, stats.ResidualNormRatioEstimation);
+		}
+
+		private void UpdateInitialPreconditioner()
+		{
+			var watch = new Stopwatch();
+			watch.Start();
+
+			IMatrix matrix = LinearSystem.Matrix.SingleMatrix;
+			initialPreconditioner.UpdateMatrix(matrix, !matrixPatternWillNotBeModified);
+
+			watch.Stop();
+			Logger.LogTaskDuration(Subtask.UpdatePreconditioner.ToString(), watch.ElapsedMilliseconds);
+		}
+
+		private void UpdateMLPreconditioner()
+		{
+			var watch = new Stopwatch();
+			watch.Start();
+
+			mlPreconditioner.UpdateMatrix(LinearSystem.Matrix.SingleMatrix, !matrixPatternWillNotBeModified);
+
+			watch.Stop();
+			Logger.LogTaskDuration(Subtask.UpdatePreconditioner.ToString(), watch.ElapsedMilliseconds);
+		}
+
+		private void TrainMLModels()
+		{
+			Console.WriteLine("******************* ML training ********************************");
+			var watch = new Stopwatch();
+			watch.Start();
+
+			// Gather all previous solution vectors as columns of a matrix
+			int numSamples = SavedSolutions.CountAllSolutions();
+			int numDofs = AlgebraicModel.LinearSystem.Solution.Length;
+			Matrix solutionVectors = Matrix.CreateZero(numDofs, numSamples);
+			int col = 0;
+			foreach (Vector solution in SavedSolutions.EnumerateAllSolutions())
+			{
+				solutionVectors.SetSubcolumn(col, solution);
+			}
+
+			// AMG-POD training
+			mlPreconditioner.Initialize(solutionVectors, numPrincipalComponentsInPod);
+
+			//// CAE-FFNN training: Gather all previous model parameters
+			//if (PreviousModelParameters.Count != numSamples)
+			//{
+			//	throw new Exception($"Have gathered {PreviousModelParameters.Count} sets of model parameters, " +
+			//		$"but {numSamples} solution vectors, while using initial preconditioner.");
+			//}
+
+			//int numParameters = modelParametersCurrent.Length;
+			//var parametersAsArray = new double[numSamples, numParameters];
+			//for (int i = 0; i < numSamples; ++i)
+			//{
+			//	if (PreviousModelParameters[i].Length != numParameters)
+			//	{
+			//		throw new Exception("The model parameter sets do not all have the same size");
+			//	}
+
+			//	for (int j = 0; j < numParameters; ++j)
+			//	{
+			//		parametersAsArray[i, j] = PreviousModelParameters[i][j];
+			//	}
+			//}
+
+			//// CAE-FFNN training:  Dimension 0 must be the number of samples.
+			//double[,] solutionsAsArray = solutionVectors.Transpose().CopytoArray2D();
+			//surrogate.TrainAndEvaluate(parametersAsArray, solutionsAsArray, null);
+
+			// Free up some memory by deleting the stored solution vectors
+			SavedSolutions.Clear();
+
+			watch.Stop();
+			Logger.LogTaskDuration(Subtask.TrainML.ToString(), watch.ElapsedMilliseconds);
 		}
 
 		public class Factory
@@ -308,11 +340,16 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			public IDofOrderer DofOrderer { get; set; }
 				= new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 
+			public bool KeepOnlyNonZeroPrincipalComponents { get; set; } = true;
+
 			public bool MatrixPatternWillNotBeModified { get; set; } = false;
 
 			public double PcgConvergenceTolerance { get; set; } = 1E-5;
 
 			public IMaxIterationsProvider PcgMaxIterationsProvider { get; set; } = new PercentageMaxIterationsProvider(1.0);
+
+			public ISolutionTrainingStrategy TrainingStrategy { get; set; } 
+				= new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 1);
 
 			public AmgAiSolver2 BuildSolver()
 			{
@@ -327,11 +364,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					.AddPreSmoother(new GaussSeidelIterationCsr(forwardDirection: true), 1)
 					.AddPreSmoother(new GaussSeidelIterationCsr(forwardDirection: false), 1)
 					.SetPostSmoothersSameAsPreSmoothers();
-				var amgPreconditioner = new PodAmgPreconditioner(
-					keepOnlyNonZeroPrincipalComponents: true, smoothing, numIterations: 1);
+				var mlPreconditioner = new PodAmgPreconditioner(
+					KeepOnlyNonZeroPrincipalComponents, smoothing, numIterations: 1);
 
 				return new AmgAiSolver2(DofOrderer, pcgAlgorithm, MatrixPatternWillNotBeModified, initialPreconditioner,
-					amgPreconditioner, numParameterSetsForPod, numPrincipalComponentsInPod/*, surrogateBuilder.BuildSurrogate()*/);
+					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod
+					/*, surrogateBuilder.BuildSurrogate()*/);
 			}
 		}
 	}

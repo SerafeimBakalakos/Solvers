@@ -293,6 +293,10 @@ namespace MGroup.Solvers.MachineLearning.AnalyzersExtensions
 		/// </summary>
 		private void CalculateRhsImplicit()
 		{
+			#region debug
+			var mass = provider.GetMatrix(DifferentiationOrder.Second);
+			#endregion
+
 			if (provider.ProblemOrder == DifferentiationOrder.Second)
 			{
 				secondOrderDerivativeOfSolutionForRhs = solutions[0].LinearCombination(a0, solutions[(int)DifferentiationOrder.First], a2);
