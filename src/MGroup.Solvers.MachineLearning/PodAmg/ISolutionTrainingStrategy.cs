@@ -7,11 +7,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg;
 
 	public interface ISolutionTrainingStrategy
 	{
-		public bool MustSaveSolution(int timeStep);
+		public IDynamicMLPreconditioner CreatePreconditioner(PodAmgPreconditioner examplePreconditioner);
 
-		public bool MustUpdatePreconditioner(int timeStep);
+		public bool MustSaveSolution(int timeStep);
 	}
 }

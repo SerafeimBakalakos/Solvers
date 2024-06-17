@@ -30,14 +30,15 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public static void RunStochasticAnalysis()
 		{
 			int numAnalysesTotal = 300;
-			int numAnalysesForTraining = 17;
+			int numAnalysesForTraining = 50;
 			int numPrincipalComponents = 4; // 4, 8, 12, 16, 20, 24
 
 			var solverFactory = new AmgAiSolver2.Factory(numAnalysesForTraining, numPrincipalComponents);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 			solverFactory.PcgConvergenceTolerance = 1E-6;
 			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
-			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod:5);
+			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 5);
+			//solverFactory.TrainingStrategy = new SeparateTimeStepSolutionsTrainingStrategy(numTimeSteps);
 			solverFactory.KeepOnlyNonZeroPrincipalComponents = true;
 			AmgAiSolver2 solver = solverFactory.BuildSolver();
 
