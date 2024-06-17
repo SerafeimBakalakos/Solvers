@@ -33,14 +33,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			int numAnalysesForTraining = 50;
 			int numPrincipalComponents = 4; // 4, 8, 12, 16, 20, 24
 
-			var solverFactory = new AmgAiSolver2.Factory(numAnalysesForTraining, numPrincipalComponents);
+			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 			solverFactory.PcgConvergenceTolerance = 1E-6;
 			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
 			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 5);
 			//solverFactory.TrainingStrategy = new SeparateTimeStepSolutionsTrainingStrategy(numTimeSteps);
 			solverFactory.KeepOnlyNonZeroPrincipalComponents = true;
-			AmgAiSolver2 solver = solverFactory.BuildSolver();
+			DynamicAmgAiSolver solver = solverFactory.BuildSolver();
 
 			int[] numElements = { 4, 20 };
 			//int[] numElements = { 16, 80 };
@@ -111,7 +111,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		}
 
 		private static AnalysisResults RunSingleAnalysis(
-			int analysisNo, AmgAiSolver2 solver, CantileverDynamicModel example)
+			int analysisNo, DynamicAmgAiSolver solver, CantileverDynamicModel example)
 		{
 			(Model model, double[] parameters, int monitorNodeId) = example.CreateFemModel();
 			INode monitorNode = model.GetNode(monitorNodeId);
@@ -137,9 +137,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				numPcgIterations += solver.Logger.GetNumIterationsOfIterativeAlgorithm(t);
 			}
 
-			solver.Logger.TryGetTaskDuration(AmgAiSolver2.Subtask.UpdatePreconditioner.ToString(), out long createDuration);
-			solver.Logger.TryGetTaskDuration(AmgAiSolver2.Subtask.SolveWithPcg.ToString(), out long solveDuration);
-			solver.Logger.TryGetTaskDuration(AmgAiSolver2.Subtask.TrainML.ToString(), out long trainingDuration);
+			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.UpdatePreconditioner.ToString(), out long createDuration);
+			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.SolveWithPcg.ToString(), out long solveDuration);
+			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.TrainML.ToString(), out long trainingDuration);
 
 			var results = new AnalysisResults()
 			{

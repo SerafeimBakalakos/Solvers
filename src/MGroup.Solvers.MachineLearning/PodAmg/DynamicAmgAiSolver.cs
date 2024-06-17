@@ -28,7 +28,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg;
 	using MGroup.LinearAlgebra.AlgebraicMultiGrid;
 
-	public class AmgAiSolver2 : ISolver
+	public class DynamicAmgAiSolver : ISolver
 	{
 		public enum Subtask 
 		{ 
@@ -59,7 +59,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private int currentParameterSetId;
 		private int currentTimeStep;
 
-		private AmgAiSolver2(IDofOrderer dofOrderer, PcgAlgorithm pcgAlgorithm, bool matrixPatternWillNotBeModified,
+		private DynamicAmgAiSolver(IDofOrderer dofOrderer, PcgAlgorithm pcgAlgorithm, bool matrixPatternWillNotBeModified,
 			IPreconditioner initialPreconditioner, IDynamicMLPreconditioner mlPreconditioner, 
 			ISolutionTrainingStrategy trainingStrategy, int numParameterSetsBeforeTraining, int numPrincipalComponentsInPod
 			/*, CaeFffnSurrogate surrogate*/)
@@ -355,7 +355,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			public ISolutionTrainingStrategy TrainingStrategy { get; set; } 
 				= new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 1);
 
-			public AmgAiSolver2 BuildSolver()
+			public DynamicAmgAiSolver BuildSolver()
 			{
 				var pcgFactory = new PcgAlgorithm.Factory();
 				pcgFactory.ResidualTolerance = PcgConvergenceTolerance;
@@ -373,7 +373,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 				IDynamicMLPreconditioner mlPreconditioner = TrainingStrategy.CreatePreconditioner(podAmgPreconditioner);
 				
-				return new AmgAiSolver2(DofOrderer, pcgAlgorithm, MatrixPatternWillNotBeModified, initialPreconditioner,
+				return new DynamicAmgAiSolver(DofOrderer, pcgAlgorithm, MatrixPatternWillNotBeModified, initialPreconditioner,
 					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod
 					/*, surrogateBuilder.BuildSurrogate()*/);
 			}
