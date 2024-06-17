@@ -58,7 +58,7 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 			if (sampleVectors.NumRows > sampleVectors.NumColumns)
 			{
 				Matrix correlation = sampleVectors.MultiplyRight(sampleVectors, transposeThis: true, transposeOther: false);
-				(Vector eigenValues, Matrix eigenVectors) = PerformEigenDecomposition(correlation, false);
+				(Vector eigenValues, Matrix eigenVectors) = PerformEigenDecomposition(correlation, true);
 
 				int numComponentsToKeep = CountPrincipalComponentsToKeep(numPrincipalComponents, eigenValues);
 				Matrix importantEigenVectors = eigenVectors.GetSubmatrix(0, eigenVectors.NumRows, 0, numComponentsToKeep); //TODO: discard the unneeded vectors earlier.
@@ -69,7 +69,7 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 			{
 				//throw new NotImplementedException();
 				Matrix correlation = sampleVectors.MultiplyRight(sampleVectors, transposeThis: false, transposeOther: true);
-				(Vector eigenValues, Matrix eigenVectors) = PerformEigenDecomposition(correlation, false);
+				(Vector eigenValues, Matrix eigenVectors) = PerformEigenDecomposition(correlation, true);
 
 				int numComponentsToKeep = CountPrincipalComponentsToKeep(numPrincipalComponents, eigenValues);
 				Matrix importantEigenVectors = eigenVectors.GetSubmatrix(0, eigenVectors.NumRows, 0, numComponentsToKeep); //TODO: discard the unneeded vectors earlier.
