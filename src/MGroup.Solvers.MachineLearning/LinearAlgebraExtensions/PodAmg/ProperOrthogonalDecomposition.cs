@@ -36,7 +36,7 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 		/// <returns></returns>
 		public Matrix CalculatePrincipalComponents(int numSampleVectors, Matrix sampleVectors, int numPrincipalComponents)
 		{
-			CheckDependentEigenvectors(sampleVectors, "sample solutions");
+			//CheckDependentEigenvectors(sampleVectors, "sample solutions");
 
 			if (sampleVectors.NumColumns != numSampleVectors)
 			{
@@ -82,9 +82,9 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 		{
 			#region debug
 			// να εκτυπωνω ποσα κραταω τελικα, και ποια απο αυτα ειναι γραμμικως εξαρτημενα
-			var msg = new StringBuilder();
-			msg.Append($"Num eigenvectors total = {eigenvaluesDescending.Length}. ");
-			msg.Append($"Num eigenvectors requested = {numComponentsRequested}. ");
+			//var msg = new StringBuilder();
+			//msg.Append($"Num eigenvectors total = {eigenvaluesDescending.Length}. ");
+			//msg.Append($"Num eigenvectors requested = {numComponentsRequested}. ");
 			#endregion
 			if (_keepOnlyNonZeroEigenvalues)
 			{
@@ -94,20 +94,20 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 					if (Math.Abs(eigenvaluesDescending[i]) <= _zeroEigenvalueTolerance) // Only keep eigenvectors of non-zero eigenvalues
 					{
 						#region debug
-						msg.Append($"Num eigenvalues above zero tolerance (so far) = {i}. ");
+						//msg.Append($"Num eigenvalues above zero tolerance = {i}. ");
 						#endregion
 						break;
 					}
 					++numComponentsToKeep;
 				}
-				msg.Append($"Num eigenvectors kept finally = {numComponentsToKeep}. ");
-				Console.WriteLine(msg);
+				//msg.Append($"Num eigenvectors kept finally = {numComponentsToKeep}. ");
+				//Console.WriteLine(msg);
 				return numComponentsToKeep;
 			}
 			else
 			{
-				msg.Append($"Num eigenvectors kept finally = {numComponentsRequested}. ");
-				Console.WriteLine(msg);
+				//msg.Append($"Num eigenvectors kept finally = {numComponentsRequested}. ");
+				//Console.WriteLine(msg);
 				return numComponentsRequested;
 			}
 		}
@@ -117,14 +117,14 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 			if (useSvdAlgorithm)
 			{
 				var svd = SingularValueDecomposition.Calculate(matrix);
-				CheckDependentEigenvectors(svd.SingularVectors, "eigenvectors");
+				//CheckDependentEigenvectors(svd.SingularVectors, "eigenvectors");
 				return (svd.SingularValues, svd.SingularVectors);
 			}
 			else
 			{
 				//TODO: Make sure the eigenvalues are in descending order (and eigenvectors match them)
 				var eigenDecomp = SymmetricEigensystemFull.Create(matrix.NumColumns, matrix.RawData, true);
-				CheckDependentEigenvectors(eigenDecomp.EigenvectorsRight, "eigenvectors");
+				//CheckDependentEigenvectors(eigenDecomp.EigenvectorsRight, "eigenvectors");
 				return (eigenDecomp.EigenvaluesReal, eigenDecomp.EigenvectorsRight);
 			}
 		}
@@ -133,6 +133,10 @@ namespace MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg
 		private void CheckDependentEigenvectors(Matrix samples, string columnVectorsDescription)
 		{
 			(Matrix rref, List<int> independentCols) = samples.ReducedRowEchelonForm();
+			var writer = new LinearAlgebra.Output.FullMatrixWriter();
+			writer.ArrayFormat = new LinearAlgebra.Output.Formatting.Array2DFormat("\n[", "]\n", "[ ", " ]" + Environment.NewLine, ", ");
+			string path = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear\\printed_matrices\\rhs_vectors.txt";
+			writer.WriteToFile(samples, path);
 			Console.WriteLine($"Independent {columnVectorsDescription}: {independentCols.Count}");
 		}
 		#endregion

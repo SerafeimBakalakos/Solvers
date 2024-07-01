@@ -46,6 +46,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 				{
 					var solution = savedSolutions.GetSolution(parameterSet, t);
 					solutionVectors.SetSubcolumn(col, solution);
+					col++;
 				}
 
 				// AMG-POD training

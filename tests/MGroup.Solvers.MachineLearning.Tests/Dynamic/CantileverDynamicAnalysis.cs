@@ -31,19 +31,20 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		{
 			int numAnalysesTotal = 300;
 			int numAnalysesForTraining = 50;
-			int numPrincipalComponents = 4; // 4, 8, 12, 16, 20, 24
+			int numPrincipalComponents = 1; // 1, 5, 10, 15, 20
 
 			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 			solverFactory.PcgConvergenceTolerance = 1E-6;
 			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
-			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 5);
+			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 20); // 1, 5, 10, 15, 20
 			//solverFactory.TrainingStrategy = new SeparateTimeStepSolutionsTrainingStrategy(numTimeSteps);
 			solverFactory.KeepOnlyNonZeroPrincipalComponents = true;
 			DynamicAmgAiSolver solver = solverFactory.BuildSolver();
 
-			int[] numElements = { 4, 20 };
-			//int[] numElements = { 16, 80 };
+			//int[] numElements = { 4, 20 };
+			int[] numElements = { 16, 80 };
+			//int[] numElements = { 32, 160 };
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
 			example.SetTime(numTimeSteps * timeStepSize, numTimeSteps);
 			example.Rng = new Random(Seed: rngSeed);
@@ -158,8 +159,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public static void RunStandAloneAnalysis()
 		{
 			string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
-			int[] numElements = { 4, 20 };
-			bool useIterativeSolver = true;
+			int[] numElements = { 32, 160 };
+			bool useIterativeSolver = false;
 
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
 			example.Rng = new Random(rngSeed);

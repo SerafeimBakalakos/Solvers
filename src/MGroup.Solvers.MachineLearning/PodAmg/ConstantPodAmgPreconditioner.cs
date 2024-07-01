@@ -31,9 +31,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			var numSamples = savedSolutions.CountAllSolutions();
 			var solutionVectors = Matrix.CreateZero(numDofs, numSamples);
 			var col = 0;
-			foreach (var solution in savedSolutions.EnumerateAllSolutions())
+			foreach (Vector solution in savedSolutions.EnumerateAllSolutions())
 			{
 				solutionVectors.SetSubcolumn(col, solution);
+				col++;
 			}
 
 			// AMG-POD training
