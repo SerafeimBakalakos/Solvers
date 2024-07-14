@@ -115,26 +115,30 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		{
 			string tempFilePrefix = GetTempFilePathPrefix();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			string pathInput = tempFilePrefix + "_input" + extension;
-			string pathOutput = tempFilePrefix + "_output" + extension;
-			string pathSettings = tempFilePrefix + "_settings.json";
-			string pathModel = GetModelPath();
-			string processArgs = $"{predictScript} {pathSettings} {pathInput} {pathOutput} {pathModel}";
+			var settingsFile = new Cs2PySettings(tempFilePrefix + "_cs2py_settings.json");
+			settingsFile.FeaturesPath = tempFilePrefix + "_features" + extension;
+			settingsFile.LabelsPath = tempFilePrefix + "_labels" + extension;
+			settingsFile.ModelPath = GetModelPath();
+			settingsFile.Float64 = doublePrecision;
+			var resultsFile = new Py2CsResults(tempFilePrefix + "_py2cs_results.json");
+			string processArgs = $"{predictScript} {settingsFile.Path} {resultsFile.Path}";
 			try
 			{
-				WriteSettingsFile(doublePrecision, pathSettings);
-				writeInputToFile(pathInput);
-				CallPythonScript(processArgs, pathSettings);
-				readOutputFromFile(pathOutput);
+				settingsFile.WriteToFileSystem();
+				resultsFile.WriteToFileSystem();
+				writeInputToFile(settingsFile.FeaturesPath);
+				CallPythonScript(processArgs, resultsFile.Path);
+				readOutputFromFile(settingsFile.LabelsPath);
 			}
 			finally
 			{
 				// Cleanup
 				if (CleanupIOFiles)
 				{
-					File.Delete(pathSettings);
-					File.Delete(pathInput);
-					File.Delete(pathOutput);
+					File.Delete(settingsFile.Path);
+					File.Delete(resultsFile.Path);
+					File.Delete(settingsFile.FeaturesPath);
+					File.Delete(settingsFile.LabelsPath);
 				}
 			}
 		}
@@ -143,30 +147,35 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		{
 			string tempFilePrefix = GetTempFilePathPrefix();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			string pathFeatures = tempFilePrefix + "_features" + extension;
-			string pathLabels = tempFilePrefix + "_labels" + extension;
-			string pathSettings = tempFilePrefix + "_settings.json";
-			string pathModel = GetModelPath();
-			string processArgs = $"{trainScript} {pathSettings} {pathFeatures} {pathLabels} {pathModel}";
+			var settingsFile = new Cs2PyTrainingSettings(tempFilePrefix + "_cs2py_settings.json");
+			settingsFile.FeaturesPath = tempFilePrefix + "_features" + extension;
+			settingsFile.LabelsPath = tempFilePrefix + "_labels" + extension;
+			settingsFile.ModelPath = GetModelPath();
+			settingsFile.Float64 = doublePrecision;
+			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
+			var resultsFile = new Py2CsResults(tempFilePrefix + "_py2cs_results.json");
+			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path}";
 			try
 			{
-				WriteSettingsFile(doublePrecision, pathSettings);
-				writeFeaturesAndLabelsToFiles(pathFeatures, pathLabels);
-				CallPythonScript(processArgs, pathSettings);
+				settingsFile.WriteToFileSystem();
+				resultsFile.WriteToFileSystem();
+				writeFeaturesAndLabelsToFiles(settingsFile.FeaturesPath, settingsFile.LabelsPath);
+				CallPythonScript(processArgs, resultsFile.Path);
 			}
 			finally
 			{
 				// Cleanup
 				if (CleanupIOFiles)
 				{
-					File.Delete(pathSettings);
-					File.Delete(pathFeatures);
-					File.Delete(pathLabels);
+					File.Delete(settingsFile.Path);
+					File.Delete(resultsFile.Path);
+					File.Delete(settingsFile.FeaturesPath);
+					File.Delete(settingsFile.LabelsPath);
 				}
 			}
 		}
 
-		private void CallPythonScript(string processArgs, string pathSettings)
+		private void CallPythonScript(string processArgs, string pathResults)
 		{
 			var startInfo = new ProcessStartInfo(pythonInterpreter);
 			startInfo.FileName = pythonInterpreter;
@@ -185,8 +194,8 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			{
 				if (exitCode == 100)
 				{
-					// The settings file will be overwritten with the error message
-					using (var reader = new StreamReader(pathSettings))
+					// The results file will be overwritten with the error message
+					using (var reader = new StreamReader(pathResults))
 					{
 						var pythonErrorMsg = reader.ReadToEnd();
 						var csharpErrorMsg = new StringBuilder();
@@ -246,9 +255,9 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			return $"{workDir}\\{prefix}";
 		}
 
-		private void WriteSettingsFile(bool doublePrecision, string path)
+		private void WriteJsonFile(bool doublePrecision, string path)
 		{
-			var settings = new Settings()
+			var settings = new SettingsOLD()
 			{
 				Float64 = doublePrecision,
 				Seed = TensorFlowSeed
@@ -265,7 +274,47 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			//File.WriteAllText(path, json);
 		}
 
-		private class Settings
+		private class Cs2PySettings : InteropJsonFile
+		{
+			public Cs2PySettings(string path) : base(path)
+			{
+				//TODO: Create the temp paths in here and make everything immutable
+			}
+
+			public string FeaturesPath { get; set; } = "";
+
+			public string LabelsPath { get; set; } = "";
+
+			public string ModelPath { get; set; } = "";
+
+			/// <summary>
+			/// TensorFlow will use: double precision if true, else single precision.
+			/// </summary>
+			public bool Float64 { get; set; } = false;
+		}
+
+		private class Cs2PyTrainingSettings : Cs2PySettings
+		{
+			public Cs2PyTrainingSettings(string path) : base(path)
+			{
+			}
+
+			/// <summary>
+			/// If the value is not -1, TensorFlow will use this seed for all RNG (useful to reproduce results).
+			/// </summary>
+			public int TensorFlowSeed { get; set; } = -1;
+		}
+
+		private class Py2CsResults : InteropJsonFile
+		{
+			public Py2CsResults(string path) : base(path)
+			{
+			}
+
+			//public string Message { get; set; } = ""; //TODO: Error messages should go in this property
+		}
+
+		private class SettingsOLD
 		{
 			/// <summary>
 			/// TensorFlow will use: double precision if true, else single precision.
