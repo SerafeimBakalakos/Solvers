@@ -51,8 +51,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.MLExtensions
 		[InlineData(true, true)]
 		public static void TestTrainAndPredict(bool doublePrecision, bool binaryIOFiles)
 		{
-			//string workDir = "C:\\Users\\Serafeim\\Desktop\\AISolve\\PythonCSharpBridge\\sample_surrogate";
-			string workDir = "C:\\Users\\Serafeim\\Desktop\\AISolve\\PythonCSharpBridge\\refactor";
+			string workDir = "C:\\Users\\Serafeim\\Desktop\\AISolve\\PythonCSharpBridge\\sample_surrogate";
 			string pythonInterpreter = "C:\\Coding\\Dev\\Python\\DDM_ML\\venv\\Scripts\\python.exe";
 			string trainScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\src\\surrogates\\train.py";
 			string predictScript = "C:\\Coding\\Dev\\Python\\DDM_ML\\src\\surrogates\\predict.py";

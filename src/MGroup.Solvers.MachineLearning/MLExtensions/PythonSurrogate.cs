@@ -113,14 +113,10 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private void CallPredictScript(bool doublePrecision, Action<string> writeInputToFile, Action<string> readOutputFromFile)
 		{
-			string tempFilePrefix = GetTempFilePathPrefix();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PySettings(tempFilePrefix + "_cs2py_settings.json");
-			settingsFile.FeaturesPath = tempFilePrefix + "_features" + extension;
-			settingsFile.LabelsPath = tempFilePrefix + "_labels" + extension;
-			settingsFile.ModelPath = GetModelPath();
+			var settingsFile = new Cs2PySettings(workDir, extension);
 			settingsFile.Float64 = doublePrecision;
-			var resultsFile = new Py2CsResults(tempFilePrefix + "_py2cs_results.json");
+			var resultsFile = new Py2CsResults(workDir);
 			string processArgs = $"{predictScript} {settingsFile.Path} {resultsFile.Path}";
 			try
 			{
@@ -145,15 +141,11 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private void CallTrainScript(bool doublePrecision, Action<string, string> writeFeaturesAndLabelsToFiles)
 		{
-			string tempFilePrefix = GetTempFilePathPrefix();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PyTrainingSettings(tempFilePrefix + "_cs2py_settings.json");
-			settingsFile.FeaturesPath = tempFilePrefix + "_features" + extension;
-			settingsFile.LabelsPath = tempFilePrefix + "_labels" + extension;
-			settingsFile.ModelPath = GetModelPath();
+			var settingsFile = new Cs2PyTrainingSettings(workDir, extension);
 			settingsFile.Float64 = doublePrecision;
 			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
-			var resultsFile = new Py2CsResults(tempFilePrefix + "_py2cs_results.json");
+			var resultsFile = new Py2CsResults(workDir);
 			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path}";
 			try
 			{
@@ -243,11 +235,6 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			}
 		}
 
-		private string GetModelPath()
-		{
-			return $"{workDir}\\model.keras";
-		}
-
 		private string GetTempFilePathPrefix()
 		{
 			var time = DateTime.Now;
@@ -255,37 +242,20 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			return $"{workDir}\\{prefix}";
 		}
 
-		private void WriteJsonFile(bool doublePrecision, string path)
+		private class Cs2PySettings : InteropTempFile
 		{
-			var settings = new SettingsOLD()
+			public Cs2PySettings(string workDirectory, string arrayExtension) : base(workDirectory, "_cs2py_settings.json")
 			{
-				Float64 = doublePrecision,
-				Seed = TensorFlowSeed
-			};
-
-			using (StreamWriter file = File.CreateText(path))
-			{
-				var serializer = new JsonSerializer();
-				serializer.Serialize(file, settings);
+				FeaturesPath = tempFilePrefix + "_features" + arrayExtension;
+				LabelsPath = tempFilePrefix + "_labels" + arrayExtension;
+				ModelPath = $"{workDirectory}\\model.keras"; ;
 			}
 
-			// For .NET Core 3.0+ and .NET 5+, instead of Newtonsoft lib:
-			//string json = JsonSerializer.Serialize(settings);
-			//File.WriteAllText(path, json);
-		}
+			public string FeaturesPath { get; }
 
-		private class Cs2PySettings : InteropJsonFile
-		{
-			public Cs2PySettings(string path) : base(path)
-			{
-				//TODO: Create the temp paths in here and make everything immutable
-			}
+			public string LabelsPath { get; }
 
-			public string FeaturesPath { get; set; } = "";
-
-			public string LabelsPath { get; set; } = "";
-
-			public string ModelPath { get; set; } = "";
+			public string ModelPath { get; }
 
 			/// <summary>
 			/// TensorFlow will use: double precision if true, else single precision.
@@ -295,7 +265,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private class Cs2PyTrainingSettings : Cs2PySettings
 		{
-			public Cs2PyTrainingSettings(string path) : base(path)
+			public Cs2PyTrainingSettings(string workDirectory, string arrayExtension) : base(workDirectory, arrayExtension)
 			{
 			}
 
@@ -305,9 +275,9 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			public int TensorFlowSeed { get; set; } = -1;
 		}
 
-		private class Py2CsResults : InteropJsonFile
+		private class Py2CsResults : InteropTempFile
 		{
-			public Py2CsResults(string path) : base(path)
+			public Py2CsResults(string workDirectory) : base(workDirectory, "_py2cs_results.json")
 			{
 			}
 

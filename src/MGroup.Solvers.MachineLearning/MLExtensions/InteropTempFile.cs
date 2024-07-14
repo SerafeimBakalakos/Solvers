@@ -7,17 +7,21 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 	using Newtonsoft.Json;
 
-	internal class InteropJsonFile
+	public class InteropTempFile
 	{
-		public InteropJsonFile(string path)
+		protected readonly string tempFilePrefix;
+
+		public InteropTempFile(string workDirectory, string fileNameAndExtension)
 		{
-			Path = path;
+			var time = DateTime.Now;
+			tempFilePrefix = $"{workDirectory}\\{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}_{Guid.NewGuid()}";
+			Path = tempFilePrefix + fileNameAndExtension;
 		}
 
 		[JsonIgnore]
 		public string Path { get; }
 
-		internal void WriteToFileSystem()
+		public void WriteToFileSystem()
 		{
 			using (StreamWriter file = File.CreateText(Path))
 			{
