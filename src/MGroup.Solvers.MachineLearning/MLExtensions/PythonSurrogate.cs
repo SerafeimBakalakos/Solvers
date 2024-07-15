@@ -10,6 +10,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 	public class PythonSurrogate
 	{
+		private readonly int modelID;
 		private readonly string workDir;
 		private readonly string pythonInterpreter;
 		private readonly string trainScript;
@@ -19,9 +20,10 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private IArrayFileIO arrayIO = new ArrayTextFileIO(' ');
 
-		public PythonSurrogate(string workDir, string pythonInterpreter, string trainScript, string predictScript,
+		public PythonSurrogate(int modelID, string workDir, string pythonInterpreter, string trainScript, string predictScript,
 			int sizeInput, int sizeOutput)
 		{
+			this.modelID = modelID;
 			this.workDir = workDir;
 			this.pythonInterpreter = pythonInterpreter;
 			this.trainScript = trainScript;
@@ -114,7 +116,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private void CallPredictScript(bool doublePrecision, Action<string> writeInputToFile, Action<string> readOutputFromFile)
 		{
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PySettings(workDir, extension);
+			var settingsFile = new Cs2PySettings(workDir, extension, modelID);
 			settingsFile.Float64 = doublePrecision;
 			var resultsFile = new Py2CsResults(workDir);
 			string processArgs = $"{predictScript} {settingsFile.Path} {resultsFile.Path}";
@@ -142,7 +144,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private void CallTrainScript(bool doublePrecision, Action<string, string> writeFeaturesAndLabelsToFiles)
 		{
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PyTrainingSettings(workDir, extension);
+			var settingsFile = new Cs2PyTrainingSettings(workDir, extension, modelID);
 			settingsFile.Float64 = doublePrecision;
 			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
 			var resultsFile = new Py2CsResults(workDir);
@@ -244,11 +246,12 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private class Cs2PySettings : InteropTempFile
 		{
-			public Cs2PySettings(string workDirectory, string arrayExtension) : base(workDirectory, "_cs2py_settings.json")
+			public Cs2PySettings(string workDirectory, string arrayExtension, int modelID) 
+				: base(workDirectory, "_cs2py_settings.json")
 			{
 				FeaturesPath = tempFilePrefix + "_features" + arrayExtension;
 				LabelsPath = tempFilePrefix + "_labels" + arrayExtension;
-				ModelPath = $"{workDirectory}\\model.keras"; ;
+				ModelPath = $"{workDirectory}\\model_{modelID}.keras"; ;
 			}
 
 			public string FeaturesPath { get; }
@@ -265,7 +268,8 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private class Cs2PyTrainingSettings : Cs2PySettings
 		{
-			public Cs2PyTrainingSettings(string workDirectory, string arrayExtension) : base(workDirectory, arrayExtension)
+			public Cs2PyTrainingSettings(string workDirectory, string arrayExtension, int modelID) 
+				: base(workDirectory, arrayExtension, modelID)
 			{
 			}
 
