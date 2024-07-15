@@ -27,6 +27,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using MGroup.LinearAlgebra.Iterative.PreconditionedConjugateGradient;
 	using MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg;
 	using MGroup.LinearAlgebra.AlgebraicMultiGrid;
+	using MGroup.Solvers.MachineLearning.MLExtensions.Surrogates;
 
 	public class DynamicAmgAiSolver : ISolver
 	{
@@ -53,7 +54,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		private Stage currentStage;
 		private double[] modelParametersCurrent;
-		//private CaeFffnSurrogate surrogate;
+		private CaeFfnnSurrogateDynamicPythonTF surrogate;
 
 		private int currentParameterSetIdx;
 		private int currentParameterSetId;
@@ -61,8 +62,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		private DynamicAmgAiSolver(IDofOrderer dofOrderer, PcgAlgorithm pcgAlgorithm, bool matrixPatternWillNotBeModified,
 			IPreconditioner initialPreconditioner, IDynamicMLPreconditioner mlPreconditioner, 
-			ISolutionTrainingStrategy trainingStrategy, int numParameterSetsBeforeTraining, int numPrincipalComponentsInPod
-			/*, CaeFffnSurrogate surrogate*/)
+			ISolutionTrainingStrategy trainingStrategy, int numParameterSetsBeforeTraining, int numPrincipalComponentsInPod,
+			CaeFfnnSurrogateDynamicPythonTF surrogate)
 		{
 			this.dofOrderer = dofOrderer;
 			this.pcgAlgorithm = pcgAlgorithm;
@@ -72,7 +73,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			this.mlPreconditioner = mlPreconditioner;
 			this.numParameterSetsBeforeTraining = numParameterSetsBeforeTraining;
 			this.numPrincipalComponentsInPod = numPrincipalComponentsInPod;
-			//this.surrogate = surrogate;
+			this.surrogate = surrogate;
 
 			currentStage = Stage.Start;
 			currentParameterSetIdx = -1;
@@ -96,12 +97,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		public SolutionDatabase2 SavedSolutions { get; } = new SolutionDatabase2(ensureSameLengthVectors: true);
 
-
 		public void HandleMatrixWillBeSet() { }
 
 		public void Initialize() { }
 
 		public Matrix InverseSystemMatrixTimesOtherMatrix(IMatrixView otherMatrix) => throw new NotImplementedException();
+
 
 		public void PreventFromOverwrittingSystemMatrices()
 		{
@@ -295,12 +296,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			int numDofs = AlgebraicModel.LinearSystem.Solution.Length;
 			mlPreconditioner.Initialize(numDofs, numPrincipalComponentsInPod, SavedSolutions);
 
-			//// CAE-FFNN training: Gather all previous model parameters
-			//if (PreviousModelParameters.Count != numSamples)
-			//{
-			//	throw new Exception($"Have gathered {PreviousModelParameters.Count} sets of model parameters, " +
-			//		$"but {numSamples} solution vectors, while using initial preconditioner.");
-			//}
+			// CAE-FFNN training: Gather all previous model parameters
+			SavedSolutions.CheckSameCountOfParameterSetsAndSolutionVectors();
 
 			//int numParameters = modelParametersCurrent.Length;
 			//var parametersAsArray = new double[numSamples, numParameters];
@@ -332,13 +329,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		{
 			private readonly int numParameterSetsForPod;
 			private readonly int numPrincipalComponentsInPod;
-			//private readonly CaeFffnSurrogate.Builder surrogateBuilder;
+			private readonly CaeFfnnSurrogateDynamicPythonTF.Builder surrogateBuilder;
 
-			public Factory(int numParameterSetsForPod, int numPrincipalComponentsInPod/*, CaeFffnSurrogate.Builder surrogateBuilder*/)
+			public Factory(int numParameterSetsForPod, int numPrincipalComponentsInPod, 
+				CaeFfnnSurrogateDynamicPythonTF.Builder surrogateBuilder)
 			{
 				this.numParameterSetsForPod = numParameterSetsForPod;
 				this.numPrincipalComponentsInPod = numPrincipalComponentsInPod;
-				//this.surrogateBuilder = surrogateBuilder;
+				this.surrogateBuilder = surrogateBuilder;
 			}
 
 			public IDofOrderer DofOrderer { get; set; }
@@ -372,10 +370,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					KeepOnlyNonZeroPrincipalComponents, smoothing, numIterations: 1);
 
 				IDynamicMLPreconditioner mlPreconditioner = TrainingStrategy.CreatePreconditioner(podAmgPreconditioner);
-				
+
 				return new DynamicAmgAiSolver(DofOrderer, pcgAlgorithm, MatrixPatternWillNotBeModified, initialPreconditioner,
-					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod
-					/*, surrogateBuilder.BuildSurrogate()*/);
+					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod,
+					surrogateBuilder.BuildSurrogate());
 			}
 		}
 	}

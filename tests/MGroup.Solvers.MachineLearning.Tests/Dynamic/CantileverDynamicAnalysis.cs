@@ -16,6 +16,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.MachineLearning.AnalyzersExtensions;
+	using MGroup.Solvers.MachineLearning.MLExtensions.Surrogates;
 	using MGroup.Solvers.MachineLearning.Plotting;
 	using MGroup.Solvers.MachineLearning.PodAmg;
 
@@ -33,7 +34,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			int numAnalysesForTraining = 50;
 			int numPrincipalComponents = 1; // 1, 5, 10, 15, 20
 
-			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents);
+			var surrogateBuilder = new CaeFfnnSurrogateDynamicPythonTF.Builder();
+			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, surrogateBuilder);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 			solverFactory.PcgConvergenceTolerance = 1E-6;
 			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
