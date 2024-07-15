@@ -33,7 +33,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			return new TimeDependentPodAmgPreconditioner(preconditioners.Length, singlePreconditionerClone);
 		}
 
-		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabase2 savedSolutions)
+		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabaseDynamic savedSolutions)
 		{
 			var numTimeSteps = preconditioners.Length;
 			var numSamples = savedSolutions.CountParameterSets();

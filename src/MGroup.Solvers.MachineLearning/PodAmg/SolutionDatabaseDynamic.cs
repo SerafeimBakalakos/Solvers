@@ -8,7 +8,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution.LinearSystem;
 
-	public class SolutionDatabase2
+	public class SolutionDatabaseDynamic
 	{
 		private readonly bool ensureSameLengthVectors;
 		private readonly Dictionary<int, double[]> savedModelParameters;
@@ -16,7 +16,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		private int commonVectorLength = -1;
 
-		public SolutionDatabase2(bool ensureSameLengthVectors=true)
+		public SolutionDatabaseDynamic(bool ensureSameLengthVectors=true)
 		{
 			savedModelParameters = new Dictionary<int, double[]>();
 			savedSolutions = new Dictionary<int, SortedDictionary<int, Vector>>();

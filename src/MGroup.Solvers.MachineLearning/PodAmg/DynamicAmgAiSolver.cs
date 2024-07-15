@@ -95,7 +95,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		public string CurrentPreconditionerName 
 			=> currentStage == Stage.SolveWithMLPrecond ? "POD-2D preconditioner" : initialPreconditioner.GetType().Name;
 
-		public SolutionDatabase2 SavedSolutions { get; } = new SolutionDatabase2(ensureSameLengthVectors: true);
+		public SolutionDatabaseDynamic SavedSolutions { get; } = new SolutionDatabaseDynamic(ensureSameLengthVectors: true);
 
 		public void HandleMatrixWillBeSet() { }
 

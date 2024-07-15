@@ -10,7 +10,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	{
 		//TODO: Perhaps the arguments should be injected into the constructor.
 		//		As it is, the interface is only for POD-based preconditioners.
-		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabase2 savedSolutions);
+		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabaseDynamic savedSolutions);
 
 		public void UpdateForTimeStep(int timeStep);
 	}

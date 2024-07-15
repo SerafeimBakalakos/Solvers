@@ -25,7 +25,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			return new ConstantPodAmgPreconditioner(singlePreconditionerClone);
 		}
 
-		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabase2 savedSolutions)
+		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabaseDynamic savedSolutions)
 		{
 			// Gather all previous solution vectors as columns of a matrix
 			var numSamples = savedSolutions.CountAllSolutions();

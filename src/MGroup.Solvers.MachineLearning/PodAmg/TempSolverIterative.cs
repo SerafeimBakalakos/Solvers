@@ -52,7 +52,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		public IAlgebraicModel Model => model;
 
-		public SolutionDatabase SavedSolutions { get; } = new SolutionDatabase();
+		public SolutionDatabaseOLD SavedSolutions { get; } = new SolutionDatabaseOLD();
 
 		public override void HandleMatrixWillBeSet()
 		{

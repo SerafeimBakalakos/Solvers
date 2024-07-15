@@ -11,7 +11,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	{
 		public IAlgebraicModel Model { get; }
 
-		public SolutionDatabase SavedSolutions { get; }
+		public SolutionDatabaseOLD SavedSolutions { get; }
 
 		public void OnModelParameterUpdate(int parameterSet);
 	}

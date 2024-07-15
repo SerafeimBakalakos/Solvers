@@ -8,11 +8,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution.LinearSystem;
 
-	public class SolutionDatabase
+	public class SolutionDatabaseOLD
 	{
 		private readonly Dictionary<int, Dictionary<int, IGlobalVector>> savedSolutions;
 
-		public SolutionDatabase()
+		public SolutionDatabaseOLD()
 		{
 			savedSolutions = new Dictionary<int, Dictionary<int, IGlobalVector>>();
 		}
