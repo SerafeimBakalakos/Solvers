@@ -1,8 +1,9 @@
-namespace MGroup.Solvers.MachineLearning.MLExtensions.Surrogates
+namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Text;
+
 	using MGroup.MachineLearning.TensorFlow;
 	using MGroup.MachineLearning.Utilities;
 
@@ -10,7 +11,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.Surrogates
 	{
 		public CaeFfnnSurrogateDynamicPythonTF()
 		{
-			
+
 		}
 
 		public double[] Predict(double[] parameters)
@@ -18,9 +19,12 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.Surrogates
 			throw new NotImplementedException();
 		}
 
-		public void Train(double[,] parametersDataset, double[,] solutionsDataset)
+		public void Train(SolutionDatabaseDynamic solutionDb)
 		{
-			throw new NotImplementedException();
+			double[,] parametersDataset;
+			double[,] solutionsDataset;
+			
+
 		}
 
 		public class Builder

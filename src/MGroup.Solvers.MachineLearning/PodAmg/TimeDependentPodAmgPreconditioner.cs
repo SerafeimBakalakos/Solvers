@@ -4,6 +4,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Text;
 
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
@@ -35,19 +36,21 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabaseDynamic savedSolutions)
 		{
-			var numTimeSteps = preconditioners.Length;
+			var numTimeSteps = savedSolutions.CountTimeSteps();
+			Debug.Assert(numTimeSteps == preconditioners.Length);
 			var numSamples = savedSolutions.CountParameterSets();
 			for (var t = 0; t < numTimeSteps; t++)
 			{
 				// Gather the previous solution vectors corresponding to this time-step. Put them in a matrix as columns.
-				var solutionVectors = Matrix.CreateZero(numDofs, numSamples);
-				var col = 0;
-				foreach (var parameterSet in savedSolutions.EnumerateParameterSets())
-				{
-					var solution = savedSolutions.GetSolution(parameterSet, t);
-					solutionVectors.SetSubcolumn(col, solution);
-					col++;
-				}
+				Matrix solutionVectors = savedSolutions.ToMatrixSolutionsAsColumnsForTimestep(t);
+				//var solutionVectors = Matrix.CreateZero(numDofs, numSamples);
+				//var col = 0;
+				//foreach (int paramSet in savedSolutions.EnumerateParameterSetIDs())
+				//{
+				//	var solution = savedSolutions.GetSolution(paramSet, t);
+				//	solutionVectors.SetSubcolumn(col, solution);
+				//	col++;
+				//}
 
 				// AMG-POD training
 				preconditioners[t].Initialize(solutionVectors, numPrincipalComponentsInPod);

@@ -27,7 +27,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using MGroup.LinearAlgebra.Iterative.PreconditionedConjugateGradient;
 	using MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg;
 	using MGroup.LinearAlgebra.AlgebraicMultiGrid;
-	using MGroup.Solvers.MachineLearning.MLExtensions.Surrogates;
+	using MGroup.Solvers.MachineLearning.PodAmg.Surrogates;
 
 	public class DynamicAmgAiSolver : ISolver
 	{
@@ -95,7 +95,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		public string CurrentPreconditionerName 
 			=> currentStage == Stage.SolveWithMLPrecond ? "POD-2D preconditioner" : initialPreconditioner.GetType().Name;
 
-		public SolutionDatabaseDynamic SavedSolutions { get; } = new SolutionDatabaseDynamic(ensureSameLengthVectors: true);
+		public SolutionDatabaseDynamic SavedSolutions { get; } = new SolutionDatabaseDynamic();
 
 		public void HandleMatrixWillBeSet() { }
 

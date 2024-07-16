@@ -16,9 +16,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.MachineLearning.AnalyzersExtensions;
-	using MGroup.Solvers.MachineLearning.MLExtensions.Surrogates;
 	using MGroup.Solvers.MachineLearning.Plotting;
 	using MGroup.Solvers.MachineLearning.PodAmg;
+	using MGroup.Solvers.MachineLearning.PodAmg.Surrogates;
 
 	public class CantileverDynamicAnalysis
 	{
@@ -39,13 +39,13 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 			solverFactory.PcgConvergenceTolerance = 1E-6;
 			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
-			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 20); // 1, 5, 10, 15, 20
+			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 1); // 1, 5, 10, 15, 20
 			//solverFactory.TrainingStrategy = new SeparateTimeStepSolutionsTrainingStrategy(numTimeSteps);
 			solverFactory.KeepOnlyNonZeroPrincipalComponents = true;
 			DynamicAmgAiSolver solver = solverFactory.BuildSolver();
 
-			//int[] numElements = { 4, 20 };
-			int[] numElements = { 16, 80 };
+			int[] numElements = { 4, 20 };
+			//int[] numElements = { 16, 80 };
 			//int[] numElements = { 32, 160 };
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
 			example.SetTime(numTimeSteps * timeStepSize, numTimeSteps);

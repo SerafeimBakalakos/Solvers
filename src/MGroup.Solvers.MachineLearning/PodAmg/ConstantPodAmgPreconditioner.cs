@@ -28,14 +28,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabaseDynamic savedSolutions)
 		{
 			// Gather all previous solution vectors as columns of a matrix
-			var numSamples = savedSolutions.CountAllSolutions();
-			var solutionVectors = Matrix.CreateZero(numDofs, numSamples);
-			var col = 0;
-			foreach (Vector solution in savedSolutions.EnumerateAllSolutions())
-			{
-				solutionVectors.SetSubcolumn(col, solution);
-				col++;
-			}
+			Matrix solutionVectors = savedSolutions.ToMatrixAllSolutionsAsColumns(true);
 
 			// AMG-POD training
 			singlePreconditioner.Initialize(solutionVectors, numPrincipalComponentsInPod);
