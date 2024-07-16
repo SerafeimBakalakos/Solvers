@@ -45,15 +45,6 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		public bool CopyParametersArray { get; set; } = true;
 
-		public void CheckSameCountOfParameterSetsAndSolutionVectors()
-		{
-			if (CountParameterSets() * CountTimeSteps() != CountAllSolutions())
-			{
-				throw new Exception($"Have gathered {CountParameterSets()} sets of model parameters, " +
-					$"but {CountAllSolutions()} solution vectors, while using initial preconditioner.");
-			}
-		}
-
 		public void Clear()
 		{
 			savedModelParameters.Clear();

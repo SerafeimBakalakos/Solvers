@@ -230,16 +230,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			{
 				LinearSystem.Solution.Clear();
 			}
-			//// Use ML prediction as initial guess.
-			//double[] parameters = modelParametersCurrent.Copy();
-			//double[] prediction = surrogate.Predict(parameters);
-			//var solution = Vector.CreateFromArray(prediction);
-			//LinearSystem.Solution.SingleVector = solution;
-			//also set true to false in 236
-
+			
+			// Use ML prediction as initial guess.
+			double[] prediction = surrogate.Predict(currentTimeStep, modelParametersCurrent);
+			var solution = Vector.CreateFromArray(prediction);
+			LinearSystem.Solution.SingleVector = solution;
 
 			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, LinearSystem.Solution.SingleVector,
-				true, () => Vector.CreateZero(systemSize));
+				false, () => Vector.CreateZero(systemSize));
 			if (!stats.HasConverged)
 			{
 				throw new IterativeSolverNotConvergedException(Name + " did not converge to a solution. PCG algorithm with "
@@ -296,27 +294,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			int numDofs = AlgebraicModel.LinearSystem.Solution.Length;
 			mlPreconditioner.Initialize(numDofs, numPrincipalComponentsInPod, SavedSolutions);
 
-			// CAE-FFNN training: Gather all previous model parameters
-			SavedSolutions.CheckSameCountOfParameterSetsAndSolutionVectors();
-
-			//int numParameters = modelParametersCurrent.Length;
-			//var parametersAsArray = new double[numSamples, numParameters];
-			//for (int i = 0; i < numSamples; ++i)
-			//{
-			//	if (PreviousModelParameters[i].Length != numParameters)
-			//	{
-			//		throw new Exception("The model parameter sets do not all have the same size");
-			//	}
-
-			//	for (int j = 0; j < numParameters; ++j)
-			//	{
-			//		parametersAsArray[i, j] = PreviousModelParameters[i][j];
-			//	}
-			//}
-
-			//// CAE-FFNN training:  Dimension 0 must be the number of samples.
-			//double[,] solutionsAsArray = solutionVectors.Transpose().CopytoArray2D();
-			//surrogate.TrainAndEvaluate(parametersAsArray, solutionsAsArray, null);
+			// Train the CAE-FFNN surrogate for generating initial solution guesses
+			surrogate.Train(SavedSolutions);
 
 			// Free up some memory by deleting the stored solution vectors
 			SavedSolutions.Clear();
