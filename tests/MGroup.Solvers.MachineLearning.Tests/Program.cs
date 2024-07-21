@@ -27,61 +27,61 @@ namespace MGroup.Solvers.MachineLearning.Tests
 		{
 			int ffnnHiddenSize = 64;
 
-			var descr = new CaeFfnnDescription();
-			descr.NumDofs = 4719;
-			descr.NumModelParams = 2;
-			descr.LatentSpaceDim = 8;
+			var arch = new CaeFfnnArchitecture();
+			arch.NumDofs = 4719;
+			arch.NumModelParams = 2;
+			arch.LatentSpaceDim = 8;
 
-			descr.CaeLearningRate = 5E-4f;
-			descr.CaeNumEpochs = 40;
-			descr.CaeBatchSize = 10;
-			descr.FfnnLearningRate = 1E-4f;
-			descr.FfnnNumEpochs = 3000;
-			descr.FfnnBatchSize = 20;
+			arch.CaeLearningRate = 5E-4f;
+			arch.CaeNumEpochs = 40;
+			arch.CaeBatchSize = 10;
+			arch.FfnnLearningRate = 1E-4f;
+			arch.FfnnNumEpochs = 3000;
+			arch.FfnnBatchSize = 20;
 
-			descr.EncoderLayers.Add(new Conv1DLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
-			descr.EncoderLayers.Add(new LeakyReLULayer());
-			descr.EncoderLayers.Add(new Conv1DLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
-			descr.EncoderLayers.Add(new LeakyReLULayer());
-			descr.EncoderLayers.Add(new Conv1DLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
-			descr.EncoderLayers.Add(new LeakyReLULayer());
-			descr.EncoderLayers.Add(new Conv1DLayer(filters: 16, kernelSize: 5, strides: 1, padding: "same"));
-			descr.EncoderLayers.Add(new LeakyReLULayer());
-			descr.EncoderLayers.Add(new FlattenLayer());
-			descr.EncoderLayers.Add(new DenseLayer(units: descr.LatentSpaceDim));
+			arch.EncoderLayers.Add(new Conv1DLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
+			arch.EncoderLayers.Add(new LeakyReLULayer());
+			arch.EncoderLayers.Add(new Conv1DLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
+			arch.EncoderLayers.Add(new LeakyReLULayer());
+			arch.EncoderLayers.Add(new Conv1DLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
+			arch.EncoderLayers.Add(new LeakyReLULayer());
+			arch.EncoderLayers.Add(new Conv1DLayer(filters: 16, kernelSize: 5, strides: 1, padding: "same"));
+			arch.EncoderLayers.Add(new LeakyReLULayer());
+			arch.EncoderLayers.Add(new FlattenLayer());
+			arch.EncoderLayers.Add(new DenseLayer(units: arch.LatentSpaceDim));
 
-			descr.DecoderLayers.Add(new Input1DLayer(descr.LatentSpaceDim));
-			descr.DecoderLayers.Add(new DenseLayer(units: 32));
-			descr.DecoderLayers.Add(new LeakyReLULayer());
-			descr.DecoderLayers.Add(new ReshapeLayer(new int[] { 1, 32 }));
-			descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
-			descr.DecoderLayers.Add(new LeakyReLULayer());
-			descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
-			descr.DecoderLayers.Add(new LeakyReLULayer());
-			descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
-			descr.DecoderLayers.Add(new LeakyReLULayer());
-			descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: descr.NumDofs, kernelSize: 5, strides: 1, padding: "same"));
+			arch.DecoderLayers.Add(new Input1DLayer(arch.LatentSpaceDim));
+			arch.DecoderLayers.Add(new DenseLayer(units: 32));
+			arch.DecoderLayers.Add(new LeakyReLULayer());
+			arch.DecoderLayers.Add(new ReshapeLayer(new int[] { 1, 32 }));
+			arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
+			arch.DecoderLayers.Add(new LeakyReLULayer());
+			arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
+			arch.DecoderLayers.Add(new LeakyReLULayer());
+			arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
+			arch.DecoderLayers.Add(new LeakyReLULayer());
+			arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: arch.NumDofs, kernelSize: 5, strides: 1, padding: "same"));
 
-			descr.FfnnLayers.Add(new Input1DLayer(descr.NumModelParams));
-			descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-			descr.FfnnLayers.Add(new LeakyReLULayer());
-			descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-			descr.FfnnLayers.Add(new LeakyReLULayer());
-			descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-			descr.FfnnLayers.Add(new LeakyReLULayer());
-			descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-			descr.FfnnLayers.Add(new LeakyReLULayer());
-			descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-			descr.FfnnLayers.Add(new LeakyReLULayer());
-			descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-			descr.FfnnLayers.Add(new LeakyReLULayer());
-			descr.FfnnLayers.Add(new DenseLayer(units: descr.LatentSpaceDim));
+			arch.FfnnLayers.Add(new Input1DLayer(arch.NumModelParams));
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: arch.LatentSpaceDim));
 
 			string path = "C:\\Users\\Serafeim\\Desktop\\AISolve\\PythonCSharpBridge\\load_keras_model\\cs2py_settings.json";
 			using (StreamWriter file = File.CreateText(path))
 			{
 				var serializer = new JsonSerializer();
-				serializer.Serialize(file, descr);
+				serializer.Serialize(file, arch);
 			}
 		}
 	}

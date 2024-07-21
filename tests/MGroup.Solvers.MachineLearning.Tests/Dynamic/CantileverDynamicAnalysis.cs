@@ -49,8 +49,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			example.ElasticityModulusStdDev = 10E6;
 			example.UseLogNormalDistribution = true;
 
-			CaeFfnnDescription surrogateDescription = DescribeSurrogate(numElements);
-			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(surrogateDescription, workDirectory, pythonModelID: 43);
+			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements);
+			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
+			surrogate.Float64 = false;
+			surrogate.TensorFlowSeed = rngSeed;
 			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
 			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
 			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
@@ -225,67 +227,64 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 		}
 
-		private static CaeFfnnDescription DescribeSurrogate(int[] numElementsPerAxis)
+		private static CaeFfnnArchitecture DescribeSurrogate(int[] numElementsPerAxis)
 		{
 			if ((numElementsPerAxis[0] == 4) && (numElementsPerAxis[1] == 20)) //200 dofs
 			{
 				int ffnnHiddenSize = 32;
 
-				var descr = new CaeFfnnDescription();
+				var arch = new CaeFfnnArchitecture();
 
-				descr.Float64 = false;
-				descr.TensorFlowSeed = rngSeed;
+				arch.NumDofs = 2 * (numElementsPerAxis[0] + 1) * numElementsPerAxis[1]; //200
+				arch.NumModelParams = numElementsPerAxis[0] * numElementsPerAxis[1] + 1; //80 element E + 1 time
+				arch.LatentSpaceDim = 8;
 
-				descr.NumDofs = 2 * (numElementsPerAxis[0] + 1) * numElementsPerAxis[1]; //200
-				descr.NumModelParams = numElementsPerAxis[0] * numElementsPerAxis[1] + 1; //80 element E + 1 time
-				descr.LatentSpaceDim = 8;
+				arch.CaeLearningRate = 5E-4f;
+				arch.CaeNumEpochs = 40;
+				arch.CaeBatchSize = 10;
+				arch.FfnnLearningRate = 1E-4f;
+				arch.FfnnNumEpochs = 3000;
+				arch.FfnnBatchSize = 20;
 
-				descr.CaeLearningRate = 5E-4f;
-				descr.CaeNumEpochs = 40;
-				descr.CaeBatchSize = 10;
-				descr.FfnnLearningRate = 1E-4f;
-				descr.FfnnNumEpochs = 3000;
-				descr.FfnnBatchSize = 20;
+				arch.EncoderLayers.Add(new Conv1DLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
+				arch.EncoderLayers.Add(new LeakyReLULayer());
+				arch.EncoderLayers.Add(new Conv1DLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
+				arch.EncoderLayers.Add(new LeakyReLULayer());
+				arch.EncoderLayers.Add(new Conv1DLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
+				arch.EncoderLayers.Add(new LeakyReLULayer());
+				arch.EncoderLayers.Add(new Conv1DLayer(filters: 16, kernelSize: 5, strides: 1, padding: "same"));
+				arch.EncoderLayers.Add(new LeakyReLULayer());
+				arch.EncoderLayers.Add(new FlattenLayer());
+				arch.EncoderLayers.Add(new DenseLayer(units: arch.LatentSpaceDim));
 
-				descr.EncoderLayers.Add(new Conv1DLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
-				descr.EncoderLayers.Add(new LeakyReLULayer());
-				descr.EncoderLayers.Add(new Conv1DLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
-				descr.EncoderLayers.Add(new LeakyReLULayer());
-				descr.EncoderLayers.Add(new Conv1DLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
-				descr.EncoderLayers.Add(new LeakyReLULayer());
-				descr.EncoderLayers.Add(new Conv1DLayer(filters: 16, kernelSize: 5, strides: 1, padding: "same"));
-				descr.EncoderLayers.Add(new LeakyReLULayer());
-				descr.EncoderLayers.Add(new FlattenLayer());
-				descr.EncoderLayers.Add(new DenseLayer(units: descr.LatentSpaceDim));
+				arch.DecoderLayers.Add(new Input1DLayer(arch.LatentSpaceDim));
+				arch.DecoderLayers.Add(new DenseLayer(units: 32));
+				arch.DecoderLayers.Add(new LeakyReLULayer());
+				arch.DecoderLayers.Add(new ReshapeLayer(new int[] { 1, 32 }));
+				arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
+				arch.DecoderLayers.Add(new LeakyReLULayer());
+				arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
+				arch.DecoderLayers.Add(new LeakyReLULayer());
+				arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
+				arch.DecoderLayers.Add(new LeakyReLULayer());
+				arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: arch.NumDofs, kernelSize: 5, strides: 1, padding: "same"));
 
-				descr.DecoderLayers.Add(new Input1DLayer(descr.LatentSpaceDim));
-				descr.DecoderLayers.Add(new DenseLayer(units: 32));
-				descr.DecoderLayers.Add(new LeakyReLULayer());
-				descr.DecoderLayers.Add(new ReshapeLayer(new int[] { 1, 32 }));
-				descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
-				descr.DecoderLayers.Add(new LeakyReLULayer());
-				descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
-				descr.DecoderLayers.Add(new LeakyReLULayer());
-				descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
-				descr.DecoderLayers.Add(new LeakyReLULayer());
-				descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: descr.NumDofs, kernelSize: 5, strides: 1, padding: "same"));
+				arch.FfnnLayers.Add(new Input1DLayer(arch.NumModelParams));
+				arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				arch.FfnnLayers.Add(new LeakyReLULayer());
+				arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				arch.FfnnLayers.Add(new LeakyReLULayer());
+				arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				arch.FfnnLayers.Add(new LeakyReLULayer());
+				arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				arch.FfnnLayers.Add(new LeakyReLULayer());
+				arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				arch.FfnnLayers.Add(new LeakyReLULayer());
+				arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				arch.FfnnLayers.Add(new LeakyReLULayer());
+				arch.FfnnLayers.Add(new DenseLayer(units: arch.LatentSpaceDim));
 
-				descr.FfnnLayers.Add(new Input1DLayer(descr.NumModelParams));
-				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-				descr.FfnnLayers.Add(new LeakyReLULayer());
-				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-				descr.FfnnLayers.Add(new LeakyReLULayer());
-				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-				descr.FfnnLayers.Add(new LeakyReLULayer());
-				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-				descr.FfnnLayers.Add(new LeakyReLULayer());
-				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-				descr.FfnnLayers.Add(new LeakyReLULayer());
-				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
-				descr.FfnnLayers.Add(new LeakyReLULayer());
-				descr.FfnnLayers.Add(new DenseLayer(units: descr.LatentSpaceDim));
-
-				return descr;
+				return arch;
 			}
 			else
 			{

@@ -11,15 +11,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	using Newtonsoft.Json;
 
 	[JsonObject(MemberSerialization.OptOut)]
-	public class CaeFfnnDescription
+	public class CaeFfnnArchitecture
 	{
-		public CaeFfnnDescription() 
+		public CaeFfnnArchitecture() 
 		{
 		}
-
-		public bool Float64 { get; set; } = false;
-
-		public int TensorFlowSeed { get; set; } = -1;
 
 		public int NumDofs { get; set; } = -1;
 

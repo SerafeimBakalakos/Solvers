@@ -15,7 +15,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	{
 		private readonly int modelID;
 		private readonly string workDirectory;
-		private readonly CaeFfnnDescription caeFfnnDescr;
+		private readonly CaeFfnnArchitecture caeFfnnDescr;
 
 		private IArrayFileIO arrayIO = new ArrayBinaryFileIO();
 
@@ -27,7 +27,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private int numParameters = -1;
 		private int numTimesteps = -1;
 
-		public CaeFfnnSurrogateDynamicPythonTF(CaeFfnnDescription caeFfnnDescr, string workDirectory, int pythonModelID)
+		public CaeFfnnSurrogateDynamicPythonTF(CaeFfnnArchitecture caeFfnnDescr, string workDirectory, int pythonModelID)
 		{
 			this.caeFfnnDescr = caeFfnnDescr;
 			this.workDirectory = workDirectory;
@@ -37,6 +37,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			Splitter.MinValidationSetPercentage = 0.0;
 			Splitter.SetOrderToContiguous(DataSubsetType.Training, DataSubsetType.Test);
 		}
+
+		public bool Float64 { get; set; } = false;
+
+		public int TensorFlowSeed { get; set; } = -1;
 
 		public DatasetSplitter Splitter { get; set; }
 
@@ -98,6 +102,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			// Determine IO files
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
 			var settingsFile = new Cs2PyTrainingSettings(caeFfnnDescr, workDirectory, extension, modelID);
+			settingsFile.Float64 = this.Float64;
+			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
 			var resultsFile = new Py2CsResults(workDirectory);
 			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path}";
 			try
@@ -163,10 +169,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		private class Cs2PyTrainingSettings : InteropTempFile
 		{
-			public Cs2PyTrainingSettings(CaeFfnnDescription descr, string workDirectory, string arrayExtension, int modelID)
+			public Cs2PyTrainingSettings(CaeFfnnArchitecture descr, string workDirectory, string arrayExtension, int modelID)
 				: base(workDirectory, "_cs2py_settings.json")
 			{
-				ModelDescription = descr;
+				ModelArchitecture = descr;
 				TrainModelParamsPath = tempFilePrefix + "_train_model_params" + arrayExtension;
 				TrainSolutionVectorsPath = tempFilePrefix + "_train_solution_vectors" + arrayExtension;
 				//TestModelParamsPath = "";
@@ -175,7 +181,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.keras";
 			}
 
-			public CaeFfnnDescription ModelDescription { get; }
+			public bool Float64 { get; set; } = false;
+
+			public int TensorFlowSeed { get; set; } = -1;
 
 			public string TrainModelParamsPath { get; }
 
@@ -188,6 +196,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			public string ModelCaePath { get; }
 
 			public string ModelFfnnPath { get; }
+
+			public CaeFfnnArchitecture ModelArchitecture { get; }
 		}
 
 		private class Py2CsResults : InteropTempFile
