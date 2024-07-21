@@ -16,13 +16,18 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.MachineLearning.AnalyzersExtensions;
+	using MGroup.Solvers.MachineLearning.MLExtensions.TensorFlow;
 	using MGroup.Solvers.MachineLearning.Plotting;
 	using MGroup.Solvers.MachineLearning.PodAmg;
 	using MGroup.Solvers.MachineLearning.PodAmg.Surrogates;
 
 	public class CantileverDynamicAnalysis
 	{
-		//private const string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
+		private const string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
+		private const string pythonInterpreter = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates\\venv\\Scripts\\python.exe";
+		private const string trainScript = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
+		private const string predictScript = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
+
 		private const int numTimeSteps = 60;
 		private const double timeStepSize = 0.05;
 		private const bool printMsgsToConsole = true;
@@ -34,16 +39,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			int numAnalysesForTraining = 50;
 			int numPrincipalComponents = 1; // 1, 5, 10, 15, 20
 
-			var surrogateBuilder = new CaeFfnnSurrogateDynamicPythonTF.Builder();
-			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, surrogateBuilder);
-			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
-			solverFactory.PcgConvergenceTolerance = 1E-6;
-			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
-			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 1); // 1, 5, 10, 15, 20
-			//solverFactory.TrainingStrategy = new SeparateTimeStepSolutionsTrainingStrategy(numTimeSteps);
-			solverFactory.KeepOnlyNonZeroPrincipalComponents = true;
-			DynamicAmgAiSolver solver = solverFactory.BuildSolver();
-
 			int[] numElements = { 4, 20 };
 			//int[] numElements = { 16, 80 };
 			//int[] numElements = { 32, 160 };
@@ -53,6 +48,22 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			example.ElasticityModulusMean = 200E6;
 			example.ElasticityModulusStdDev = 10E6;
 			example.UseLogNormalDistribution = true;
+
+			CaeFfnnDescription surrogateDescription = DescribeSurrogate(numElements);
+			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(surrogateDescription, workDirectory, pythonModelID: 43);
+			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
+			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
+			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
+			surrogate.UseBinaryIOFilesForArrays = false;
+
+			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, surrogate);
+			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
+			solverFactory.PcgConvergenceTolerance = 1E-6;
+			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
+			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 1); // 1, 5, 10, 15, 20
+			//solverFactory.TrainingStrategy = new SeparateTimeStepSolutionsTrainingStrategy(numTimeSteps);
+			solverFactory.KeepOnlyNonZeroPrincipalComponents = true;
+			DynamicAmgAiSolver solver = solverFactory.BuildSolver();
 
 			double averageNumIterationsInitialPrecond = 0;
 			double averageNumIterationsMLPrecond = 0;
@@ -211,6 +222,74 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			{
 				IGlobalVector solution = solver.SavedSolutions.GetSolution(parameterSet, t);
 				plotter.WriteResults(solver.Model, solution);
+			}
+		}
+
+		private static CaeFfnnDescription DescribeSurrogate(int[] numElementsPerAxis)
+		{
+			if ((numElementsPerAxis[0] == 4) && (numElementsPerAxis[1] == 20)) //200 dofs
+			{
+				int ffnnHiddenSize = 32;
+
+				var descr = new CaeFfnnDescription();
+
+				descr.Float64 = false;
+				descr.TensorFlowSeed = rngSeed;
+
+				descr.NumDofs = 2 * (numElementsPerAxis[0] + 1) * numElementsPerAxis[1]; //200
+				descr.NumModelParams = numElementsPerAxis[0] * numElementsPerAxis[1] + 1; //80 element E + 1 time
+				descr.LatentSpaceDim = 8;
+
+				descr.CaeLearningRate = 5E-4f;
+				descr.CaeNumEpochs = 40;
+				descr.CaeBatchSize = 10;
+				descr.FfnnLearningRate = 1E-4f;
+				descr.FfnnNumEpochs = 3000;
+				descr.FfnnBatchSize = 20;
+
+				descr.EncoderLayers.Add(new Conv1DLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
+				descr.EncoderLayers.Add(new LeakyReLULayer());
+				descr.EncoderLayers.Add(new Conv1DLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
+				descr.EncoderLayers.Add(new LeakyReLULayer());
+				descr.EncoderLayers.Add(new Conv1DLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
+				descr.EncoderLayers.Add(new LeakyReLULayer());
+				descr.EncoderLayers.Add(new Conv1DLayer(filters: 16, kernelSize: 5, strides: 1, padding: "same"));
+				descr.EncoderLayers.Add(new LeakyReLULayer());
+				descr.EncoderLayers.Add(new FlattenLayer());
+				descr.EncoderLayers.Add(new DenseLayer(units: descr.LatentSpaceDim));
+
+				descr.DecoderLayers.Add(new Input1DLayer(descr.LatentSpaceDim));
+				descr.DecoderLayers.Add(new DenseLayer(units: 32));
+				descr.DecoderLayers.Add(new LeakyReLULayer());
+				descr.DecoderLayers.Add(new ReshapeLayer(new int[] { 1, 32 }));
+				descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
+				descr.DecoderLayers.Add(new LeakyReLULayer());
+				descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
+				descr.DecoderLayers.Add(new LeakyReLULayer());
+				descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
+				descr.DecoderLayers.Add(new LeakyReLULayer());
+				descr.DecoderLayers.Add(new Conv1DTransposeLayer(filters: descr.NumDofs, kernelSize: 5, strides: 1, padding: "same"));
+
+				descr.FfnnLayers.Add(new Input1DLayer(descr.NumModelParams));
+				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				descr.FfnnLayers.Add(new LeakyReLULayer());
+				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				descr.FfnnLayers.Add(new LeakyReLULayer());
+				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				descr.FfnnLayers.Add(new LeakyReLULayer());
+				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				descr.FfnnLayers.Add(new LeakyReLULayer());
+				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				descr.FfnnLayers.Add(new LeakyReLULayer());
+				descr.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+				descr.FfnnLayers.Add(new LeakyReLULayer());
+				descr.FfnnLayers.Add(new DenseLayer(units: descr.LatentSpaceDim));
+
+				return descr;
+			}
+			else
+			{
+				throw new NotImplementedException();
 			}
 		}
 

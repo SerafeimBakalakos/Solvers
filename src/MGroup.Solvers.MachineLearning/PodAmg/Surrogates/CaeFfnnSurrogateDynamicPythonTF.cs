@@ -2,18 +2,83 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.IO;
 	using System.Text;
 
 	using MGroup.MachineLearning.TensorFlow;
+	using MGroup.MachineLearning.TensorFlow.KerasLayers;
 	using MGroup.MachineLearning.Utilities;
+	using MGroup.Solvers.MachineLearning.MLExtensions;
 
 	public class CaeFfnnSurrogateDynamicPythonTF
 	{
-		private int numDofs;
+		private readonly int modelID;
+		private readonly string workDirectory;
+		private readonly CaeFfnnDescription caeFfnnDescr;
 
-		public CaeFfnnSurrogateDynamicPythonTF()
+		private IArrayFileIO arrayIO = new ArrayBinaryFileIO();
+
+		private string pythonInterpreter = null;
+		private string trainScript = null;
+		private string predictScript = null;
+
+		private int numDofs = -1;
+		private int numParameters = -1;
+		private int numTimesteps = -1;
+
+		public CaeFfnnSurrogateDynamicPythonTF(CaeFfnnDescription caeFfnnDescr, string workDirectory, int pythonModelID)
 		{
+			this.caeFfnnDescr = caeFfnnDescr;
+			this.workDirectory = workDirectory;
 
+			Splitter = new DatasetSplitter();
+			Splitter.MinTestSetPercentage = 0.2;
+			Splitter.MinValidationSetPercentage = 0.0;
+			Splitter.SetOrderToContiguous(DataSubsetType.Training, DataSubsetType.Test);
+		}
+
+		public DatasetSplitter Splitter { get; set; }
+
+		/// <summary>
+		/// True (default) to delete any files created by this class. False to retain the files for manual inspection.
+		/// </summary>
+		public bool CleanupIOFiles { get; set; } = true;
+
+		/// <summary>
+		/// Specifies the milliseconds to wait before aborting the call to a Python script. 
+		/// Indefinite waiting if <see cref="TimeoutMilliseconds"/> == -1 (default).
+		/// </summary>
+		public int TimeoutMilliseconds { get; set; } = -1;
+
+		/// <summary>
+		/// If true, arrays will be transfered between C# and Python using the binary .npy format. These are not readable by
+		/// humans, but are more efficient.
+		/// If false (default), text files (.txt extension) will be used instead, where each array entry is separated by a single 
+		/// whitespace char and each row (for 2D arrays) by a newline char. These are readable by humans, but less efficient.
+		/// </summary>
+		public bool UseBinaryIOFilesForArrays
+		{
+			get => arrayIO is ArrayBinaryFileIO;
+			set
+			{
+				if (value)
+				{
+					arrayIO = new ArrayBinaryFileIO();
+				}
+				else
+				{
+					arrayIO = new ArrayTextFileIO(' ');
+				}
+			}
+		}
+
+		public void SetPythonCodePaths(string pythonInterpreter, string trainScript, string predictScript)
+		{
+			//TODO: Check if they are valid. Perhaps the scripts can be located from outside the PyCharm directory
+			this.pythonInterpreter = pythonInterpreter;
+			this.trainScript = trainScript;
+			this.predictScript = predictScript;
 		}
 
 		public double[] Predict(int timeStep, double[] parameters)
@@ -23,41 +88,115 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public void Train(SolutionDatabaseDynamic solutionDb)
 		{
-			numDofs = solutionDb.CountDofs();
+			// Create datasets
+			double[,] allSolutions = solutionDb.ToArray2DAllSolutionsAsRows(true);
+			double[,] allParams = solutionDb.ToArray2DAllParametersAndTimestepsAsRows(true);
+			Splitter.SetupSplittingRules(allSolutions.GetLength(0));
+			(double[,] trainSolutions, double[,] testSolutions, _) = Splitter.SplitDataset(allSolutions);
+			(double[,] trainParams, double[,] testParams, _) = Splitter.SplitDataset(allParams);
 
-			//double[,] parametersDataset;
-			//double[,] solutionsDataset;
-
-			//int numParameters = modelParametersCurrent.Length;
-			//var parametersAsArray = new double[numSamples, numParameters];
-			//for (int i = 0; i < numSamples; ++i)
-			//{
-			//	if (PreviousModelParameters[i].Length != numParameters)
-			//	{
-			//		throw new Exception("The model parameter sets do not all have the same size");
-			//	}
-
-			//	for (int j = 0; j < numParameters; ++j)
-			//	{
-			//		parametersAsArray[i, j] = PreviousModelParameters[i][j];
-			//	}
-			//}
-
-			//// CAE-FFNN training:  Dimension 0 must be the number of samples.
-			//double[,] solutionsAsArray = solutionVectors.Transpose().CopytoArray2D();
-			//surrogate.TrainAndEvaluate(parametersAsArray, solutionsAsArray, null);
+			// Determine IO files
+			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
+			var settingsFile = new Cs2PyTrainingSettings(caeFfnnDescr, workDirectory, extension, modelID);
+			var resultsFile = new Py2CsResults(workDirectory);
+			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path}";
+			try
+			{
+				// Write the files to filesystem
+				settingsFile.WriteToFileSystem();
+				resultsFile.WriteToFileSystem();
+				arrayIO.WriteArray2DToFile(trainSolutions, settingsFile.TrainSolutionVectorsPath);
+				arrayIO.WriteArray2DToFile(trainParams, settingsFile.TrainModelParamsPath);
+				CallPythonScript(processArgs, resultsFile.Path);
+			}
+			finally
+			{
+				// Cleanup
+				if (CleanupIOFiles)
+				{
+					File.Delete(settingsFile.Path);
+					File.Delete(resultsFile.Path);
+					File.Delete(settingsFile.TrainSolutionVectorsPath);
+					File.Delete(settingsFile.TrainModelParamsPath);
+				}
+			}
 		}
 
-		public class Builder
+		private void CallPythonScript(string processArgs, string pathResults)
 		{
-			public Builder()
+			var startInfo = new ProcessStartInfo(pythonInterpreter);
+			startInfo.FileName = pythonInterpreter;
+			startInfo.Arguments = processArgs;
+			startInfo.UseShellExecute = false;
+			startInfo.RedirectStandardOutput = true;
+			//startInfo.RedirectStandardError = true;
+			int exitCode = -1;
+			using (var process = Process.Start(startInfo))
+			{
+				process.WaitForExit(TimeoutMilliseconds);
+				exitCode = process.ExitCode;
+			}
+
+			if (exitCode != 0)
+			{
+				if (exitCode == 100)
+				{
+					// The results file will be overwritten with the error message
+					using (var reader = new StreamReader(pathResults))
+					{
+						var pythonErrorMsg = reader.ReadToEnd();
+						var csharpErrorMsg = new StringBuilder();
+						csharpErrorMsg.AppendLine($"Python script terminated with errors:");
+						csharpErrorMsg.AppendLine($"**** Start of Python error message ***");
+						csharpErrorMsg.AppendLine(pythonErrorMsg);
+						csharpErrorMsg.AppendLine($"**** End of Python error message ***");
+						throw new Exception(csharpErrorMsg.ToString());
+					}
+				}
+				else
+				{
+					throw new Exception(
+						$"Python script exited with code {exitCode}, instead of 0 (successful) or 100 (handled error).");
+				}
+			}
+		}
+
+		private class Cs2PyTrainingSettings : InteropTempFile
+		{
+			public Cs2PyTrainingSettings(CaeFfnnDescription descr, string workDirectory, string arrayExtension, int modelID)
+				: base(workDirectory, "_cs2py_settings.json")
+			{
+				ModelDescription = descr;
+				TrainModelParamsPath = tempFilePrefix + "_train_model_params" + arrayExtension;
+				TrainSolutionVectorsPath = tempFilePrefix + "_train_solution_vectors" + arrayExtension;
+				//TestModelParamsPath = "";
+				//TestSolutionVectorsPath = "";
+				ModelCaePath = $"{workDirectory}\\model_cae_{modelID}.keras";
+				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.keras";
+			}
+
+			public CaeFfnnDescription ModelDescription { get; }
+
+			public string TrainModelParamsPath { get; }
+
+			public string TrainSolutionVectorsPath { get; }
+
+			//public string TestModelParamsPath { get; }
+
+			//public string TestSolutionVectorsPath { get; }
+
+			public string ModelCaePath { get; }
+
+			public string ModelFfnnPath { get; }
+		}
+
+		private class Py2CsResults : InteropTempFile
+		{
+			public Py2CsResults(string workDirectory) : base(workDirectory, "_py2cs_results.json")
 			{
 			}
 
-			public CaeFfnnSurrogateDynamicPythonTF BuildSurrogate()
-			{
-				return new CaeFfnnSurrogateDynamicPythonTF();
-			}
+			//public string Message { get; set; } = ""; //TODO: Error messages should go in this property
 		}
 	}
 }

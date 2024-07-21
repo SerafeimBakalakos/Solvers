@@ -308,14 +308,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		{
 			private readonly int numParameterSetsForPod;
 			private readonly int numPrincipalComponentsInPod;
-			private readonly CaeFfnnSurrogateDynamicPythonTF.Builder surrogateBuilder;
+			private readonly CaeFfnnSurrogateDynamicPythonTF surrogate;
 
 			public Factory(int numParameterSetsForPod, int numPrincipalComponentsInPod, 
-				CaeFfnnSurrogateDynamicPythonTF.Builder surrogateBuilder)
+				CaeFfnnSurrogateDynamicPythonTF surrogate)
 			{
 				this.numParameterSetsForPod = numParameterSetsForPod;
 				this.numPrincipalComponentsInPod = numPrincipalComponentsInPod;
-				this.surrogateBuilder = surrogateBuilder;
+				this.surrogate = surrogate;
 			}
 
 			public IDofOrderer DofOrderer { get; set; }
@@ -351,8 +351,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 				IDynamicMLPreconditioner mlPreconditioner = TrainingStrategy.CreatePreconditioner(podAmgPreconditioner);
 
 				return new DynamicAmgAiSolver(DofOrderer, pcgAlgorithm, MatrixPatternWillNotBeModified, initialPreconditioner,
-					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod,
-					surrogateBuilder.BuildSurrogate());
+					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod, surrogate);
 			}
 		}
 	}

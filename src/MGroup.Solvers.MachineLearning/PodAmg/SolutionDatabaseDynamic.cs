@@ -379,7 +379,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		{
 			int numCols = array2D.GetLength(1);
 			Debug.Assert(rowValues.Length == numCols);
-			Array.Copy(rowValues, 0, array2D, rowIdx * numCols, numCols);
+			//Array.Copy(rowValues, 0, array2D, rowIdx * numCols, numCols);
+			int size = sizeof(double);
+			System.Buffer.BlockCopy(rowValues, 0, array2D, size * rowIdx * numCols, size * numCols);
 		}
 
 		private void SetArrayAlongDim2(double[,,] array3D, int idxDim0, int idxDim1, double[] values)
@@ -388,7 +390,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			int dim2Count = array3D.GetLength(2);
 			Debug.Assert(values.Length == dim2Count);
 			int offset = idxDim0 * dim1Count * dim2Count + idxDim1 * dim2Count;
-			Array.Copy(values, 0, array3D, offset, dim2Count);
+			//Array.Copy(values, 0, array3D, offset, dim2Count);
+			int size = sizeof(double);
+			System.Buffer.BlockCopy(values, 0, array3D, size * offset, size * dim2Count);
 		}
 	}
 }

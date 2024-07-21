@@ -251,7 +251,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			{
 				FeaturesPath = tempFilePrefix + "_features" + arrayExtension;
 				LabelsPath = tempFilePrefix + "_labels" + arrayExtension;
-				ModelPath = $"{workDirectory}\\model_{modelID}.keras"; ;
+				ModelPath = $"{workDirectory}\\model_{modelID}.keras";
 			}
 
 			public string FeaturesPath { get; }
