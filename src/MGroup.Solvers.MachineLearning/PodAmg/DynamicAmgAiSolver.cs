@@ -221,20 +221,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			int systemSize = matrix.NumRows;
 			Vector rhs = LinearSystem.RhsVector.SingleVector;
 
-			//TODO: Delete these when adding the ML prediction
-			if (LinearSystem.Solution.SingleVector == null)
-			{
-				LinearSystem.Solution.SingleVector = Vector.CreateZero(systemSize);
-			}
-			else
-			{
-				LinearSystem.Solution.Clear();
-			}
-			
 			// Use ML prediction as initial guess.
 			double[] prediction = surrogate.Predict(currentTimeStep, modelParametersCurrent);
-			var solution = Vector.CreateFromArray(prediction);
-			LinearSystem.Solution.SingleVector = solution;
+			LinearSystem.Solution.SingleVector = Vector.CreateFromArray(prediction);
 
 			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, LinearSystem.Solution.SingleVector,
 				false, () => Vector.CreateZero(systemSize));

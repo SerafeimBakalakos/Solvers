@@ -13,9 +13,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 	public class CaeFfnnSurrogateDynamicPythonTF
 	{
-		private readonly int modelID;
 		private readonly string workDirectory;
-		private readonly CaeFfnnArchitecture caeFfnnDescr;
+		private readonly int pythonModelID;
+		private readonly CaeFfnnArchitecture caeFfnnArch;
 
 		private IArrayFileIO arrayIO = new ArrayBinaryFileIO();
 
@@ -23,15 +23,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private string trainScript = null;
 		private string predictScript = null;
 
-		private int numDofs = -1;
-		private int numParameters = -1;
-		private int numTimesteps = -1;
-
-		public CaeFfnnSurrogateDynamicPythonTF(CaeFfnnArchitecture caeFfnnDescr, string workDirectory, int pythonModelID)
+		public CaeFfnnSurrogateDynamicPythonTF(CaeFfnnArchitecture caeFfnnArchitecture, string workDirectory, int pythonModelID)
 		{
-			this.caeFfnnDescr = caeFfnnDescr;
+			this.caeFfnnArch = caeFfnnArchitecture;
 			this.workDirectory = workDirectory;
-
+			this.pythonModelID = pythonModelID;
 			Splitter = new DatasetSplitter();
 			Splitter.MinTestSetPercentage = 0.2;
 			Splitter.MinValidationSetPercentage = 0.0;
@@ -87,7 +83,34 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public double[] Predict(int timeStep, double[] parameters)
 		{
-			return new double[numDofs];
+			double[] input = Prepend(timeStep, parameters);
+			var output = new double[caeFfnnArch.NumDofs];
+
+			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
+			var settingsFile = new Cs2PyPredictSettings(workDirectory, extension, pythonModelID);
+			settingsFile.Float64 = this.Float64;
+			var resultsFile = new Py2CsResults(workDirectory);
+			string processArgs = $"{predictScript} {settingsFile.Path} {resultsFile.Path}";
+			try
+			{
+				settingsFile.WriteToFileSystem();
+				resultsFile.WriteToFileSystem();
+				arrayIO.WriteArray1DToFile(input, settingsFile.ModelParamsPath);
+				CallPythonScript(processArgs, resultsFile.Path);
+				arrayIO.ReadArray1DFromFile(output, settingsFile.SolutionVectorPath);
+				return output;
+			}
+			finally
+			{
+				// Cleanup
+				if (CleanupIOFiles)
+				{
+					File.Delete(settingsFile.Path);
+					File.Delete(resultsFile.Path);
+					File.Delete(settingsFile.ModelParamsPath);
+					File.Delete(settingsFile.SolutionVectorPath);
+				}
+			}
 		}
 
 		public void Train(SolutionDatabaseDynamic solutionDb)
@@ -101,7 +124,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			// Determine IO files
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PyTrainingSettings(caeFfnnDescr, workDirectory, extension, modelID);
+			var settingsFile = new Cs2PyTrainingSettings(caeFfnnArch, workDirectory, extension, pythonModelID);
 			settingsFile.Float64 = this.Float64;
 			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
 			var resultsFile = new Py2CsResults(workDirectory);
@@ -167,6 +190,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			}
 		}
 
+		private double[] Prepend(double newValue, double[] oldArray)
+		{
+			var result = new double[oldArray.Length + 1];
+			result[0] = newValue;
+			Array.Copy(oldArray, 0, result, 1, oldArray.Length);
+			return result;
+		}
+
 		private class Cs2PyTrainingSettings : InteropTempFile
 		{
 			public Cs2PyTrainingSettings(CaeFfnnArchitecture descr, string workDirectory, string arrayExtension, int modelID)
@@ -177,7 +208,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				TrainSolutionVectorsPath = tempFilePrefix + "_train_solution_vectors" + arrayExtension;
 				//TestModelParamsPath = "";
 				//TestSolutionVectorsPath = "";
-				ModelCaePath = $"{workDirectory}\\model_cae_{modelID}.keras";
+				//ModelEncoderPath = $"{workDirectory}\\model_encoder_{modelID}.keras";
+				ModelDecoderPath = $"{workDirectory}\\model_decoder_{modelID}.keras";
 				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.keras";
 			}
 
@@ -193,11 +225,35 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			//public string TestSolutionVectorsPath { get; }
 
-			public string ModelCaePath { get; }
+			//public string ModelEncoderPath { get; }
+
+			public string ModelDecoderPath { get; }
 
 			public string ModelFfnnPath { get; }
 
 			public CaeFfnnArchitecture ModelArchitecture { get; }
+		}
+
+		private class Cs2PyPredictSettings : InteropTempFile
+		{
+			public Cs2PyPredictSettings(string workDirectory, string arrayExtension, int modelID)
+				: base(workDirectory, "_cs2py_settings.json")
+			{
+				ModelParamsPath = tempFilePrefix + "_model_params" + arrayExtension;
+				SolutionVectorPath = tempFilePrefix + "_solution_vector" + arrayExtension;
+				ModelDecoderPath = $"{workDirectory}\\model_decoder_{modelID}.keras";
+				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.keras";
+			}
+
+			public bool Float64 { get; set; } = false;
+
+			public string ModelParamsPath { get; }
+
+			public string SolutionVectorPath { get; }
+
+			public string ModelDecoderPath { get; }
+
+			public string ModelFfnnPath { get; }
 		}
 
 		private class Py2CsResults : InteropTempFile
