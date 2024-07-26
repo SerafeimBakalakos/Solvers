@@ -58,7 +58,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
 			surrogate.UseBinaryIOFilesForArrays = false;
 
-			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, surrogate);
+			//ISolutionPredictionStrategy solutionPrediction = surrogate;
+			ISolutionPredictionStrategy solutionPrediction = new NullSolutionPredictionStrategy();
+
+			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, solutionPrediction);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 			solverFactory.PcgConvergenceTolerance = 1E-6;
 			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);

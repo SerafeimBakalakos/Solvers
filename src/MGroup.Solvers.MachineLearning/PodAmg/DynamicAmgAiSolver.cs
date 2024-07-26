@@ -54,7 +54,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		private Stage currentStage;
 		private double[] modelParametersCurrent;
-		private CaeFfnnSurrogateDynamicPythonTF surrogate;
+		private ISolutionPredictionStrategy solutionPrediction;
 
 		private int currentParameterSetIdx;
 		private int currentParameterSetId;
@@ -63,7 +63,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private DynamicAmgAiSolver(IDofOrderer dofOrderer, PcgAlgorithm pcgAlgorithm, bool matrixPatternWillNotBeModified,
 			IPreconditioner initialPreconditioner, IDynamicMLPreconditioner mlPreconditioner, 
 			ISolutionTrainingStrategy trainingStrategy, int numParameterSetsBeforeTraining, int numPrincipalComponentsInPod,
-			CaeFfnnSurrogateDynamicPythonTF surrogate)
+			ISolutionPredictionStrategy solutionPrediction)
 		{
 			this.dofOrderer = dofOrderer;
 			this.pcgAlgorithm = pcgAlgorithm;
@@ -73,7 +73,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			this.mlPreconditioner = mlPreconditioner;
 			this.numParameterSetsBeforeTraining = numParameterSetsBeforeTraining;
 			this.numPrincipalComponentsInPod = numPrincipalComponentsInPod;
-			this.surrogate = surrogate;
+			this.solutionPrediction = solutionPrediction;
 
 			currentStage = Stage.Start;
 			currentParameterSetIdx = -1;
@@ -223,7 +223,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			Vector rhs = LinearSystem.RhsVector.SingleVector;
 
 			// Use ML prediction as initial guess.
-			double[] prediction = surrogate.Predict(currentTimeStep, modelParametersCurrent);
+			double[] prediction = solutionPrediction.Predict(currentTimeStep, modelParametersCurrent);
 			LinearSystem.Solution.SingleVector = Vector.CreateFromArray(prediction);
 
 			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, LinearSystem.Solution.SingleVector,
@@ -285,7 +285,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			mlPreconditioner.Initialize(numDofs, numPrincipalComponentsInPod, SavedSolutions);
 
 			// Train the CAE-FFNN surrogate for generating initial solution guesses
-			surrogate.Train(SavedSolutions);
+			solutionPrediction.Train(SavedSolutions);
 
 			// Free up some memory by deleting the stored solution vectors
 			SavedSolutions.Clear();
@@ -304,14 +304,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		{
 			private readonly int numParameterSetsForPod;
 			private readonly int numPrincipalComponentsInPod;
-			private readonly CaeFfnnSurrogateDynamicPythonTF surrogate;
+			private readonly ISolutionPredictionStrategy solutionPrediction;
 
-			public Factory(int numParameterSetsForPod, int numPrincipalComponentsInPod, 
-				CaeFfnnSurrogateDynamicPythonTF surrogate)
+			public Factory(int numParameterSetsForPod, int numPrincipalComponentsInPod,
+				ISolutionPredictionStrategy solutionPrediction)
 			{
 				this.numParameterSetsForPod = numParameterSetsForPod;
 				this.numPrincipalComponentsInPod = numPrincipalComponentsInPod;
-				this.surrogate = surrogate;
+				this.solutionPrediction = solutionPrediction;
 			}
 
 			public IDofOrderer DofOrderer { get; set; }
@@ -347,7 +347,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 				IDynamicMLPreconditioner mlPreconditioner = TrainingStrategy.CreatePreconditioner(podAmgPreconditioner);
 
 				return new DynamicAmgAiSolver(DofOrderer, pcgAlgorithm, MatrixPatternWillNotBeModified, initialPreconditioner,
-					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod, surrogate);
+					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod, solutionPrediction);
 			}
 		}
 	}

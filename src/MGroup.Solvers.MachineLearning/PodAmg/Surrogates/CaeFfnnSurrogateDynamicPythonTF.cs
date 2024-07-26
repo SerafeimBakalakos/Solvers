@@ -11,7 +11,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	using MGroup.MachineLearning.Utilities;
 	using MGroup.Solvers.MachineLearning.MLExtensions;
 
-	public class CaeFfnnSurrogateDynamicPythonTF
+	public class CaeFfnnSurrogateDynamicPythonTF : ISolutionPredictionStrategy
 	{
 		private readonly string workDirectory;
 		private readonly int pythonModelID;
