@@ -18,9 +18,10 @@ namespace MGroup.Solvers.MachineLearning.Tests
 	{
 		public static void Main(string[] args)
 		{
-			//TrySerialization();
+			//CallingPythonTests.TestTrainAndPredict(doublePrecision: false, binaryIOFiles: true);
 			CantileverDynamicAnalysis.RunStochasticAnalysis();
 			//CantileverDynamicAnalysis.RunStandAloneAnalysis();
+			//TrySerialization();
 		}
 
 		private static void TrySerialization()

@@ -145,6 +145,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		public void Solve()
 		{
+			//PrintProgress();
 			if (currentStage == Stage.Start)
 			{
 				throw new InvalidOperationException("The model parameters must be set before calling this.");
@@ -291,6 +292,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			watch.Stop();
 			Logger.LogTaskDuration(Subtask.TrainML.ToString(), watch.ElapsedMilliseconds);
+			Console.WriteLine("******************* End of ML training ********************************");
+		}
+
+		private void PrintProgress()
+		{
+			Console.WriteLine($"Parameter set = {currentParameterSetId}, time step = {currentTimeStep}");
 		}
 
 		public class Factory

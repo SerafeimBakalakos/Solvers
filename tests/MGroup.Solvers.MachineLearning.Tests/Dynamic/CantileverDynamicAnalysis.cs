@@ -76,6 +76,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			var responses = new List<double>(numAnalysesTotal);
 			for (int i = 0; i < numAnalysesTotal; i++)
 			{
+				PrintLine($"*************** Analysis {i+1}/{numAnalysesTotal} ***************");
 				AnalysisResults results = RunSingleAnalysis(i, solver, example);
 				responses.Add(results.MonitorDofRespose);
 
@@ -99,7 +100,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 					PrintLine("");
 				}
 
-				PrintLine($"*************** Analysis {i+1}/{numAnalysesTotal} ***************");
 				var msg = new StringBuilder();
 				msg.Append($"Dofs = {results.NumDofs}. Preconditioner = {results.PreconditionerName}. ");
 				msg.Append($"Average number of PCG iterations per timestep = {Math.Round(results.AveragePcgIterations)}. ");
@@ -243,7 +243,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				arch.CaeNumEpochs = 40;
 				arch.CaeBatchSize = 10;
 				arch.FfnnLearningRate = 1E-4f;
-				arch.FfnnNumEpochs = 3000;
+				arch.FfnnNumEpochs = 500; //3000 took too long for 81 model params
 				arch.FfnnBatchSize = 20;
 
 				arch.EncoderLayers.Add(new Conv1DLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));

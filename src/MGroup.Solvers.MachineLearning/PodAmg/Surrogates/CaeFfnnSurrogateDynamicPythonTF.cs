@@ -158,7 +158,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			startInfo.Arguments = processArgs;
 			startInfo.UseShellExecute = false;
 			startInfo.RedirectStandardOutput = true;
-			//startInfo.RedirectStandardError = true;
+			startInfo.RedirectStandardError = true;
 			int exitCode = -1;
 			using (var process = Process.Start(startInfo))
 			{

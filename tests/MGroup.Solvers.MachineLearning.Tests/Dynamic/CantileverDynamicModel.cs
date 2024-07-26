@@ -4,9 +4,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using System.Collections.Generic;
 	using System.Linq;
 
-	using DotNumerics.ODE.Radau5;
-	using DotNumerics.Optimization;
-
 	using MGroup.Constitutive.Structural;
 	using MGroup.Constitutive.Structural.BoundaryConditions;
 	using MGroup.Constitutive.Structural.Continuum;
@@ -19,8 +16,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Meshes.Structured;
 	using MGroup.Solvers.MachineLearning.Tests.StatisticsExtensions;
-
-	using Tensorflow.Keras.Metrics;
 
 	public class CantileverDynamicModel
 	{
