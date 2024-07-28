@@ -141,6 +141,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				{
 					File.Delete(settingsFile.Path);
 					File.Delete(resultsFile.Path);
+					File.Delete(logFile.Path);
 					File.Delete(settingsFile.ModelParamsPath);
 					File.Delete(settingsFile.SolutionVectorPath);
 				}
@@ -202,6 +203,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				{
 					File.Delete(settingsFile.Path);
 					File.Delete(resultsFile.Path);
+					File.Delete(logFile.Path);
 					File.Delete(settingsFile.TrainSolutionVectorsPath);
 					File.Delete(settingsFile.TrainModelParamsPath);
 				}

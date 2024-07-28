@@ -4,7 +4,7 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 	using System.Collections.Generic;
 	using System.Text;
 
-	public class KarhunenLoeveField1D : IRandomField
+	public class KarhunenLoeveField1D : IRandomField1D
 	{
 		private readonly double domainMin;
 		private readonly double domainMax;
@@ -28,10 +28,9 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 				fieldMean, fieldStdDev, correlationLength, numKarLoeveTerms, rng, true, true);
 		}
 
-		public double CalcValueAt(double[] coords)
+		public double CalcValueAt(double coords)
 		{
-			var x = coords[0];
-			var xOverDx = x / nodeDistance;
+			var xOverDx = coords / nodeDistance;
 			var previousNodeIdx = (int)xOverDx;
 			if (previousNodeIdx != numNodes - 1)
 			{

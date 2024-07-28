@@ -4,9 +4,9 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions
 	using System.Collections.Generic;
 	using System.Text;
 
-	public interface IRandomField
+	public interface IRandomField1D
 	{
-		public double CalcValueAt(double[] coords);
+		public double CalcValueAt(double coords);
 
 		public void Initialize();
 

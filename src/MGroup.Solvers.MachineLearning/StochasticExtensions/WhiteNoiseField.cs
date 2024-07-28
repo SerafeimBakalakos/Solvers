@@ -5,7 +5,7 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions
 	using System.Text;
 	using MGroup.Solvers.MachineLearning.StochasticExtensions.Statistics;
 
-	public class WhiteNoiseField : IRandomField
+	public class WhiteNoiseField : IRandomField1D
 	{
 		private readonly double variableMean;
 		private readonly double variableStdDev;
@@ -37,7 +37,7 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions
 			Console.WriteLine();
 		}
 
-		public double CalcValueAt(double[] coords)
+		public double CalcValueAt(double coords)
 		{
 			if (numSamplesUsed < numSamples)
 			{

@@ -41,8 +41,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double elasticityModulusMean = 200E6;
 		private const double elasticityModulusStdDev = 10E6;
 		private const bool useKarhunenLoeve = true;
-		private const int numKarhunenLoeveTerms = 10;
-		private const double correlationLength = 0.1 * beamLength;
+		private const int numKarhunenLoeveTerms = 6;
+		private const double correlationLength = 0.5 * beamLength;
 
 		public static void RunStochasticAnalysis()
 		{
@@ -56,7 +56,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			double beamLength = 10.0;
 
 			Random rng = new Random(rngSeed);
-			IRandomField elasticityField = DefineElasticityField(numElements, rng);
+			IRandomField1D elasticityField = DefineElasticityField(numElements, rng);
 
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1], elasticityField);
 			example.SetTime(numTimeSteps * timeStepSize, numTimeSteps);
@@ -196,7 +196,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			bool useIterativeSolver = false;
 
 			Random rng = new Random(rngSeed);
-			IRandomField elasticityField = DefineElasticityField(numElements, rng);
+			IRandomField1D elasticityField = DefineElasticityField(numElements, rng);
 
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1], elasticityField);
 			example.BeamLength = beamLength;
@@ -247,7 +247,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 		}
 
-		private static IRandomField DefineElasticityField(int[] numElementsPerAxis, Random rng)
+		private static IRandomField1D DefineElasticityField(int[] numElementsPerAxis, Random rng)
 		{
 			if (useKarhunenLoeve)
 			{
@@ -280,7 +280,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				var arch = new CaeFfnnArchitecture();
 
 				arch.NumDofs = 2 * (numElementsPerAxis[0] + 1) * numElementsPerAxis[1]; //200
-				arch.NumModelParams = numElementsPerAxis[0] * numElementsPerAxis[1] + 1; //80 element E + 1 time
+				if (useKarhunenLoeve)
+				{
+					arch.NumModelParams = numKarhunenLoeveTerms + 1;
+				}
+				else
+				{
+					arch.NumModelParams = numElementsPerAxis[0] * numElementsPerAxis[1] + 1; //80 element E + 1 time
+				}
 				arch.LatentSpaceDim = 8;
 
 				arch.CaeLearningRate = 5E-4f;

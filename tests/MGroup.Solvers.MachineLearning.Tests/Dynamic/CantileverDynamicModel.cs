@@ -22,9 +22,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	{
 		private readonly bool use3DElements;
 		private readonly int[] numElementsPerAxis;
-		private readonly IRandomField elasticityField;
+		private readonly IRandomField1D elasticityField;
 
-		private CantileverDynamicModel(bool use3DElements, int[] numNodesPerAxis, IRandomField elasticityField)
+		private CantileverDynamicModel(bool use3DElements, int[] numNodesPerAxis, IRandomField1D elasticityField)
 		{
 			this.use3DElements = use3DElements;
 			this.numElementsPerAxis = numNodesPerAxis;
@@ -66,13 +66,13 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			TimeStep = totalDuration / numTimeSteps;
 		}
 
-		public static CantileverDynamicModel Create2DExample(int numElementsX, int numElementsY, IRandomField elasticityField)
+		public static CantileverDynamicModel Create2DExample(int numElementsX, int numElementsY, IRandomField1D elasticityField)
 		{
 			return new CantileverDynamicModel(false, new int[] { numElementsX, numElementsY }, elasticityField);
 		}
 
 		public static CantileverDynamicModel Create3DExample(int numElementsX, int numElementsY, int numElementsZ,
-			IRandomField elasticityField)
+			IRandomField1D elasticityField)
 		{
 			return new CantileverDynamicModel(true, new int[] { numElementsX, numElementsY, numElementsZ }, elasticityField);
 		}
@@ -113,7 +113,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			double thickness = BeamSectionWidth;
 			var dynamicProperties = new TransientAnalysisProperties(density: 1.0, rayleighCoeffMass: 0.0, rayleighCoeffStiffness: 0.0);
 			var elementFactory = new ContinuumElement2DFactory(BeamSectionWidth, null, dynamicProperties);
-			//Console.WriteLine("Elements' E: ");
+			//Console.WriteLine("Elements' x, E: ");
 			for (int elementID = 0; elementID < mesh.NumElementsTotal; elementID++)
 			{
 				int[] nodeIds = mesh.GetElementConnectivity(mesh.GetElementIdx(elementID));
@@ -121,8 +121,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 				CellType cellType = CellType.Quad4;
 				double[] elementCentroid = ElementUtilities.FindElementCentroid(cellType, nodesOfElement);
-				double elasticityModulus = elasticityField.CalcValueAt(elementCentroid);
-				//Console.WriteLine(elasticityModulus.ToString("E") + " ");
+				double elasticityModulus = elasticityField.CalcValueAt(elementCentroid[1]);
+				//Console.WriteLine(elementCentroid[1] + " , " + elasticityModulus.ToString("E") + " ");
 
 				var material = new ElasticMaterial2D(elasticityModulus, PoissonRatio, StressState2D.PlaneStress);
 				var element = elementFactory.CreateElement(cellType, nodesOfElement, thickness, material, dynamicProperties);
@@ -165,7 +165,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 				CellType cellType = CellType.Hexa8;
 				double[] elementCentroid = ElementUtilities.FindElementCentroid(cellType, nodesOfElement);
-				double elasticityModulus = elasticityField.CalcValueAt(elementCentroid);
+				double elasticityModulus = elasticityField.CalcValueAt(elementCentroid[2]);
 
 				var material = new ElasticMaterial3D(elasticityModulus, PoissonRatio);
 				var element = elementFactory.CreateElement(cellType, nodesOfElement, material, dynamicProperties);

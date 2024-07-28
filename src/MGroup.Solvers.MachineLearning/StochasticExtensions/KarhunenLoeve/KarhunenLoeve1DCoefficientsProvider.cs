@@ -31,7 +31,9 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 			DomainBounds = domainBounds;
 			NumNodes = numNodes;
 			MeanValue = variableMean;
-			SigmaSquare = variableStdDev * variableStdDev;
+
+			double cov = (variableMean != 0) ? variableStdDev / variableMean : variableStdDev;
+			CovSquare = cov * cov;
 			CorrelationLength = correlationLength;
 			NumKarLoeveTerms = numKarLoeveTerms;
 
@@ -56,7 +58,10 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 
 		public double MeanValue { get; }
 
-		public double SigmaSquare { get; set; }
+		/// <summary>
+		/// square(coefficient of variation)
+		/// </summary>
+		public double CovSquare { get; set; }
 
 		public double CorrelationLength { get; set; }
 
@@ -95,7 +100,7 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 		public void Initialize()
 		{
 			(var xCoordinates, var lambda, var eigenvectors) =
-				KarhunenLoeveFredholmWithFEM(NumKarLoeveTerms, DomainBounds, SigmaSquare, NumNodes, CorrelationLength);
+				KarhunenLoeveFredholmWithFEM(NumKarLoeveTerms, DomainBounds, CovSquare, NumNodes, CorrelationLength);
 			Xcoordinates = xCoordinates;
 			Lambda = lambda;
 			Eigenvectors = eigenvectors;
