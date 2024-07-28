@@ -20,12 +20,12 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 		private double[] fieldAtNodes;
 
 		public KarhunenLoeveField1D(double domainMin, double domainMax, int numNodes, double fieldMean, double fieldStdDev,
-			double correlationLength, int numKarLoeveTerms, int rngSeed)
+			double correlationLength, int numKarLoeveTerms, Random rng)
 		{
 			this.numNodes = numNodes;
 			nodeDistance = (domainMax - domainMin) / (numNodes - 1);
 			klProvider = new KarhunenLoeve1DCoefficientsProvider(new double[] { domainMin, domainMax }, numNodes,
-				fieldMean, fieldStdDev, correlationLength, numKarLoeveTerms, rngSeed, true, true);
+				fieldMean, fieldStdDev, correlationLength, numKarLoeveTerms, rng, true, true);
 		}
 
 		public double CalcValueAt(double[] coords)

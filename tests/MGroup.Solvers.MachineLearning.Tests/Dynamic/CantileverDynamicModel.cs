@@ -15,17 +15,21 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Meshes.Structured;
-	using MGroup.Solvers.MachineLearning.Tests.StatisticsExtensions;
+	using MGroup.Solvers.MachineLearning.StochasticExtensions;
+	using MGroup.Solvers.MachineLearning.Tests.Utilities;
 
 	public class CantileverDynamicModel
 	{
 		private readonly bool use3DElements;
 		private readonly int[] numElementsPerAxis;
+		private readonly IRandomField elasticityField;
 
-		private CantileverDynamicModel(bool use3DElements, int[] numNodesPerAxis)
+		private CantileverDynamicModel(bool use3DElements, int[] numNodesPerAxis, IRandomField elasticityField)
 		{
 			this.use3DElements = use3DElements;
 			this.numElementsPerAxis = numNodesPerAxis;
+			this.elasticityField = elasticityField;
+			elasticityField.Initialize();
 		}
 
 		public double BeamLength { get; set; } = 10.0;
@@ -33,10 +37,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public double BeamSectionHeight { get; set; } = 2.0;
 
 		public double BeamSectionWidth { get; set; } = 1.0;
-
-		public double ElasticityModulusMean { get; set; } = 200E6;
-
-		public double ElasticityModulusStdDev { get; set; } = 10E6;
 
 		/// <summary>
 		/// In kN
@@ -49,10 +49,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public double ExternalLoadCyclicFrequency { get; set; } = 15;
 
 		public double PoissonRatio { get; set; } = 0.3;
-
-		public Random Rng { get; set; } = new Random();
-
-		public bool UseLogNormalDistribution { get; set; } = false;
 
 		/// <summary>
 		/// In seconds.
@@ -70,29 +66,30 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			TimeStep = totalDuration / numTimeSteps;
 		}
 
-		public static CantileverDynamicModel Create2DExample(int numElementsX, int numElementsY)
+		public static CantileverDynamicModel Create2DExample(int numElementsX, int numElementsY, IRandomField elasticityField)
 		{
-			return new CantileverDynamicModel(false, new int[] { numElementsX, numElementsY });
+			return new CantileverDynamicModel(false, new int[] { numElementsX, numElementsY }, elasticityField);
 		}
 
-		public static CantileverDynamicModel Create3DExample(int numElementsX, int numElementsY, int numElementsZ)
+		public static CantileverDynamicModel Create3DExample(int numElementsX, int numElementsY, int numElementsZ,
+			IRandomField elasticityField)
 		{
-			return new CantileverDynamicModel(true, new int[] { numElementsX, numElementsY, numElementsZ });
+			return new CantileverDynamicModel(true, new int[] { numElementsX, numElementsY, numElementsZ }, elasticityField);
 		}
 
 		public (Model model, double[] parameters, int monitorNodeId) CreateFemModel()
 		{
-			double[] elementElasticities = GenerateRandomElementElasticities();
-			Model model = use3DElements ? CreateMesh3D(elementElasticities) : CreateMesh2D(elementElasticities);
+			double[] modelParams = elasticityField.Regenerate();
+			Model model = use3DElements ? CreateMesh3D() : CreateMesh2D();
 			ApplyPermanentBoundaryConditions(model);
 			ApplyInitialConditions(model);
 			ApplyDynamicTopLoad(model);
 
 			int monitorNodeId = FindMonitorNode(model);
-			return (model, elementElasticities, monitorNodeId);
+			return (model, modelParams, monitorNodeId);
 		}
 
-		private Model CreateMesh2D(double[] elementElasticities)
+		private Model CreateMesh2D()
 		{
 			// Mesh
 			double[] minCoords = { 0.0, 0.0 };
@@ -116,23 +113,29 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			double thickness = BeamSectionWidth;
 			var dynamicProperties = new TransientAnalysisProperties(density: 1.0, rayleighCoeffMass: 0.0, rayleighCoeffStiffness: 0.0);
 			var elementFactory = new ContinuumElement2DFactory(BeamSectionWidth, null, dynamicProperties);
+			//Console.WriteLine("Elements' E: ");
 			for (int elementID = 0; elementID < mesh.NumElementsTotal; elementID++)
 			{
 				int[] nodeIds = mesh.GetElementConnectivity(mesh.GetElementIdx(elementID));
 				INode[] nodesOfElement = nodeIds.Select(n => model.GetNode(n)).ToArray();
 
-				var material = new ElasticMaterial2D(elementElasticities[elementID], PoissonRatio, StressState2D.PlaneStress);
-				var element = elementFactory.CreateElement(CellType.Quad4, nodesOfElement, thickness, material, dynamicProperties);
+				CellType cellType = CellType.Quad4;
+				double[] elementCentroid = ElementUtilities.FindElementCentroid(cellType, nodesOfElement);
+				double elasticityModulus = elasticityField.CalcValueAt(elementCentroid);
+				//Console.WriteLine(elasticityModulus.ToString("E") + " ");
+
+				var material = new ElasticMaterial2D(elasticityModulus, PoissonRatio, StressState2D.PlaneStress);
+				var element = elementFactory.CreateElement(cellType, nodesOfElement, thickness, material, dynamicProperties);
 				element.ID = elementID;
 
 				model.ElementsDictionary.Add(element.ID, element);
 				model.SubdomainsDictionary[0].Elements.Add(element);
 			}
-
+			//Console.WriteLine();
 			return model;
 		}
 
-		private Model CreateMesh3D(double[] elementElasticities)
+		private Model CreateMesh3D()
 		{
 			// Mesh
 			double[] minCoords = { 0.0, 0.0, 0.0 };
@@ -160,8 +163,12 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				int[] nodeIds = mesh.GetElementConnectivity(mesh.GetElementIdx(elementID));
 				INode[] nodesOfElement = nodeIds.Select(n => model.GetNode(n)).ToArray();
 
-				var material = new ElasticMaterial3D(elementElasticities[elementID], PoissonRatio);
-				var element = elementFactory.CreateElement(CellType.Hexa8, nodesOfElement, material, dynamicProperties);
+				CellType cellType = CellType.Hexa8;
+				double[] elementCentroid = ElementUtilities.FindElementCentroid(cellType, nodesOfElement);
+				double elasticityModulus = elasticityField.CalcValueAt(elementCentroid);
+
+				var material = new ElasticMaterial3D(elasticityModulus, PoissonRatio);
+				var element = elementFactory.CreateElement(cellType, nodesOfElement, material, dynamicProperties);
 				element.ID = elementID;
 
 				model.ElementsDictionary.Add(element.ID, element);
@@ -293,26 +300,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			{
 				throw new Exception("No monitor node found. This is a bug.");
 			}
-		}
-
-		private double[] GenerateRandomElementElasticities()
-		{
-			IDistribution distribution = UseLogNormalDistribution 
-				? LogNormalDistribution.CreateWithMeanStddev(Rng, ElasticityModulusMean, ElasticityModulusStdDev)
-				: NormalDistribution.CreateWithMeanStddev(Rng, ElasticityModulusMean, ElasticityModulusStdDev);
-
-			int numSamples = CountElements();
-			double[] samples = distribution.GenerateSamples(numSamples);
-
-			#region debug
-			//Console.WriteLine("Elasticities: ");
-			//for (int i = 0; i < samples.Length; i++)
-			//{
-			//	Console.WriteLine($"{samples[i]}");
-			//}
-			//Console.WriteLine();
-			#endregion
-			return samples;
 		}
 
 		private class DynamicLoad

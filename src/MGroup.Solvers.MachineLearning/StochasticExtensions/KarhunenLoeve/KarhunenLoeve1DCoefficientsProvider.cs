@@ -25,7 +25,7 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 		/// <param name="isGaussian">if set to <c>true</c> [is gaussian].</param>
 		/// <param name="midpointMethod">if set to <c>true</c> [midpoint method].</param>
 		public KarhunenLoeve1DCoefficientsProvider(double[] domainBounds, int numNodes, double variableMean, 
-			double variableStdDev, double correlationLength, int numKarLoeveTerms, int rngSeed, 
+			double variableStdDev, double correlationLength, int numKarLoeveTerms, Random rng, 
 			bool isGaussian = true, bool midpointMethod = true)
 		{
 			DomainBounds = domainBounds;
@@ -47,10 +47,11 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 			}
 			IsGaussian = isGaussian;
 
-			ksiNormalDistribution = NormalDistribution.CreateStandard(rngSeed);
+			ksiNormalDistribution = NormalDistribution.CreateStandard(rng);
 		}
 
 		public double[] DomainBounds { get; }
+
 		public int NumNodes { get; }
 
 		public double MeanValue { get; }

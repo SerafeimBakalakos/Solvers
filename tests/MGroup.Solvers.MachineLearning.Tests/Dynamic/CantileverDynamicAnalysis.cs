@@ -20,6 +20,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.MachineLearning.Plotting;
 	using MGroup.Solvers.MachineLearning.PodAmg;
 	using MGroup.Solvers.MachineLearning.PodAmg.Surrogates;
+	using MGroup.Solvers.MachineLearning.StochasticExtensions;
+	using MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve;
 
 	public class CantileverDynamicAnalysis
 	{
@@ -33,6 +35,15 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool printMsgsToConsole = true;
 		private const int rngSeed = 23;
 
+		private const double beamLength = 10;
+		private const double beamSectionHeight = 2.0;
+		private const double beamSectionWidth = 1.0;
+		private const double elasticityModulusMean = 200E6;
+		private const double elasticityModulusStdDev = 10E6;
+		private const bool useKarhunenLoeve = true;
+		private const int numKarhunenLoeveTerms = 10;
+		private const double correlationLength = 0.1 * beamLength;
+
 		public static void RunStochasticAnalysis()
 		{
 			int numAnalysesTotal = 300;
@@ -42,12 +53,16 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			int[] numElements = { 4, 20 };
 			//int[] numElements = { 16, 80 };
 			//int[] numElements = { 32, 160 };
-			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
+			double beamLength = 10.0;
+
+			Random rng = new Random(rngSeed);
+			IRandomField elasticityField = DefineElasticityField(numElements, rng);
+
+			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1], elasticityField);
 			example.SetTime(numTimeSteps * timeStepSize, numTimeSteps);
-			example.Rng = new Random(Seed: rngSeed);
-			example.ElasticityModulusMean = 200E6;
-			example.ElasticityModulusStdDev = 10E6;
-			example.UseLogNormalDistribution = true;
+			example.BeamLength = beamLength;
+			example.BeamSectionHeight = beamSectionHeight;
+			example.BeamSectionWidth = beamSectionWidth;
 
 			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements);
 			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
@@ -180,11 +195,13 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			int[] numElements = { 32, 160 };
 			bool useIterativeSolver = false;
 
-			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1]);
-			example.Rng = new Random(rngSeed);
-			example.ElasticityModulusMean = 200E6;
-			example.ElasticityModulusStdDev = 10E6;
-			//example.ElasticityModulusMean = 15E6;
+			Random rng = new Random(rngSeed);
+			IRandomField elasticityField = DefineElasticityField(numElements, rng);
+
+			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1], elasticityField);
+			example.BeamLength = beamLength;
+			example.BeamSectionHeight = beamSectionHeight;
+			example.BeamSectionWidth = beamSectionWidth;
 			example.SetTime(timeStepSize * numTimeSteps, numTimeSteps);
 			(Model model, _, _) = example.CreateFemModel();
 
@@ -227,6 +244,30 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			{
 				IGlobalVector solution = solver.SavedSolutions.GetSolution(parameterSet, t);
 				plotter.WriteResults(solver.Model, solution);
+			}
+		}
+
+		private static IRandomField DefineElasticityField(int[] numElementsPerAxis, Random rng)
+		{
+			if (useKarhunenLoeve)
+			{
+				int numNodesAlongBeamLength = numElementsPerAxis[numElementsPerAxis.Length - 1] + 1;
+
+				var elasticityField = new KarhunenLoeveField1D(0, beamLength, numNodesAlongBeamLength,
+					elasticityModulusMean, elasticityModulusStdDev, correlationLength, numKarhunenLoeveTerms, rng);
+				return elasticityField;
+			}
+			else
+			{
+				int numElementsTotal = 1;
+				for (int d = 0; d < numElementsPerAxis.Length; d++)
+				{
+					numElementsTotal *= numElementsPerAxis[d];
+				}
+
+				var elasticityField = new WhiteNoiseField(elasticityModulusMean, elasticityModulusStdDev,
+					numElementsTotal, rng, true);
+				return elasticityField;
 			}
 		}
 
