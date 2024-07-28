@@ -109,29 +109,29 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				model.NodesDictionary[nodeID] = new Node(nodeID, nodeCoords[0], nodeCoords[1]);
 			}
 
+			// Materials
+			var elementElasticities = new Field1dOverUniformMesh(mesh, elasticityField, 1, modulus => modulus > 0);
+			elementElasticities.GenerateValuesAtElementCentroids();
+			//elementElasticities.PrintFieldAtElements(/*numElementsPerAxis[0]*/);
+
 			// Elements
 			double thickness = BeamSectionWidth;
 			var dynamicProperties = new TransientAnalysisProperties(density: 1.0, rayleighCoeffMass: 0.0, rayleighCoeffStiffness: 0.0);
 			var elementFactory = new ContinuumElement2DFactory(BeamSectionWidth, null, dynamicProperties);
-			//Console.WriteLine("Elements' x, E: ");
 			for (int elementID = 0; elementID < mesh.NumElementsTotal; elementID++)
 			{
 				int[] nodeIds = mesh.GetElementConnectivity(mesh.GetElementIdx(elementID));
 				INode[] nodesOfElement = nodeIds.Select(n => model.GetNode(n)).ToArray();
 
-				CellType cellType = CellType.Quad4;
-				double[] elementCentroid = ElementUtilities.FindElementCentroid(cellType, nodesOfElement);
-				double elasticityModulus = elasticityField.CalcValueAt(elementCentroid[1]);
-				//Console.WriteLine(elementCentroid[1] + " , " + elasticityModulus.ToString("E") + " ");
-
+				double elasticityModulus = elementElasticities.GetValueOfElement(elementID);
 				var material = new ElasticMaterial2D(elasticityModulus, PoissonRatio, StressState2D.PlaneStress);
-				var element = elementFactory.CreateElement(cellType, nodesOfElement, thickness, material, dynamicProperties);
+				var element = elementFactory.CreateElement(mesh.CellType, nodesOfElement, thickness, material, dynamicProperties);
 				element.ID = elementID;
 
 				model.ElementsDictionary.Add(element.ID, element);
 				model.SubdomainsDictionary[0].Elements.Add(element);
 			}
-			//Console.WriteLine();
+
 			return model;
 		}
 
@@ -155,6 +155,11 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				model.NodesDictionary[nodeID] = new Node(nodeID, nodeCoords[0], nodeCoords[1], nodeCoords[2]);
 			}
 
+			// Materials
+			var elementElasticities = new Field1dOverUniformMesh(mesh, elasticityField, 2, modulus => modulus > 0);
+			elementElasticities.GenerateValuesAtElementCentroids();
+			//elementElasticities.PrintFieldAtElements();
+
 			// Elements
 			var dynamicProperties = new TransientAnalysisProperties(density: 1.0, rayleighCoeffMass: 0.0, rayleighCoeffStiffness: 0.0);
 			var elementFactory = new ContinuumElement3DFactory(null, dynamicProperties);
@@ -163,12 +168,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				int[] nodeIds = mesh.GetElementConnectivity(mesh.GetElementIdx(elementID));
 				INode[] nodesOfElement = nodeIds.Select(n => model.GetNode(n)).ToArray();
 
-				CellType cellType = CellType.Hexa8;
-				double[] elementCentroid = ElementUtilities.FindElementCentroid(cellType, nodesOfElement);
-				double elasticityModulus = elasticityField.CalcValueAt(elementCentroid[2]);
-
+				double elasticityModulus = elementElasticities.GetValueOfElement(elementID);
 				var material = new ElasticMaterial3D(elasticityModulus, PoissonRatio);
-				var element = elementFactory.CreateElement(cellType, nodesOfElement, material, dynamicProperties);
+				var element = elementFactory.CreateElement(mesh.CellType, nodesOfElement, material, dynamicProperties);
 				element.ID = elementID;
 
 				model.ElementsDictionary.Add(element.ID, element);
@@ -241,18 +243,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private void ApplyGroundMotion(Model model)
 		{
 			throw new NotImplementedException();
-		}
-
-		private int CountElements()
-		{
-			if (use3DElements)
-			{
-				return numElementsPerAxis[0] * numElementsPerAxis[1] * numElementsPerAxis[2];
-			}
-			else
-			{
-				return numElementsPerAxis[0] * numElementsPerAxis[1];
-			}
 		}
 
 		private double EvaluateExternalLoad(double t, double spatialLoadComponent)
