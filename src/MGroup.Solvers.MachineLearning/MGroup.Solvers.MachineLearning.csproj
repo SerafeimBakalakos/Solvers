@@ -16,6 +16,8 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <PackageReference Include="Accord.Math" Version="3.8.2-alpha" />
+    <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta1" />
     <PackageReference Include="MGroup.Constitutive.Structural.MachineLearning" Version="0.2.0-unstable.43" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
   </ItemGroup>
