@@ -5,11 +5,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	using System.Diagnostics;
 	using System.IO;
 	using System.Text;
+	using System.Text.RegularExpressions;
 
 	using MGroup.MachineLearning.TensorFlow;
 	using MGroup.MachineLearning.TensorFlow.KerasLayers;
 	using MGroup.MachineLearning.Utilities;
 	using MGroup.Solvers.MachineLearning.MLExtensions;
+	using Newtonsoft.Json;
+	using Tensorflow.IO;
 
 	public class CaeFfnnSurrogateDynamicPythonTF : ISolutionPredictionStrategy
 	{
@@ -83,21 +86,52 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public double[] Predict(int timeStep, double[] parameters)
 		{
+			var watch = new Stopwatch();
+			var durations = new PythonCallDurations();
+
+			// Prepare arrays
+			watch.Start();
 			double[] input = Prepend(timeStep, parameters);
 			var output = new double[caeFfnnArch.NumDofs];
+			watch.Stop();
+			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
+			// Determine IO files
+			watch.Restart();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
 			var settingsFile = new Cs2PyPredictSettings(workDirectory, extension, pythonModelID);
 			settingsFile.Float64 = this.Float64;
 			var resultsFile = new Py2CsResults(workDirectory);
-			string processArgs = $"{predictScript} {settingsFile.Path} {resultsFile.Path}";
+			var logFile = new Py2CsLog(workDirectory);
+			string processArgs = $"{predictScript} {settingsFile.Path} {resultsFile.Path} {logFile.Path}";
+			watch.Stop();
+			durations.SetupWork += watch.ElapsedMilliseconds;
+
 			try
 			{
+				// Write input files to filesystem
+				watch.Restart();
 				settingsFile.WriteToFileSystem();
 				resultsFile.WriteToFileSystem();
+				logFile.WriteToFileSystem();
 				arrayIO.WriteArray1DToFile(input, settingsFile.ModelParamsPath);
-				CallPythonScript(processArgs, resultsFile.Path);
+				watch.Stop();
+				durations.IO += watch.ElapsedMilliseconds;
+
+				// Call script
+				watch.Restart();
+				CallPythonScript(processArgs, logFile.Path);
+				resultsFile.ReadFromFile();
+				watch.Stop();
+				durations.Include(watch.ElapsedMilliseconds, resultsFile.Actual, resultsFile.Setup, resultsFile.IO);
+
+				// Read output files from filesystem
+				watch.Restart();
 				arrayIO.ReadArray1DFromFile(output, settingsFile.SolutionVectorPath);
+				watch.Stop();
+				durations.IO += watch.ElapsedMilliseconds;
+
+				Console.WriteLine(durations.Report());
 				return output;
 			}
 			finally
@@ -115,28 +149,51 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public void Train(SolutionDatabaseDynamic solutionDb)
 		{
+			var watch = new Stopwatch();
+			var durations = new PythonCallDurations();
+
 			// Create datasets
+			watch.Start();
 			double[,] allSolutions = solutionDb.ToArray2DAllSolutionsAsRows(true);
 			double[,] allParams = solutionDb.ToArray2DAllParametersAndTimestepsAsRows(true);
 			Splitter.SetupSplittingRules(allSolutions.GetLength(0));
 			(double[,] trainSolutions, double[,] testSolutions, _) = Splitter.SplitDataset(allSolutions);
 			(double[,] trainParams, double[,] testParams, _) = Splitter.SplitDataset(allParams);
+			watch.Stop();
+			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
 			// Determine IO files
+			watch.Restart();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
 			var settingsFile = new Cs2PyTrainingSettings(caeFfnnArch, workDirectory, extension, pythonModelID);
 			settingsFile.Float64 = this.Float64;
 			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
 			var resultsFile = new Py2CsResults(workDirectory);
-			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path}";
+			var logFile = new Py2CsLog(workDirectory);
+			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path} {logFile.Path}";
+			watch.Stop();
+			durations.SetupWork += watch.ElapsedMilliseconds;
+			
 			try
 			{
 				// Write the files to filesystem
+				watch.Restart();
 				settingsFile.WriteToFileSystem();
 				resultsFile.WriteToFileSystem();
+				logFile.WriteToFileSystem();
 				arrayIO.WriteArray2DToFile(trainSolutions, settingsFile.TrainSolutionVectorsPath);
 				arrayIO.WriteArray2DToFile(trainParams, settingsFile.TrainModelParamsPath);
-				CallPythonScript(processArgs, resultsFile.Path);
+				watch.Stop();
+				durations.IO += watch.ElapsedMilliseconds;
+
+				// Call script
+				watch.Restart();
+				CallPythonScript(processArgs, logFile.Path);
+				resultsFile.ReadFromFile();
+				watch.Stop();
+				durations.Include(watch.ElapsedMilliseconds, resultsFile.Actual, resultsFile.Setup, resultsFile.IO);
+				
+				Console.WriteLine(durations.Report());
 			}
 			finally
 			{
@@ -151,7 +208,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			}
 		}
 
-		private void CallPythonScript(string processArgs, string pathResults)
+		private void CallPythonScript(string processArgs, string pathLog)
 		{
 			var startInfo = new ProcessStartInfo(pythonInterpreter);
 			startInfo.FileName = pythonInterpreter;
@@ -171,7 +228,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				if (exitCode == 100)
 				{
 					// The results file will be overwritten with the error message
-					using (var reader = new StreamReader(pathResults))
+					using (var reader = new StreamReader(pathLog))
 					{
 						var pythonErrorMsg = reader.ReadToEnd();
 						var csharpErrorMsg = new StringBuilder();
@@ -256,13 +313,44 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			public string ModelFfnnPath { get; }
 		}
 
+		private class Py2CsLog : InteropTempFile
+		{
+			public Py2CsLog(string workDirectory) : base(workDirectory, "_py2cs_log.json")
+			{
+			}
+
+			//public string Message { get; set; } = ""; //TODO: Error messages should go in this property
+		}
+
+		/// <summary>
+		/// Communicates time measurements
+		/// </summary>
 		private class Py2CsResults : InteropTempFile
 		{
 			public Py2CsResults(string workDirectory) : base(workDirectory, "_py2cs_results.json")
 			{
 			}
 
-			//public string Message { get; set; } = ""; //TODO: Error messages should go in this property
+			public int IO { get; set; } = -1;
+
+			public int Setup { get; set; } = -1;
+
+			public int Actual { get; set; } = -1;
+
+			public void CopyFrom(Py2CsResults other)
+			{
+				this.IO = other.IO;
+				this.Setup = other.Setup;
+				this.Actual = other.Actual;
+			}
+
+			public void ReadFromFile()
+			{
+				using StreamReader reader = new(Path);
+				var json = reader.ReadToEnd();
+				Py2CsResults result = JsonConvert.DeserializeObject<Py2CsResults>(json);
+				CopyFrom(result);
+			}
 		}
 	}
 }

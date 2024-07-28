@@ -21,6 +21,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		[JsonIgnore]
 		public string Path { get; }
 
+
 		public void WriteToFileSystem()
 		{
 			using (StreamWriter file = File.CreateText(Path))
