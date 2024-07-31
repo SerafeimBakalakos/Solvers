@@ -11,6 +11,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	using MGroup.MachineLearning.TensorFlow.KerasLayers;
 	using MGroup.MachineLearning.Utilities;
 	using MGroup.Solvers.MachineLearning.MLExtensions;
+	using MGroup.Solvers.MachineLearning.MLExtensions.Normalization;
+
 	using Newtonsoft.Json;
 	using Tensorflow.IO;
 
@@ -37,16 +39,20 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			Splitter.SetOrderToContiguous(DataSubsetType.Training, DataSubsetType.Test);
 		}
 
-		public bool Float64 { get; set; } = false;
-
-		public int TensorFlowSeed { get; set; } = -1;
-
-		public DatasetSplitter Splitter { get; set; }
-
 		/// <summary>
 		/// True (default) to delete any files created by this class. False to retain the files for manual inspection.
 		/// </summary>
 		public bool CleanupIOFiles { get; set; } = true;
+
+		public bool Float64 { get; set; } = false;
+
+		public INormalizationStrategy NormalizationOfParameters { get; set; } = new MinMaxNormalization();
+
+		public INormalizationStrategy NormalizationOfSolutions { get; set; } = new NullNormalization();
+
+		public DatasetSplitter Splitter { get; set; }
+
+		public int TensorFlowSeed { get; set; } = -1;
 
 		/// <summary>
 		/// Specifies the milliseconds to wait before aborting the call to a Python script. 
@@ -89,9 +95,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			var watch = new Stopwatch();
 			var durations = new PythonCallDurations();
 
-			// Prepare arrays
+			// Prepare arrays and normalize
 			watch.Start();
 			double[] input = Prepend(timeStep, parameters);
+			NormalizationOfParameters.Normalize(input);
 			var output = new double[caeFfnnArch.NumDofs];
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
@@ -131,6 +138,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
 
+				// Denormalize
+				watch.Restart();
+				NormalizationOfSolutions.Denormalize(output);
+				watch.Stop();
+				durations.DataArraysPreparation += watch.ElapsedMilliseconds;
+
 				Console.WriteLine(durations.Report());
 				return output;
 			}
@@ -153,10 +166,13 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			var watch = new Stopwatch();
 			var durations = new PythonCallDurations();
 
-			// Create datasets
+			// Create datasets and normalize
 			watch.Start();
 			double[,] allSolutions = solutionDb.ToArray2DAllSolutionsAsRows(true);
 			double[,] allParams = solutionDb.ToArray2DAllParametersAndTimestepsAsRows(true);
+			NormalizationOfSolutions.InitializeAndApply(allSolutions);
+			NormalizationOfParameters.InitializeAndApply(allParams);
+
 			Splitter.SetupSplittingRules(allSolutions.GetLength(0));
 			(double[,] trainSolutions, double[,] testSolutions, _) = Splitter.SplitDataset(allSolutions);
 			(double[,] trainParams, double[,] testParams, _) = Splitter.SplitDataset(allParams);
