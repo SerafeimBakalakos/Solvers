@@ -82,7 +82,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 			solverFactory.PcgConvergenceTolerance = 1E-6;
 			solverFactory.PcgMaxIterationsProvider = new PercentageMaxIterationsProvider(1.0);
-			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 1); // 1, 5, 10, 15, 20
+			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 5); // 1, 5, 10, 15, 20
 			//solverFactory.TrainingStrategy = new SeparateTimeStepSolutionsTrainingStrategy(numTimeSteps);
 			solverFactory.KeepOnlyNonZeroPrincipalComponents = true;
 			DynamicAmgAiSolver solver = solverFactory.BuildSolver();

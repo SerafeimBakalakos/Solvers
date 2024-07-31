@@ -86,6 +86,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public bool UseSolutionDifferenceFromPreviousStep { get; set; } = true;
 
+		public bool MustSaveSolution(int timeStep) => true;
+
 		public void SetPythonCodePaths(string pythonInterpreter, string trainScript, string predictScript)
 		{
 			//TODO: Check if they are valid. Perhaps the scripts can be located from outside the PyCharm directory

@@ -13,22 +13,24 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	public class ConstantPodAmgPreconditioner : IDynamicMLPreconditioner
 	{
 		private readonly PodAmgPreconditioner singlePreconditioner;
+		private readonly int timeStepSavePeriod;
 
-		public ConstantPodAmgPreconditioner(PodAmgPreconditioner preconditioner)
+		public ConstantPodAmgPreconditioner(PodAmgPreconditioner preconditioner, int timeStepSavePeriod = 1)
 		{
 			singlePreconditioner = preconditioner;
+			this.timeStepSavePeriod = timeStepSavePeriod;
 		}
 
 		public IPreconditioner CopyWithInitialSettings()
 		{
 			var singlePreconditionerClone = (PodAmgPreconditioner)singlePreconditioner.CopyWithInitialSettings();
-			return new ConstantPodAmgPreconditioner(singlePreconditionerClone);
+			return new ConstantPodAmgPreconditioner(singlePreconditionerClone, timeStepSavePeriod);
 		}
 
 		public void Initialize(int numDofs, int numPrincipalComponentsInPod, SolutionDatabaseDynamic savedSolutions)
 		{
-			// Gather all previous solution vectors as columns of a matrix
-			Matrix solutionVectors = savedSolutions.ToMatrixAllSolutionsAsColumns(true);
+			// Gather the required previous solution vectors as columns of a matrix
+			Matrix solutionVectors = savedSolutions.ToMatrixSolutionsAsColumns(true, t => t % timeStepSavePeriod == 0);
 
 			// AMG-POD training
 			singlePreconditioner.Initialize(solutionVectors, numPrincipalComponentsInPod);

@@ -394,6 +394,49 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			return result;
 		}
 
+		public Matrix ToMatrixSolutionsAsColumns(bool consecutiveTimeSteps, Func<int, bool> includeTimeStep)
+		{
+			var requiredTimeSteps = new List<int>(savedTimeSteps.Count);
+			foreach (int t in savedTimeSteps)
+			{
+				if (includeTimeStep(t))
+				{
+					requiredTimeSteps.Add(t);
+				}
+			}
+
+			int numDofs = this.numDofs;
+			int numVectorsTotal = requiredTimeSteps.Count * savedParameterSetIDs.Count;
+			var result = Matrix.CreateZero(numDofs, numVectorsTotal);
+			int col = 0;
+
+			if (consecutiveTimeSteps)
+			{
+				foreach (int paramSetId in savedParameterSetIDs)
+				{
+					var solutionsOfParamSet = savedSolutions[paramSetId];
+					foreach (int timestep in requiredTimeSteps)
+					{
+						result.SetSubcolumn(col, solutionsOfParamSet[timestep]);
+						col++;
+					}
+				}
+			}
+			else
+			{
+				foreach (int timestep in requiredTimeSteps)
+				{
+					foreach (int paramSetId in savedParameterSetIDs)
+					{
+						result.SetSubcolumn(col, savedSolutions[paramSetId][timestep]);
+						col++;
+					}
+				}
+			}
+
+			return result;
+		}
+
 		public Matrix ToMatrixSolutionsAsColumnsForTimestep(int timestep)
 		{
 			int numDofs = this.numDofs;

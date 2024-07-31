@@ -160,7 +160,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			if (currentStage == Stage.SolveWithInitPrecond)
 			{
 				Vector solution = SolveUsingInitialPreconditioner();
-				if (trainingStrategy.MustSaveSolution(currentTimeStep))
+				if (trainingStrategy.MustSaveSolution(currentTimeStep) || solutionPrediction.MustSaveSolution(currentTimeStep))
 				{
 					SavedSolutions.SaveSolution(currentParameterSetId, currentTimeStep, LinearSystem.Solution.SingleVector);
 				}

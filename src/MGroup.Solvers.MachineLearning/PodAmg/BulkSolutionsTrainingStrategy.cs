@@ -19,7 +19,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		}
 
 		public IDynamicMLPreconditioner CreatePreconditioner(PodAmgPreconditioner examplePreconditioner)
-			=> new ConstantPodAmgPreconditioner(examplePreconditioner);
+			=> new ConstantPodAmgPreconditioner(examplePreconditioner, timeStepSavePeriod);
 
 		public bool MustSaveSolution(int timeStep) => timeStep % timeStepSavePeriod == 0; // Saved at time steps: 0, T, 2T, 3T
 	}

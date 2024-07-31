@@ -6,6 +6,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 	public interface ISolutionPredictionStrategy
 	{
+		public bool MustSaveSolution(int timeStep);
+
 		public double[] Predict(int timeStep, double[] parameters);
 
 		public void Train(SolutionDatabaseDynamic solutionDb);

@@ -8,6 +8,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	{
 		private int numDofs = -1;
 
+		public bool MustSaveSolution(int timeStep) => false;
+
 		public double[] Predict(int timeStep, double[] parameters)
 		{
 			return new double[numDofs];
