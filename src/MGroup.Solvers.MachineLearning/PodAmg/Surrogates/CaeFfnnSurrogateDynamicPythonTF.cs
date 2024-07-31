@@ -7,6 +7,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	using System.Text;
 	using System.Text.RegularExpressions;
 
+	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MachineLearning.TensorFlow;
 	using MGroup.MachineLearning.TensorFlow.KerasLayers;
 	using MGroup.MachineLearning.Utilities;
@@ -23,6 +24,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private readonly CaeFfnnArchitecture caeFfnnArch;
 
 		private IArrayFileIO arrayIO = new ArrayBinaryFileIO();
+		private SolutionDatabaseDynamic solutionDb;
 
 		private string pythonInterpreter = null;
 		private string trainScript = null;
@@ -81,6 +83,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				}
 			}
 		}
+
+		public bool UseSolutionDifferenceFromPreviousStep { get; set; } = true;
 
 		public void SetPythonCodePaths(string pythonInterpreter, string trainScript, string predictScript)
 		{
@@ -142,6 +146,18 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				watch.Restart();
 				NormalizationOfSolutions.Denormalize(output);
 				watch.Stop();
+				if (UseSolutionDifferenceFromPreviousStep)
+				{
+					// In this case, the surrogate returns du[t] = u[t] - u[t-1]
+					// If t = 0, u[0] = du[0]
+					if (timeStep > 1)
+					{
+						Vector uPrevious = solutionDb.GetCurrentSolution();
+						var u = Vector.CreateFromArray(output);
+						u.AddIntoThis(uPrevious);
+						output = u.RawData;
+					}
+				}
 				durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
 				Console.WriteLine(durations.Report());
@@ -163,16 +179,21 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public void Train(SolutionDatabaseDynamic solutionDb)
 		{
+			this.solutionDb = solutionDb;
 			var watch = new Stopwatch();
 			var durations = new PythonCallDurations();
 
 			// Create datasets and normalize
 			watch.Start();
-			double[,] allSolutions = solutionDb.ToArray2DAllSolutionsAsRows(true);
 			double[,] allParams = solutionDb.ToArray2DAllParametersAndTimestepsAsRows(true);
+			double[,] allSolutions = solutionDb.ToArray2DAllSolutionsAsRows(true);
+			if (UseSolutionDifferenceFromPreviousStep)
+			{
+				solutionDb.SubtractSolutionOfPreviousTimestep();
+			}
+
 			NormalizationOfSolutions.InitializeAndApply(allSolutions);
 			NormalizationOfParameters.InitializeAndApply(allParams);
-
 			Splitter.SetupSplittingRules(allSolutions.GetLength(0));
 			(double[,] trainSolutions, double[,] testSolutions, _) = Splitter.SplitDataset(allSolutions);
 			(double[,] trainParams, double[,] testParams, _) = Splitter.SplitDataset(allParams);

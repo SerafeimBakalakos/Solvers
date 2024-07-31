@@ -72,6 +72,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
 			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
 			surrogate.UseBinaryIOFilesForArrays = false;
+			surrogate.UseSolutionDifferenceFromPreviousStep = true;
 
 			ISolutionPredictionStrategy solutionPrediction = surrogate;
 			//ISolutionPredictionStrategy solutionPrediction = new NullSolutionPredictionStrategy();

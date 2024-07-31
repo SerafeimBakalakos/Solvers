@@ -268,6 +268,30 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			}
 		}
 
+		/// <summary>
+		/// Apply to the stored vectors: u[t] = u[t] - u[t-1] for t &gt; 0.
+		/// Only call this after the solutions of all time steps needed for training have been saved.
+		/// </summary>
+		public void SubtractSolutionOfPreviousTimestep()
+		{
+			currentSolution = currentSolution.Copy(); // in case it gets modified
+
+			// Make sure time steps are sorted in ascending order
+			int[] timeStepsDescending = savedTimeSteps.ToArray();
+			Array.Sort(timeStepsDescending);
+
+			foreach (int paramSet in EnumerateParameterSetIDs())
+			{
+				// Proccess time steps in descending order, but do not modify t=0
+				for (int t = timeStepsDescending.Length - 1; t > 0; t--)
+				{
+					Vector u = GetSolution(paramSet, timeStepsDescending[t]);
+					Vector uPrevious = GetSolution(paramSet, timeStepsDescending[t - 1]);
+					u.SubtractIntoThis(uPrevious);
+				}
+			}
+		}
+
 		public double[,,] ToArray3DAllSolutions()
 		{
 			int numDofs = this.numDofs;
