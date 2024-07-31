@@ -181,7 +181,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			if (currentStage == Stage.SolveWithMLPrecond)
 			{
 				UpdateMLPreconditionerForNewTimeStep();
-				SolveUsingPodAmgPreconditioner();
+				Vector solution = SolveUsingPodAmgPreconditioner();
+				SavedSolutions.SaveCurrentSolutionOnly(solution);
 			}
 
 			++currentTimeStep;
@@ -213,7 +214,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			return LinearSystem.Solution.SingleVector.Copy();
 		}
 
-		private void SolveUsingPodAmgPreconditioner()
+		private Vector SolveUsingPodAmgPreconditioner()
 		{
 			var watch = new Stopwatch();
 			watch.Start();
@@ -238,6 +239,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			watch.Stop();
 			Logger.LogTaskDuration(Subtask.SolveWithPcg.ToString(), watch.ElapsedMilliseconds);
 			Logger.LogIterativeAlgorithm(stats.NumIterationsRequired, stats.ResidualNormRatioEstimation);
+
+			return LinearSystem.Solution.SingleVector;
 		}
 
 		private void UpdateInitialPreconditioner()

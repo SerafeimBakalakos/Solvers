@@ -29,11 +29,15 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		/// </summary>
 		private readonly List<int> savedTimeSteps;
 
-
 		/// <summary>
 		/// Must be the same for all saved solution vectors (equal to their length). Determined by the first one.
 		/// </summary>
 		private int numDofs = UnknownNumDofs;
+
+		/// <summary>
+		/// Latest saved vector.
+		/// </summary>
+		private Vector currentSolution;
 
 		public SolutionDatabaseDynamic()
 		{
@@ -52,6 +56,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			savedSolutions.Clear();
 			savedTimeSteps.Clear();
 			numDofs = UnknownNumDofs;
+
+			//currentSolution = null; // This needs to remain
 		}
 
 		public int CountDofs() => numDofs;
@@ -164,6 +170,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			}
 		}
 
+		public Vector GetCurrentSolution()
+		{
+			return currentSolution;
+		}
+
 		public double[] GetModelParameters(int parameterSetId)
 		{
 			return savedModelParameters[parameterSetId];
@@ -172,6 +183,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		public Vector GetSolution(int parameterSetId, int timeStep)
 		{
 			return savedSolutions[parameterSetId][timeStep];
+		}
+
+		public void SaveCurrentSolutionOnly(Vector solution)
+		{
+			currentSolution = solution.Copy();
 		}
 
 		public void SaveModelParameters(int parameterSetId, double[] modelParameters)
@@ -224,7 +240,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			}
 
 			// Save the solution vector
-			bool timeStepDoesNotExist = solutionsOfParam.TryAdd(timeStep, solution.Copy());
+			Vector copy = solution.Copy();
+			bool timeStepDoesNotExist = solutionsOfParam.TryAdd(timeStep, copy);
+			currentSolution = copy;
 
 			// Check timestep
 			if (timeStepDoesNotExist)

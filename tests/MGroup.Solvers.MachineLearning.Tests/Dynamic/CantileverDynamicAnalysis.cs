@@ -75,6 +75,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			ISolutionPredictionStrategy solutionPrediction = surrogate;
 			//ISolutionPredictionStrategy solutionPrediction = new NullSolutionPredictionStrategy();
+			//ISolutionPredictionStrategy solutionPrediction = new SolutionOfPreviousTimestepAsPrediction();
 
 			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, solutionPrediction);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
