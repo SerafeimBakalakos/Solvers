@@ -44,7 +44,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.Normalization
 					double z = samplesAsRows[s, f] - currentMean;
 					currentStdDev += z * z;
 				}
-				currentStdDev /= (numSamples - 1);
+				currentStdDev = Math.Sqrt(currentStdDev / (numSamples - 1));
 				stdDev[f] = currentStdDev;
 
 				// Apply the normalization to the dataset
