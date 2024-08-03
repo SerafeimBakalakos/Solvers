@@ -279,7 +279,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		private void TrainMLModels()
 		{
-			Console.WriteLine("******************* ML training ********************************");
+			Console.WriteLine();
+			Console.Write("ML training: start ...");
 			var watch = new Stopwatch();
 			watch.Start();
 
@@ -295,7 +296,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			watch.Stop();
 			Logger.LogTaskDuration(Subtask.TrainML.ToString(), watch.ElapsedMilliseconds);
-			Console.WriteLine("******************* End of ML training ********************************");
+			Console.WriteLine(" end");
 		}
 
 		private void PrintProgress()
