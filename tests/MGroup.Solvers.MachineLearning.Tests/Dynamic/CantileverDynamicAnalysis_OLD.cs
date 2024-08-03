@@ -22,9 +22,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.MachineLearning.PodAmg.Surrogates;
 	using MGroup.Solvers.MachineLearning.StochasticExtensions;
 	using MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve;
-	using MGroup.Solvers.MachineLearning.Tests.StochasticExtensions;
 
-	public class CantileverDynamicAnalysis_v2
+	public class CantileverDynamicAnalysis_OLD
 	{
 		private const string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
 		private const string pythonInterpreter = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates\\venv\\Scripts\\python.exe";
@@ -45,15 +44,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const int numKarhunenLoeveTerms = 6;
 		private const double correlationLength = 0.5 * beamLength;
 
-
-		private readonly DynamicAmgAiSolver solver;
-		private readonly CantileverDynamicModel example;
-		private int analysisNo = -1;
-
 		public static void RunStochasticAnalysis()
 		{
-			int numAnalysesTotal = 100;
-			int numAnalysesForTraining = 25;
+			int numAnalysesTotal = 300;
+			int numAnalysesForTraining = 50;
 			int numPrincipalComponents = 1; // 1, 5, 10, 15, 20
 
 			int[] numElements = { 4, 20 };
@@ -65,7 +59,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			IRandomField1D elasticityField = DefineElasticityField(numElements, rng);
 
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1], elasticityField);
-			example.SetTime(numTimeSteps * timeStepSize, numTimeSteps);
+			example.SetTimeSteps(numTimeSteps * timeStepSize, numTimeSteps);
 			example.BeamLength = beamLength;
 			example.BeamSectionHeight = beamSectionHeight;
 			example.BeamSectionWidth = beamSectionWidth;
@@ -80,8 +74,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.UseBinaryIOFilesForArrays = false;
 			surrogate.UseSolutionDifferenceFromPreviousStep = true;
 
-			//ISolutionPredictionStrategy solutionPrediction = surrogate;
-			ISolutionPredictionStrategy solutionPrediction = new NullSolutionPredictionStrategy();
+			ISolutionPredictionStrategy solutionPrediction = surrogate;
+			//ISolutionPredictionStrategy solutionPrediction = new NullSolutionPredictionStrategy();
 			//ISolutionPredictionStrategy solutionPrediction = new SolutionOfPreviousTimestepAsPrediction();
 
 			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, solutionPrediction);
@@ -93,94 +87,68 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			solverFactory.KeepOnlyNonZeroPrincipalComponents = true;
 			DynamicAmgAiSolver solver = solverFactory.BuildSolver();
 
-			var analysis = new CantileverDynamicAnalysis_v2(solver, example);
+			double averageNumIterationsInitialPrecond = 0;
+			double averageNumIterationsMLPrecond = 0;
+			double averageDurationInitialPrecond = 0;
+			double averageDurationMLPrecond = 0;
+			long trainingDuration = 0;
+			int numDofs = 0;
+			var responses = new List<double>(numAnalysesTotal);
+			for (int i = 0; i < numAnalysesTotal; i++)
+			{
+				PrintLine($"*************** Analysis {i+1}/{numAnalysesTotal} ***************");
+				AnalysisResults results = RunSingleAnalysis(i, solver, example);
+				responses.Add(results.MonitorDofRespose);
 
-			var runner = new StochasticAnalysisRunner();
-			runner.Responses.Add(new ResponseNumeric()
-			{
-				Name = "MonitoredDisplacement",
-				Format = "E",
-				DescriptionAtEnd = "Displacement at monitor dof",
-				PrintAverageAtEnd = true,
-			});
-			runner.Responses.Add(new ResponseNumeric()
-			{
-				Name = "NumDofs",
-				IsConstant = true,
-				Format = "F0",
-				DescriptionPerAnalysis = "Dofs",
-				DescriptionAtEnd = "Dofs",
-				PrintOnSameLineAsPrevious = true,
-			});
-			runner.Responses.Add(new ResponseString()
-			{
-				Name = "Preconditioner",
-				IsConstant = true,
-				DescriptionPerAnalysis = "Preconditioner",
-				PrintOnSameLineAsPrevious = true,
-			});
-			runner.Responses.Add(new ResponseNumeric()
-			{
-				Name = "PcgIterations",
-				Format = "F0",
-				DescriptionPerAnalysis = "Average number of PCG iterations per timestep",
-				DescriptionAtEnd = "Average number of PCG iterations per timestep",
-				PrintAverageAtEnd = true,
-				PrintOnSameLineAsPrevious = true,
-			});
-			runner.Responses.Add(new ResponseNumeric()
-			{
-				Name = "PreconditionerDuration",
-				UnitsDescription = "ms",
-				DescriptionPerAnalysis = "Preconditioner calculation duration",
-				PrintOnSameLineAsPrevious = true,
-			});
-			runner.Responses.Add(new ResponseNumeric()
-			{
-				Name = "PcgSolutionDuration",
-				UnitsDescription = "ms",
-				Format = "F0",
-				DescriptionPerAnalysis = "PCG solution duration (sum of all timesteps)",
-				PrintOnSameLineAsPrevious = true,
-			});
-			runner.Responses.Add(new ResponseNumeric()
-			{
-				Name = "SolverDuration",
-				UnitsDescription = "ms",
-				Format = "F0",
-				DescriptionPerAnalysis = "Total solver duration (sum of all timesteps)",
-				DescriptionAtEnd = "Total solver duration (sum of all timesteps)",
-				PrintAverageAtEnd = true,
-				PrintOnSameLineAsPrevious = true,
-			});
-			runner.Responses.Add(new ResponseNumeric()
-			{
-				Name = "TrainingDuration",
-				UnitsDescription = "ms",
-				Format = "F0",
-				DescriptionPerAnalysis = "Surrogate training duration",
-				DescriptionAtEnd = "Surrogate training duration",
-				ValueToIgnoreWhenPrinting = 0.0,
-				PrintSumAtEnd = true,
-				PrintOnSameLineAsPrevious = true,
-			});
+				numDofs = results.NumDofs;
+				if (i < numAnalysesForTraining)
+				{
+					averageNumIterationsInitialPrecond += results.AveragePcgIterations;
+					averageDurationInitialPrecond += results.PreconditionerCalculationDuration + results.PcgSolutionDuration;
+				}
+				else
+				{
+					averageNumIterationsMLPrecond += results.AveragePcgIterations;
+					averageDurationMLPrecond += results.PreconditionerCalculationDuration + results.PcgSolutionDuration;
+				}
 
-			runner.RegisterAnalysisGroup(analysis.RunSingleAnalysis, numAnalysesForTraining, "Initial preconditioner");
-			runner.RegisterAnalysisGroup(
-				analysis.RunSingleAnalysis, numAnalysesTotal - numAnalysesForTraining, "POD-2G preconditioner");
-			runner.PrintMessagesToConsole = true;
-			runner.RunAll();
+				if (results.MLTrainingDuration > 0)
+				{
+					PrintLine("");
+					PrintLine($"Training duration = {results.MLTrainingDuration} ms.");
+					trainingDuration = results.MLTrainingDuration;
+					PrintLine("");
+				}
+
+				var msg = new StringBuilder();
+				msg.Append($"Dofs = {results.NumDofs}. Preconditioner = {results.PreconditionerName}. ");
+				msg.Append($"Average number of PCG iterations per timestep = {Math.Round(results.AveragePcgIterations)}. ");
+				msg.Append($"Preconditioner calculation duration = {results.PreconditionerCalculationDuration} ms. ");
+				msg.Append($"PCG solution duration (sum of all timesteps) = {results.PcgSolutionDuration} ms. ");
+				msg.Append($"Total solver duration (sum of all timesteps) = {results.PreconditionerCalculationDuration + results.PcgSolutionDuration} ms. ");
+				PrintLine(msg.ToString());
+			}
+
+			double mean = responses.Average();
+			averageNumIterationsInitialPrecond /= numAnalysesForTraining;
+			averageNumIterationsMLPrecond /= numAnalysesTotal - numAnalysesForTraining;
+			averageDurationInitialPrecond /= numAnalysesForTraining;
+			averageDurationMLPrecond /= numAnalysesTotal - numAnalysesForTraining;
+
+			PrintLine($"Total analyses: {numAnalysesTotal}. Training analyses: {numAnalysesForTraining}. " +
+				$"Mean uTop={mean}");
+			PrintLine($"Num dofs = {numDofs}. \n 1) Initial preconditioner: " +
+				$"Average PCG iterations per solution = {Math.Round(averageNumIterationsInitialPrecond)}. " +
+				$"Average solution duration per analysis = {Math.Round(averageDurationInitialPrecond)} ms. " +
+				$"\n 2) POD-2G preconditioner: " +
+				$"Average PCG iterations per solution = {Math.Round(averageNumIterationsMLPrecond)}. " +
+				$"Average solution duration per analysis = {Math.Round(averageDurationMLPrecond)} ms. " +
+				$"Training duration = {trainingDuration} ms.");
 		}
 
-		public CantileverDynamicAnalysis_v2(DynamicAmgAiSolver solver, CantileverDynamicModel example)
+		private static AnalysisResults RunSingleAnalysis(
+			int analysisNo, DynamicAmgAiSolver solver, CantileverDynamicModel example)
 		{
-			this.solver = solver;
-			this.example = example;
-		}
-
-		private Dictionary<string, object> RunSingleAnalysis()
-		{
-			analysisNo++;
 			(Model model, double[] parameters, int monitorNodeId) = example.CreateFemModel();
 			INode monitorNode = model.GetNode(monitorNodeId);
 
@@ -196,7 +164,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			dynamicAnalyzer.Initialize();
 			dynamicAnalyzer.Solve();
 
-			double displ = solver.AlgebraicModel.ExtractSingleValue(
+			double response = solver.AlgebraicModel.ExtractSingleValue(
 				solver.LinearSystem.Solution, monitorNode, StructuralDof.TranslationX);
 
 			int numPcgIterations = 0;
@@ -205,21 +173,80 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				numPcgIterations += solver.Logger.GetNumIterationsOfIterativeAlgorithm(t);
 			}
 
-			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.UpdatePreconditioner.ToString(), out long precCalcDuration);
+			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.UpdatePreconditioner.ToString(), out long createDuration);
 			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.SolveWithPcg.ToString(), out long solveDuration);
 			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.TrainML.ToString(), out long trainingDuration);
 
-			var results = new Dictionary<string, object>();
-			results["MonitoredDisplacement"] = displ;
-			results["NumDofs"] = solver.LinearSystem.Solution.SingleVector.Length;
-			results["Preconditioner"] = solver.CurrentPreconditionerName;
-			results["PcgIterations"] = Math.Round(((double)numPcgIterations) / numTimeSteps);
-			results["PreconditionerDuration"] = precCalcDuration;
-			results["PcgSolutionDuration"] = solveDuration;
-			results["SolverDuration"] = precCalcDuration + solveDuration;
-			results["TrainingDuration"] = trainingDuration;
+			var results = new AnalysisResults()
+			{
+				MonitorDofRespose = response,
+				NumDofs = solver.LinearSystem.Solution.SingleVector.Length,
+				PreconditionerName = solver.CurrentPreconditionerName,
+				AveragePcgIterations = ((double)numPcgIterations) / numTimeSteps,
+				PreconditionerCalculationDuration = createDuration,
+				PcgSolutionDuration = solveDuration,
+				MLTrainingDuration = trainingDuration
+			};
 
 			return results;
+		}
+
+		public static void RunStandAloneAnalysis()
+		{
+			string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
+			int[] numElements = { 32, 160 };
+			bool useIterativeSolver = false;
+
+			Random rng = new Random(rngSeed);
+			IRandomField1D elasticityField = DefineElasticityField(numElements, rng);
+
+			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1], elasticityField);
+			example.BeamLength = beamLength;
+			example.BeamSectionHeight = beamSectionHeight;
+			example.BeamSectionWidth = beamSectionWidth;
+			example.SetTimeSteps(timeStepSize * numTimeSteps, numTimeSteps);
+			(Model model, _, _) = example.CreateFemModel();
+
+			ITempSolver solver;
+			var dofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
+			if (useIterativeSolver)
+			{
+				var solverFactory = new TempSolverIterative.Factory()
+				{
+					DofOrderer = dofOrderer,
+				};
+				solver = solverFactory.BuildSolver(solverFactory.BuildAlgebraicModel(model));
+			}
+			else
+			{
+				var solverFactory = new TempSolverDirect.Factory()
+				{
+					DofOrderer = dofOrderer,
+				};
+				solver = solverFactory.BuildSolver(solverFactory.BuildAlgebraicModel(model));
+			}
+
+			var problem = new ProblemStructural(model, solver.Model);
+
+			var linearAnalyzer = new LinearAnalyzer(solver.Model, solver, problem);
+			var dynamicAnalyzerBuilder = new NewmarkDynamicAnalyzer.Builder(solver.Model, problem, linearAnalyzer,
+				timeStepSize, timeStepSize * numTimeSteps, calculateInitialDerivativeVectors: false);
+			dynamicAnalyzerBuilder.SetNewmarkParametersForConstantAcceleration();
+			var analyzer = dynamicAnalyzerBuilder.Build();
+			//var analyzer = new StaticAnalyzer(solver.Model, problem, linearAnalyzer);
+
+			int parameterSet = 0;
+			solver.OnModelParameterUpdate(parameterSet);
+			analyzer.Initialize();
+			analyzer.Solve();
+
+			// Plotting
+			var plotter = new DisplacementFieldWriter(2, model, workDirectory);
+			for (int t = 0; t < solver.SavedSolutions.NumTimeSteps; t++)
+			{
+				IGlobalVector solution = solver.SavedSolutions.GetSolution(parameterSet, t);
+				plotter.WriteResults(solver.Model, solution);
+			}
 		}
 
 		private static IRandomField1D DefineElasticityField(int[] numElementsPerAxis, Random rng)
@@ -315,6 +342,18 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			else
 			{
 				throw new NotImplementedException();
+			}
+		}
+
+		private static void PrintLine(string msg)
+		{
+			if (printMsgsToConsole)
+			{
+				Console.WriteLine(msg);
+			}
+			else
+			{
+				Debug.WriteLine(msg);
 			}
 		}
 

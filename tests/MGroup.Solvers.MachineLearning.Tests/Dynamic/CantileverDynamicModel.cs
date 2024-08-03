@@ -60,7 +60,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		/// </summary>
 		public double TotalDuration { get; private set; } = 100;
 
-		public void SetTime(double totalDuration, int numTimeSteps)
+		public void SetTimeSteps(double totalDuration, int numTimeSteps)
 		{
 			TotalDuration = totalDuration;
 			TimeStep = totalDuration / numTimeSteps;

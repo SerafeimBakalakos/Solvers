@@ -47,15 +47,15 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private readonly PcgAlgorithm pcgAlgorithm;
 		private readonly bool matrixPatternWillNotBeModified;
 		private readonly IPreconditioner initialPreconditioner;
+		private readonly bool alwaysUseInitialPreconditioner;
 		private readonly IDynamicMLPreconditioner mlPreconditioner;
 		private readonly ISolutionTrainingStrategy trainingStrategy;
+		private readonly ISolutionPredictionStrategy solutionPrediction;
 		private readonly int numParameterSetsBeforeTraining;
 		private readonly int numPrincipalComponentsInPod;
 
 		private Stage currentStage;
 		private double[] modelParametersCurrent;
-		private ISolutionPredictionStrategy solutionPrediction;
-
 		private int currentParameterSetIdx;
 		private int currentParameterSetId;
 		private int currentTimeStep;
@@ -63,7 +63,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private DynamicAmgAiSolver(IDofOrderer dofOrderer, PcgAlgorithm pcgAlgorithm, bool matrixPatternWillNotBeModified,
 			IPreconditioner initialPreconditioner, IDynamicMLPreconditioner mlPreconditioner, 
 			ISolutionTrainingStrategy trainingStrategy, int numParameterSetsBeforeTraining, int numPrincipalComponentsInPod,
-			ISolutionPredictionStrategy solutionPrediction)
+			ISolutionPredictionStrategy solutionPrediction, bool alwaysUseInitialPreconditioner)
 		{
 			this.dofOrderer = dofOrderer;
 			this.pcgAlgorithm = pcgAlgorithm;
@@ -74,7 +74,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			this.numParameterSetsBeforeTraining = numParameterSetsBeforeTraining;
 			this.numPrincipalComponentsInPod = numPrincipalComponentsInPod;
 			this.solutionPrediction = solutionPrediction;
-
+			this.alwaysUseInitialPreconditioner = alwaysUseInitialPreconditioner;
 			currentStage = Stage.Start;
 			currentParameterSetIdx = -1;
 			Logger = new SolverLogger(name);
@@ -168,20 +168,31 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			if (currentStage == Stage.TrainMLModels)
 			{
-				TrainMLModels();
+				if (!alwaysUseInitialPreconditioner)
+				{
+					TrainMLModels();
+				}
 				currentStage = Stage.UpdateMLPrecondForNewModel;
 			}
 
 			if (currentStage == Stage.UpdateMLPrecondForNewModel)
 			{
-				UpdateMLPreconditionerForNewModel();
+				if (alwaysUseInitialPreconditioner)
+				{
+					UpdateInitialPreconditioner();
+				}
+				else
+				{
+					UpdateMLPreconditionerForNewModel();
+				}
 				currentStage = Stage.SolveWithMLPrecond;
 			}
 
 			if (currentStage == Stage.SolveWithMLPrecond)
 			{
 				UpdateMLPreconditionerForNewTimeStep();
-				Vector solution = SolveUsingPodAmgPreconditioner();
+				Vector solution = alwaysUseInitialPreconditioner ? 
+					SolveUsingInitialPreconditioner() : SolveUsingPodAmgPreconditioner();
 				SavedSolutions.SaveCurrentSolutionOnly(solution);
 			}
 
@@ -225,7 +236,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			// Use ML prediction as initial guess.
 			double[] prediction = solutionPrediction.Predict(currentTimeStep, modelParametersCurrent);
-			LinearSystem.Solution.SingleVector = Vector.CreateFromArray(prediction);
+			LinearSystem.Solution.SingleVector.CopyFrom(Vector.CreateFromArray(prediction));
 
 			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, LinearSystem.Solution.SingleVector,
 				false, () => Vector.CreateZero(systemSize));
@@ -318,12 +329,16 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 				this.solutionPrediction = solutionPrediction;
 			}
 
+			public bool AlwaysUseInitialPreconditioner { get; set; } = false;
+
 			public IDofOrderer DofOrderer { get; set; }
 				= new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 
 			public bool KeepOnlyNonZeroPrincipalComponents { get; set; } = true;
 
 			public bool MatrixPatternWillNotBeModified { get; set; } = false;
+
+			public IPcgResidualConvergence PcgConvergenceStrategy { get; set; } = new RegularPcgConvergence();
 
 			public double PcgConvergenceTolerance { get; set; } = 1E-5;
 
@@ -332,11 +347,13 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			public ISolutionTrainingStrategy TrainingStrategy { get; set; } 
 				= new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 1);
 
+
 			public DynamicAmgAiSolver BuildSolver()
 			{
 				var pcgFactory = new PcgAlgorithm.Factory();
 				pcgFactory.ResidualTolerance = PcgConvergenceTolerance;
 				pcgFactory.MaxIterationsProvider = PcgMaxIterationsProvider;
+				pcgFactory.Convergence = PcgConvergenceStrategy;
 				var pcgAlgorithm = pcgFactory.Build();
 
 				var initialPreconditioner = new JacobiPreconditioner();
@@ -351,7 +368,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 				IDynamicMLPreconditioner mlPreconditioner = TrainingStrategy.CreatePreconditioner(podAmgPreconditioner);
 
 				return new DynamicAmgAiSolver(DofOrderer, pcgAlgorithm, MatrixPatternWillNotBeModified, initialPreconditioner,
-					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod, solutionPrediction);
+					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod, solutionPrediction,
+					AlwaysUseInitialPreconditioner);
 			}
 		}
 	}

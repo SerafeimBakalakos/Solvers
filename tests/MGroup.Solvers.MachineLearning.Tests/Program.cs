@@ -19,8 +19,8 @@ namespace MGroup.Solvers.MachineLearning.Tests
 		public static void Main(string[] args)
 		{
 			//CallingPythonTests.TestTrainAndPredict(doublePrecision: false, binaryIOFiles: true);
-			CantileverDynamicAnalysis_v2.RunStochasticAnalysis();
-			//CantileverDynamicAnalysis.RunStochasticAnalysis();
+			CantileverDynamicAnalysis.RunStochasticAnalysis();
+			//CantileverDynamicAnalysis_OLD.RunStochasticAnalysis();
 			//CantileverDynamicAnalysis.RunStandAloneAnalysis();
 			//TrySerialization();
 		}
