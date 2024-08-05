@@ -28,6 +28,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg;
 	using MGroup.LinearAlgebra.AlgebraicMultiGrid;
 	using MGroup.Solvers.MachineLearning.PodAmg.Surrogates;
+	using System.IO;
 
 	public class DynamicAmgAiSolver : ISolver
 	{
@@ -95,7 +96,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		public string CurrentPreconditionerName 
 			=> currentStage == Stage.SolveWithMLPrecond ? "POD-2D preconditioner" : initialPreconditioner.GetType().Name;
 
-		public SolutionDatabaseDynamic SavedSolutions { get; } = new SolutionDatabaseDynamic();
+		public SolutionDatabaseDynamic SavedSolutions { get; private set; } = new SolutionDatabaseDynamic();
 
 		public void HandleMatrixWillBeSet() { }
 
@@ -197,6 +198,69 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			}
 
 			++currentTimeStep;
+		}
+
+		public void LoadState(string directory)
+		{
+			string pathSerializedSolver = Path.Combine(directory, "serialized_solver");
+			string pathSerializedDB = Path.Combine(directory, "serialized_solutionsDB");
+			if (!(File.Exists(pathSerializedSolver) && File.Exists(pathSerializedDB)))
+			{
+				throw new IOException($"Invalid files: {pathSerializedSolver}, {pathSerializedDB}");
+			}
+
+			// State of this object
+			State state = null;
+			using (Stream stream = File.Open(pathSerializedSolver, FileMode.Open))
+			{
+				var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+				state = (State)(binaryFormatter.Deserialize(stream));
+			}
+			currentTimeStep = state.CurrentTimeStep;
+			currentStage = state.CurrentStage;
+			currentParameterSetId = state.CurrentParameterSetId;
+			currentParameterSetIdx = state.CurrentParameterSetIdx;
+			modelParametersCurrent = state.ModelParametersCurrent;
+
+			// State of solution DB
+			SolutionDatabaseDynamic solutionDB = null;
+			using (Stream stream = File.Open(pathSerializedDB, FileMode.Open))
+			{
+				var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+				solutionDB = (SolutionDatabaseDynamic)(binaryFormatter.Deserialize(stream));
+			}
+			this.SavedSolutions = solutionDB;
+		}
+
+		public void SaveState(string directory)
+		{
+			if (!Directory.Exists(directory))
+			{
+				throw new IOException($"Invalid directory: {directory}");
+			}
+
+			string pathSerializedSolver = Path.Combine(directory, "serialized_solver");
+			string pathSerializedDB = Path.Combine(directory, "serialized_solutionsDB");
+
+			// State of this object
+			var state = new State();
+			state.CurrentTimeStep = currentTimeStep;
+			state.CurrentStage = currentStage;
+			state.CurrentParameterSetId = currentParameterSetId;
+			state.CurrentParameterSetIdx = currentParameterSetIdx;
+			state.ModelParametersCurrent = modelParametersCurrent;
+			using (Stream stream = File.Open(pathSerializedSolver, FileMode.Create))
+			{
+				var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+				binaryFormatter.Serialize(stream, state);
+			}
+
+			// State of solution DB
+			using (Stream stream = File.Open(pathSerializedDB, FileMode.Create))
+			{
+				var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+				binaryFormatter.Serialize(stream, SavedSolutions);
+			}
 		}
 
 		private Vector SolveUsingInitialPreconditioner()
@@ -371,6 +435,16 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					mlPreconditioner, TrainingStrategy, numParameterSetsForPod, numPrincipalComponentsInPod, solutionPrediction,
 					AlwaysUseInitialPreconditioner);
 			}
+		}
+
+		[Serializable]
+		private class State
+		{
+			public Stage CurrentStage { get; set; }
+			public double[] ModelParametersCurrent { get; set; }
+			public int CurrentParameterSetIdx { get; set; }
+			public int CurrentParameterSetId { get; set; }
+			public int CurrentTimeStep { get; set; }
 		}
 	}
 }

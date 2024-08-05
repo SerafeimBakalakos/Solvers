@@ -3,32 +3,33 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.IO;
 	using System.Linq;
 	using System.Text;
 	using System.Threading.Tasks;
+	using MGroup.Solvers.MachineLearning.PodAmg;
 
 	public class StochasticAnalysisRunner
 	{
-		/// <summary>
-		/// Run a single analysis and return the responses in a Dictionary where each key is the unique name of a response and
-		/// the corresponding value of type object. The keys must match the ones registered in <see cref="Responses"/>.
-		/// The values will be casted, depending on how they were defined in <see cref="Responses"/>.
-		/// </summary>
-		/// <returns>Keys = unique names of responses. Values are abstracted or boxed in type object.</returns>
-		public delegate Dictionary<string, object> RunSingleAnalysis();
+		private readonly List<(int numRepetitions, string description)> analysisGroups;
+		private readonly IAutoStochasticAnalysis stochasticAnalysis;
 
-		private readonly List<(RunSingleAnalysis runAnalysis, int numRepetitions, string description)> analysisGroups;
+		private string directoryToSaveOrLoad = null;
+		private int numAnalysesToSaveOrLoad = 0;
+		private bool loadFirstAnalyses = false;
+		private bool saveFirstAnalyses = false;
 
-		public StochasticAnalysisRunner()
+		public StochasticAnalysisRunner(IAutoStochasticAnalysis stochasticAnalysis)
 		{
-			analysisGroups = new List<(RunSingleAnalysis runAnalysis, int numRepetitions, string description)>();
+			analysisGroups = new List<(int numRepetitions, string description)>();
+			this.stochasticAnalysis = stochasticAnalysis;
 		}
 
 		public bool PrintMessagesToConsole { get; set; } = true;
 
-		public void RegisterAnalysisGroup(RunSingleAnalysis runAnalysis, int numRepetitions, string description)
+		public void RegisterAnalysisGroup(int numRepetitions, string description)
 		{
-			analysisGroups.Add((runAnalysis, numRepetitions, description));
+			analysisGroups.Add((numRepetitions, description));
 		}
 
 		public List<ISingleAnalysisResponse> Responses { get; } = new List<ISingleAnalysisResponse>();
@@ -40,18 +41,21 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 				throw new ArgumentException("At least one analysis group must be registered");
 			}
 
+			stochasticAnalysis.InitializeModel();
+			stochasticAnalysis.InitializeSolver();
+
 			bool mustPrintEmptyLineAfterAnalysisHeader = MustPrintLineBeforeResponses(false);
 			bool mustPrintEmptyLineAfterStatisticsHeader = MustPrintLineBeforeResponses(true);
 
 			int numAnalysesTotal = 0;
-			foreach ((RunSingleAnalysis runAnalysis, int numRepetitions, string description) in analysisGroups)
+			foreach ((int numRepetitions, string description) in analysisGroups)
 			{
 				numAnalysesTotal += numRepetitions;
 			}
 
 			// Run each analysis
 			int currentAnalysis = 0;
-			foreach ((RunSingleAnalysis runAnalysis, int numRepetitions, string description) in analysisGroups)
+			foreach ((int numRepetitions, string description) in analysisGroups)
 			{
 				for (int i = 0; i < numRepetitions; i++)
 				{
@@ -61,11 +65,11 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 						PrintLine();
 					}
 
+					RunSingleAnalysis(currentAnalysis);
+
 					var msg = new StringBuilder();
-					Dictionary<string, object> results = runAnalysis();
 					foreach (ISingleAnalysisResponse response in Responses)
 					{
-						response.SetValueForCurrentAnalysis(results[response.Name]);
 						string txt = response.ReportForAnalysis(currentAnalysis);
 						msg.Append(txt);
 					}
@@ -85,7 +89,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 			currentAnalysis = 0;
 			for (int g = 0; g < analysisGroups.Count; g++)
 			{
-				(_, int numRepetitions, string description) = analysisGroups[g];
+				(int numRepetitions, string description) = analysisGroups[g];
 				msgStats.AppendLine();
 				msgStats.Append($"{g}) {description} - num analyses = {numRepetitions}");
 				if (mustPrintEmptyLineAfterStatisticsHeader)
@@ -106,28 +110,26 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 			Print(msgStats.ToString());
 		}
 
-		private void Print(string msg)
+		/// <summary>
+		/// Cancels the effects of <see cref="SaveFirstAnalyses(int)"/>.
+		/// </summary>
+		public void LoadFirstAnalyses(int numAnalysesToLoad, string loadDirectory)
 		{
-			if (PrintMessagesToConsole)
-			{
-				Console.Write(msg);
-			}
-			else
-			{
-				Debug.Write(msg);
-			}
+			saveFirstAnalyses = false;
+			loadFirstAnalyses = true;
+			numAnalysesToSaveOrLoad = numAnalysesToLoad;
+			directoryToSaveOrLoad = loadDirectory;
 		}
 
-		private void PrintLine(string msg = "")
+		/// <summary>
+		/// Cancels the effects of <see cref="LoadFirstAnalyses(int)"/>.
+		/// </summary>
+		public void SaveFirstAnalyses(int numAnalysesToSave, string saveDirectory)
 		{
-			if (PrintMessagesToConsole)
-			{
-				Console.WriteLine(msg);
-			}
-			else
-			{
-				Debug.WriteLine(msg);
-			}
+			saveFirstAnalyses = true;
+			loadFirstAnalyses = false;
+			numAnalysesToSaveOrLoad = numAnalysesToSave;
+			directoryToSaveOrLoad = saveDirectory;
 		}
 
 		private bool MustPrintLineBeforeResponses(bool atEnd)
@@ -170,6 +172,93 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 
 				return true; // Reaching this point means no responses are printed, so we can change line for the new task.
 			}
+		}
+
+		private void Print(string msg)
+		{
+			if (PrintMessagesToConsole)
+			{
+				Console.Write(msg);
+			}
+			else
+			{
+				Debug.Write(msg);
+			}
+		}
+
+		private void PrintLine(string msg = "")
+		{
+			if (PrintMessagesToConsole)
+			{
+				Console.WriteLine(msg);
+			}
+			else
+			{
+				Debug.WriteLine(msg);
+			}
+		}
+
+		private void RunSingleAnalysis(int currentAnalysis)
+		{
+			if (loadFirstAnalyses && (currentAnalysis < numAnalysesToSaveOrLoad))
+			{
+				// Preload all saved analyses the first time. Then do nothing.
+				if (currentAnalysis == 0)
+				{
+					LoadState();
+				}
+			}
+			else
+			{
+				Dictionary<string, object> results = stochasticAnalysis.RunSingleAnalysis(currentAnalysis);
+				foreach (ISingleAnalysisResponse response in Responses)
+				{
+					response.SetValueForCurrentAnalysis(results[response.Name]);
+				}
+
+				if (saveFirstAnalyses && (currentAnalysis == numAnalysesToSaveOrLoad - 1))
+				{
+					SaveState();
+				}
+			}
+		}
+
+		private void LoadState()
+		{
+			stochasticAnalysis.LoadState();
+
+			string pathSerialized = Path.Combine(directoryToSaveOrLoad, "serialized_stochastic_runner");
+			if (!File.Exists(pathSerialized))
+			{
+				throw new IOException($"Invalid file: {pathSerialized}");
+			}
+
+			List<ISingleAnalysisResponse> responses = null;
+			using (Stream stream = File.Open(pathSerialized, FileMode.Open))
+			{
+				var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+				responses = (List<ISingleAnalysisResponse>)(binaryFormatter.Deserialize(stream));
+			}
+
+			this.Responses.Clear();
+			this.Responses.AddRange(responses);
+		}
+
+		private void SaveState()
+		{
+			if (!Directory.Exists(directoryToSaveOrLoad))
+			{
+				throw new IOException($"Invalid directory: {directoryToSaveOrLoad}");
+			}
+
+			string pathSerialized = Path.Combine(directoryToSaveOrLoad, "serialized_stochastic_runner");
+			using (Stream stream = File.Open(pathSerialized, FileMode.Create))
+			{
+				var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+				binaryFormatter.Serialize(stream, Responses);
+			}
+
+			stochasticAnalysis.SaveState();
 		}
 	}
 }

@@ -25,7 +25,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve;
 	using MGroup.Solvers.MachineLearning.Tests.StochasticExtensions;
 
-	public class CantileverDynamicAnalysis
+	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
 		private const string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
@@ -68,6 +68,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool useSolutionDifferenceFromPreviousStep = true;
 
 		// Misc
+		private const char saveLoadOrNotPretrainingAnalyses = 'L'; // 'S' for save, 'L' for load, anything else for neither.
 		private const bool printMessagesToConsole = true;
 		private const int rngSeed = 23;
 
@@ -140,8 +141,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		{
 			Random rng = new Random(rngSeed);
 			var analysis = new CantileverDynamicAnalysis(rng);
-			analysis.PrepareModel();
-			analysis.PrepareSolver();
 			StochasticAnalysisRunner runner = analysis.PrepareStochasticAnalysis(numAnalysesTotal, numAnalysesForTraining);
 			runner.RunAll();
 		}
@@ -149,14 +148,13 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private readonly Random rng;
 		private CantileverDynamicModel example;
 		private DynamicAmgAiSolver solver;
-		private int analysisNo = -1;
 
 		public CantileverDynamicAnalysis(Random rng)
 		{
 			this.rng = rng;
 		}
 
-		public void PrepareModel()
+		public void InitializeModel()
 		{
 			IRandomField1D elasticityField = DefineElasticityField(numElements, rng);
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1], elasticityField);
@@ -168,7 +166,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			this.example = example;
 		}
 
-		public void PrepareSolver()
+		public void InitializeSolver()
 		{
 			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements);
 			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
@@ -204,7 +202,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public StochasticAnalysisRunner PrepareStochasticAnalysis(int numAnalysesTotal, int numAnalysesForTraining)
 		{
-			var runner = new StochasticAnalysisRunner();
+			var runner = new StochasticAnalysisRunner(this);
 			runner.PrintMessagesToConsole = printMessagesToConsole;
 
 			runner.Responses.Add(new ResponseNumeric()
@@ -281,20 +279,26 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				PrintOnSameLineAsPrevious = true,
 			});
 
-			runner.RegisterAnalysisGroup(RunSingleAnalysis, numAnalysesForTraining, "Initial preconditioner");
-			runner.RegisterAnalysisGroup(
-				RunSingleAnalysis, numAnalysesTotal - numAnalysesForTraining, "POD-2G preconditioner");
+			runner.RegisterAnalysisGroup(numAnalysesForTraining, "Initial preconditioner");
+			runner.RegisterAnalysisGroup(numAnalysesTotal - numAnalysesForTraining, "POD-2G preconditioner");
+			if (saveLoadOrNotPretrainingAnalyses.ToString().ToUpper() == "S")
+			{
+				runner.SaveFirstAnalyses(numAnalysesForTraining, workDirectory);
+			}
+			else if (saveLoadOrNotPretrainingAnalyses.ToString().ToUpper() == "L")
+			{
+				runner.LoadFirstAnalyses(numAnalysesForTraining, workDirectory);
+			}
 
 			return runner;
 		}
 
-		public Dictionary<string, object> RunSingleAnalysis()
+		public Dictionary<string, object> RunSingleAnalysis(int analysisId)
 		{
-			analysisNo++;
 			(Model model, double[] parameters, int monitorNodeId) = example.CreateFemModel();
 			INode monitorNode = model.GetNode(monitorNodeId);
 
-			solver.SetModel(analysisNo, parameters, model);
+			solver.SetModel(analysisId, parameters, model);
 			var problem = new ProblemStructural(model, solver.AlgebraicModel);
 
 			var linearAnalyzer = new LinearAnalyzer(solver.AlgebraicModel, solver, problem);
@@ -332,6 +336,16 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			return results;
 		}
 
+		public void LoadState()
+		{
+			solver.LoadState(workDirectory);
+		}
+
+		public void SaveState()
+		{
+			solver.SaveState(workDirectory);
+		}
+
 		private static IRandomField1D DefineElasticityField(int[] numElementsPerAxis, Random rng)
 		{
 			if (useKarhunenLoeve)
@@ -355,8 +369,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				return elasticityField;
 			}
 		}
-
-		
 	}
 }
 #pragma warning restore CA1305 // Specify IFormatProvider

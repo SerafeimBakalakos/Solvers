@@ -6,6 +6,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 	using System.Text;
 	using System.Threading.Tasks;
 
+	[Serializable]
 	public class ResponseNumeric : SingleAnalysisResponseBase<double>
 	{
 		/// <summary>

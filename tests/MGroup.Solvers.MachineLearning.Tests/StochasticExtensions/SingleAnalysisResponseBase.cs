@@ -6,6 +6,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 	using System.Text;
 	using System.Threading.Tasks;
 
+	[Serializable]
 	public abstract class SingleAnalysisResponseBase<T> : ISingleAnalysisResponse
 	{
 		protected readonly List<T> values = new List<T>();
@@ -40,8 +41,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 
 		public bool PrintMinMaxAtEnd { get; set; } = false;
 
-		public object ValueToIgnoreWhenPrinting 
-		{ 
+		public object ValueToIgnoreWhenPrinting
+		{
 			set
 			{
 				this.tabooValue = (T)value;

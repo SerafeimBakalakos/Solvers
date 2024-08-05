@@ -14,6 +14,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution.LinearSystem;
 
+	[Serializable]
 	public class SolutionDatabaseDynamic
 	{
 		private const int UnknownNumDofs = -1;
@@ -22,7 +23,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private readonly List<int> savedParameterSetIDs;
 
 		//TODO: This can be saved in a 1D list and the indices inferred by the param set IDs and timesteps
-		private readonly Dictionary<int, Dictionary<int, Vector>> savedSolutions; 
+		private readonly Dictionary<int, Dictionary<int, double[]>> savedSolutions; 
 
 		/// <summary>
 		/// Must be the same for all saved parameter sets. Determined by all saved vectors of the first parameter set.
@@ -37,13 +38,13 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		/// <summary>
 		/// Latest saved vector.
 		/// </summary>
-		private Vector currentSolution;
+		private double[] currentSolution;
 
 		public SolutionDatabaseDynamic()
 		{
 			savedModelParameters = new Dictionary<int, double[]>();
 			savedParameterSetIDs = new List<int>();
-			savedSolutions = new Dictionary<int, Dictionary<int, Vector>>();
+			savedSolutions = new Dictionary<int, Dictionary<int, double[]>>();
 			savedTimeSteps = new List<int>();
 		}
 
@@ -127,7 +128,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					var solutionsOfParamSet = savedSolutions[paramSetId];
 					foreach (int timestep in savedTimeSteps)
 					{
-						yield return solutionsOfParamSet[timestep];
+						yield return Vector.CreateFromArray(solutionsOfParamSet[timestep]);
 					}
 				}
 			}
@@ -137,7 +138,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 				{
 					foreach (int paramSetId in savedParameterSetIDs)
 					{
-						yield return savedSolutions[paramSetId][timestep];
+						yield return Vector.CreateFromArray(savedSolutions[paramSetId][timestep]);
 					}
 				}
 			}
@@ -152,7 +153,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			foreach (int parameterSet in savedParameterSetIDs)
 			{
-				yield return savedSolutions[parameterSet][timestep];
+				yield return Vector.CreateFromArray(savedSolutions[parameterSet][timestep]);
 			}
 		}
 
@@ -166,13 +167,13 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			var solutionsOfParamSet = savedSolutions[parameterSetID];
 			foreach (int t in savedTimeSteps)
 			{
-				yield return solutionsOfParamSet[t];
+				yield return Vector.CreateFromArray(solutionsOfParamSet[t]);
 			}
 		}
 
 		public Vector GetCurrentSolution()
 		{
-			return currentSolution;
+			return Vector.CreateFromArray(currentSolution);
 		}
 
 		public double[] GetModelParameters(int parameterSetId)
@@ -182,12 +183,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		public Vector GetSolution(int parameterSetId, int timeStep)
 		{
-			return savedSolutions[parameterSetId][timeStep];
+			return Vector.CreateFromArray(savedSolutions[parameterSetId][timeStep]);
 		}
 
 		public void SaveCurrentSolutionOnly(Vector solution)
 		{
-			currentSolution = solution.Copy();
+			currentSolution = solution.Copy().RawData;
 		}
 
 		public void SaveModelParameters(int parameterSetId, double[] modelParameters)
@@ -207,7 +208,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			if (didNotExist)
 			{
 				savedParameterSetIDs.Add(parameterSetId);
-				savedSolutions.Add(parameterSetId, new Dictionary<int, Vector>());
+				savedSolutions.Add(parameterSetId, new Dictionary<int, double[]>());
 			}
 			else
 			{
@@ -233,14 +234,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			}
 
 			// Check parameter set
-			bool paramSetExists = savedSolutions.TryGetValue(parameterSetId, out Dictionary<int, Vector> solutionsOfParam);
+			bool paramSetExists = savedSolutions.TryGetValue(parameterSetId, out Dictionary<int, double[]> solutionsOfParam);
 			if (!paramSetExists)
 			{
 				throw new Exception($"The parameter set = {parameterSetId} is not saved in the database.");
 			}
 
 			// Save the solution vector
-			Vector copy = solution.Copy();
+			double[] copy = solution.Copy().RawData;
 			bool timeStepDoesNotExist = solutionsOfParam.TryAdd(timeStep, copy);
 			currentSolution = copy;
 
@@ -254,7 +255,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 				}
 				else // Check that this timestep is one of those saved for previous parameter sets
 				{
-					Dictionary<int, Vector> solutionsOfFirstParamSet = savedSolutions[savedParameterSetIDs[0]];
+					Dictionary<int, double[]> solutionsOfFirstParamSet = savedSolutions[savedParameterSetIDs[0]];
 					if (!solutionsOfFirstParamSet.ContainsKey(timeStep))
 					{
 						throw new Exception($"Cannot save time step = {timeStep} for parameter set = {parameterSetId}," +
@@ -417,7 +418,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					var solutionsOfParamSet = savedSolutions[paramSetId];
 					foreach (int timestep in requiredTimeSteps)
 					{
-						result.SetSubcolumn(col, solutionsOfParamSet[timestep]);
+						result.SetSubcolumn(col, Vector.CreateFromArray(solutionsOfParamSet[timestep]));
 						col++;
 					}
 				}
@@ -428,7 +429,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 				{
 					foreach (int paramSetId in savedParameterSetIDs)
 					{
-						result.SetSubcolumn(col, savedSolutions[paramSetId][timestep]);
+						result.SetSubcolumn(col, Vector.CreateFromArray(savedSolutions[paramSetId][timestep]));
 						col++;
 					}
 				}
