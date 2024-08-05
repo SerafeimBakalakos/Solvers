@@ -7,22 +7,24 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 	using System.Linq;
 	using System.Text;
 	using System.Threading.Tasks;
-	using MGroup.Solvers.MachineLearning.PodAmg;
+	using MGroup.Solvers.MachineLearning.StochasticExtensions.RandomNumberGeneration;
 
 	public class StochasticAnalysisRunner
 	{
 		private readonly List<(int numRepetitions, string description)> analysisGroups;
 		private readonly IAutoStochasticAnalysis stochasticAnalysis;
 
+		private RepeatableRandom rng;
 		private string directoryToSaveOrLoad = null;
 		private int numAnalysesToSaveOrLoad = 0;
 		private bool loadFirstAnalyses = false;
 		private bool saveFirstAnalyses = false;
 
-		public StochasticAnalysisRunner(IAutoStochasticAnalysis stochasticAnalysis)
+		public StochasticAnalysisRunner(IAutoStochasticAnalysis stochasticAnalysis, int? rngSeed = null)
 		{
 			analysisGroups = new List<(int numRepetitions, string description)>();
 			this.stochasticAnalysis = stochasticAnalysis;
+			this.rng = rngSeed.HasValue ? new RepeatableRandom(rngSeed.Value) : new RepeatableRandom();
 		}
 
 		public bool PrintMessagesToConsole { get; set; } = true;
@@ -41,7 +43,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 				throw new ArgumentException("At least one analysis group must be registered");
 			}
 
-			stochasticAnalysis.InitializeModel();
+			stochasticAnalysis.InitializeModel(rng);
 			stochasticAnalysis.InitializeSolver();
 
 			bool mustPrintEmptyLineAfterAnalysisHeader = MustPrintLineBeforeResponses(false);
@@ -225,23 +227,24 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 
 		private void LoadState()
 		{
-			stochasticAnalysis.LoadState();
-
 			string pathSerialized = Path.Combine(directoryToSaveOrLoad, "serialized_stochastic_runner");
 			if (!File.Exists(pathSerialized))
 			{
 				throw new IOException($"Invalid file: {pathSerialized}");
 			}
 
-			List<ISingleAnalysisResponse> responses = null;
+			stochasticAnalysis.LoadState();
+
+			State state = null;
 			using (Stream stream = File.Open(pathSerialized, FileMode.Open))
 			{
 				var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-				responses = (List<ISingleAnalysisResponse>)(binaryFormatter.Deserialize(stream));
+				state = (State)(binaryFormatter.Deserialize(stream));
 			}
 
 			this.Responses.Clear();
-			this.Responses.AddRange(responses);
+			this.Responses.AddRange(state.Responses);
+			this.rng.LoadState(state.RngState);
 		}
 
 		private void SaveState()
@@ -251,14 +254,28 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 				throw new IOException($"Invalid directory: {directoryToSaveOrLoad}");
 			}
 
+			var state = new State
+			{
+				Responses = this.Responses,
+				RngState = rng.ExtractState(),
+			};
+
 			string pathSerialized = Path.Combine(directoryToSaveOrLoad, "serialized_stochastic_runner");
 			using (Stream stream = File.Open(pathSerialized, FileMode.Create))
 			{
 				var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-				binaryFormatter.Serialize(stream, Responses);
+				binaryFormatter.Serialize(stream, state);
 			}
 
 			stochasticAnalysis.SaveState();
+		}
+
+		[Serializable]
+		private class State
+		{
+			public List<ISingleAnalysisResponse> Responses { get; set; }
+
+			public RepeatableRandom.State RngState { get; set; }
 		}
 	}
 }

@@ -23,6 +23,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.MachineLearning.PodAmg.Surrogates;
 	using MGroup.Solvers.MachineLearning.StochasticExtensions;
 	using MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve;
+	using MGroup.Solvers.MachineLearning.StochasticExtensions.RandomNumberGeneration;
 	using MGroup.Solvers.MachineLearning.Tests.StochasticExtensions;
 
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
@@ -68,7 +69,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool useSolutionDifferenceFromPreviousStep = true;
 
 		// Misc
-		private const char saveLoadOrNotPretrainingAnalyses = 'L'; // 'S' for save, 'L' for load, anything else for neither.
+		private const char saveLoadOrNotPretrainingAnalyses = 'N'; // 'S' for save, 'L' for load, anything else for neither.
 		private const bool printMessagesToConsole = true;
 		private const int rngSeed = 23;
 
@@ -139,22 +140,19 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public static void RunStochasticAnalysis()
 		{
-			Random rng = new Random(rngSeed);
-			var analysis = new CantileverDynamicAnalysis(rng);
+			var analysis = new CantileverDynamicAnalysis();
 			StochasticAnalysisRunner runner = analysis.PrepareStochasticAnalysis(numAnalysesTotal, numAnalysesForTraining);
 			runner.RunAll();
 		}
 
-		private readonly Random rng;
 		private CantileverDynamicModel example;
 		private DynamicAmgAiSolver solver;
 
-		public CantileverDynamicAnalysis(Random rng)
+		public CantileverDynamicAnalysis()
 		{
-			this.rng = rng;
 		}
 
-		public void InitializeModel()
+		public void InitializeModel(RepeatableRandom rng)
 		{
 			IRandomField1D elasticityField = DefineElasticityField(numElements, rng);
 			var example = CantileverDynamicModel.Create2DExample(numElements[0], numElements[1], elasticityField);
@@ -202,7 +200,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public StochasticAnalysisRunner PrepareStochasticAnalysis(int numAnalysesTotal, int numAnalysesForTraining)
 		{
-			var runner = new StochasticAnalysisRunner(this);
+			var runner = new StochasticAnalysisRunner(this, rngSeed);
 			runner.PrintMessagesToConsole = printMessagesToConsole;
 
 			runner.Responses.Add(new ResponseNumeric()
@@ -296,6 +294,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public Dictionary<string, object> RunSingleAnalysis(int analysisId)
 		{
 			(Model model, double[] parameters, int monitorNodeId) = example.CreateFemModel();
+
 			INode monitorNode = model.GetNode(monitorNodeId);
 
 			solver.SetModel(analysisId, parameters, model);
@@ -368,6 +367,20 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 					numElementsTotal, rng, true);
 				return elasticityField;
 			}
+		}
+
+		private static void PrintModelParams(double[] modelParams)
+		{
+			var msg = new StringBuilder();
+			msg.AppendLine();
+			msg.Append("Model parameters: ");
+			foreach (double p in modelParams)
+			{
+				msg.Append(p);
+				msg.Append(" ");
+			}
+			msg.AppendLine();
+			Console.Write(msg);
 		}
 	}
 }

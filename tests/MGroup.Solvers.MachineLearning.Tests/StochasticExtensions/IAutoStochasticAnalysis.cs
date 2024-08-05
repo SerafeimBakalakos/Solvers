@@ -6,9 +6,11 @@ namespace MGroup.Solvers.MachineLearning.Tests.StochasticExtensions
 	using System.Text;
 	using System.Threading.Tasks;
 
+	using MGroup.Solvers.MachineLearning.StochasticExtensions.RandomNumberGeneration;
+
 	public interface IAutoStochasticAnalysis
 	{
-		public void InitializeModel();
+		public void InitializeModel(RepeatableRandom rng);
 
 		public void InitializeSolver();
 
