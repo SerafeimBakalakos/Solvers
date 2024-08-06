@@ -94,7 +94,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		public string Name => name;
 
 		public string CurrentPreconditionerName 
-			=> currentStage == Stage.SolveWithMLPrecond ? "POD-2D preconditioner" : initialPreconditioner.GetType().Name;
+			=> currentStage == Stage.SolveWithMLPrecond ? "POD-2G preconditioner" : initialPreconditioner.GetType().Name;
 
 		public SolutionDatabaseDynamic SavedSolutions { get; private set; } = new SolutionDatabaseDynamic();
 

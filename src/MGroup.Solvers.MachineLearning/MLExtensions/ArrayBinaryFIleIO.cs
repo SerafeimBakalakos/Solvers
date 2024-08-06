@@ -11,7 +11,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 	{
 		public void ReadArray1DFromFile(double[] array, string file)
 		{
-			double[] arr  = np.Load<double[]>(file);
+			double[] arr = np.Load<double[]>(file);
 			Array.Copy(arr, array, array.Length);
 		}
 

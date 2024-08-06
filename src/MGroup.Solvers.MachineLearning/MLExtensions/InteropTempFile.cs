@@ -18,6 +18,13 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			Path = tempFilePrefix + fileNameAndExtension;
 		}
 
+		public InteropTempFile(string workDirectory, string fileNameAndExtension, Guid guid)
+		{
+			var time = DateTime.Now;
+			tempFilePrefix = $"{workDirectory}\\{time.Year}-{time.Month}-{time.Day}-{time.Hour}{time.Minute}_{guid}";
+			Path = tempFilePrefix + fileNameAndExtension;
+		}
+
 		[JsonIgnore]
 		public string Path { get; }
 

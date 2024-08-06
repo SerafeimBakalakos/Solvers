@@ -116,9 +116,10 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private void CallPredictScript(bool doublePrecision, Action<string> writeInputToFile, Action<string> readOutputFromFile)
 		{
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PySettings(workDir, extension, modelID);
+			Guid guid = Guid.NewGuid();
+			var settingsFile = new Cs2PySettings(workDir, extension, modelID, guid);
 			settingsFile.Float64 = doublePrecision;
-			var resultsFile = new Py2CsResults(workDir);
+			var resultsFile = new Py2CsResults(workDir, guid);
 			string processArgs = $"{predictScript} {settingsFile.Path} {resultsFile.Path}";
 			try
 			{
@@ -144,10 +145,11 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		private void CallTrainScript(bool doublePrecision, Action<string, string> writeFeaturesAndLabelsToFiles)
 		{
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PyTrainingSettings(workDir, extension, modelID);
+			Guid guid = Guid.NewGuid();
+			var settingsFile = new Cs2PyTrainingSettings(workDir, extension, modelID, guid);
 			settingsFile.Float64 = doublePrecision;
 			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
-			var resultsFile = new Py2CsResults(workDir);
+			var resultsFile = new Py2CsResults(workDir, guid);
 			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path}";
 			try
 			{
@@ -246,8 +248,8 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private class Cs2PySettings : InteropTempFile
 		{
-			public Cs2PySettings(string workDirectory, string arrayExtension, int modelID) 
-				: base(workDirectory, "_cs2py_settings.json")
+			public Cs2PySettings(string workDirectory, string arrayExtension, int modelID, Guid guid) 
+				: base(workDirectory, "_cs2py_settings.json", guid)
 			{
 				FeaturesPath = tempFilePrefix + "_features" + arrayExtension;
 				LabelsPath = tempFilePrefix + "_labels" + arrayExtension;
@@ -268,8 +270,8 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private class Cs2PyTrainingSettings : Cs2PySettings
 		{
-			public Cs2PyTrainingSettings(string workDirectory, string arrayExtension, int modelID) 
-				: base(workDirectory, arrayExtension, modelID)
+			public Cs2PyTrainingSettings(string workDirectory, string arrayExtension, int modelID, Guid guid) 
+				: base(workDirectory, arrayExtension, modelID, guid)
 			{
 			}
 
@@ -281,7 +283,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private class Py2CsResults : InteropTempFile
 		{
-			public Py2CsResults(string workDirectory) : base(workDirectory, "_py2cs_results.json")
+			public Py2CsResults(string workDirectory, Guid guid) : base(workDirectory, "_py2cs_results.json", guid)
 			{
 			}
 
