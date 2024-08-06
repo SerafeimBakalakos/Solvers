@@ -88,6 +88,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public bool UseSolutionDifferenceFromPreviousStep { get; set; } = true;
 
+		public bool WriteTrainReportToConsole {  get; set; } = false;
+
+		public bool WritePredictReportsToConsole {  get; set; } = false;
+
 		public bool MustSaveSolution(int timeStep) => true;
 
 		public void SetPythonCodePaths(string pythonInterpreter, string trainScript, string predictScript)
@@ -164,7 +168,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				watch.Stop();
 				durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
-				Console.WriteLine(durations.Report());
+				if (WritePredictReportsToConsole)
+				{
+					Console.WriteLine(durations.Report());
+				}
 				return output;
 			}
 			finally
@@ -235,8 +242,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				resultsFile.ReadFromFile();
 				watch.Stop();
 				durations.Include(watch.ElapsedMilliseconds, resultsFile.Actual, resultsFile.Setup, resultsFile.IO);
-				
-				Console.WriteLine(durations.Report());
+
+				if (WriteTrainReportToConsole)
+				{
+					Console.WriteLine(durations.Report());
+				}
 			}
 			finally
 			{

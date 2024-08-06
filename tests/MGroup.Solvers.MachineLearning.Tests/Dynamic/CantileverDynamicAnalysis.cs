@@ -1,4 +1,5 @@
 #pragma warning disable CA1305 // Specify IFormatProvider
+#pragma warning disable SA1516 // Elements should be separated by blank line
 namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 {
 	using System;
@@ -29,8 +30,13 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
-		private const string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
-		private const string pythonProjectDirectory = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates";
+		private const bool runOnCluster = false;
+		private const string workDirectory = runOnCluster ?
+			"C:\\Users\\cluster\\Desktop\\AISolve\\results\\CantileverDynamicLinear"
+			: "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
+		private const string pythonProjectDirectory = runOnCluster ?
+			"C:\\Users\\cluster\\Desktop\\AISolve\\code\\Python\\cs2py_ml_surrogates"
+			: "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates";
 		private const string pythonInterpreter = pythonProjectDirectory + "\\venv\\Scripts\\python.exe";
 		private const string trainScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
 		private const string predictScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
@@ -70,9 +76,12 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool useBinaryIOFiles = true;
 		private const bool useSolutionDifferenceFromPreviousStep = true;
 
+		// Reports
+		private const bool printAnalysisMessagesToConsole = true;
+		private const bool printSurrogatePredictionMessagesToConsole = false;
+
 		// Misc
 		private const char saveLoadOrNotPretrainingAnalyses = 'S'; // 'S' for save, 'L' for load, anything else for neither.
-		private const bool printMessagesToConsole = true;
 		private const int rngSeed = 23;
 
 		private static CaeFfnnArchitecture DescribeSurrogate(int[] numElementsPerAxis)
@@ -177,6 +186,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
 			surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
 			surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
+			surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
+			surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
 
 			ISolutionPredictionStrategy solutionPrediction;
 			if (enableSurrogate)
@@ -210,7 +221,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public StochasticAnalysisRunner PrepareStochasticAnalysis(int numAnalysesTotal, int numAnalysesForTraining)
 		{
 			var runner = new StochasticAnalysisRunner(this, rngSeed);
-			runner.PrintMessagesToConsole = printMessagesToConsole;
+			runner.PrintMessagesToConsole = printAnalysisMessagesToConsole;
 
 			runner.Responses.Add(new ResponseNumeric()
 			{
@@ -393,3 +404,4 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	}
 }
 #pragma warning restore CA1305 // Specify IFormatProvider
+#pragma warning restore SA1516 // Elements should be separated by blank line
