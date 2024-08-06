@@ -198,6 +198,58 @@ namespace MGroup.Solvers.MachineLearning.Utilities
 			return result;
 		}
 
+		public static double[] PrependAndConvertToDouble(double newValue, int[] oldArray)
+		{
+			var result = new double[oldArray.Length + 1];
+			result[0] = newValue;
+			for (int i = 0; i < oldArray.Length; i++)
+			{
+				result[i + 1] = oldArray[i];
+			}
+			return result;
+		}
+
+		public static double[] PrependAndConvertToDouble(int newValue, int[] oldArray)
+		{
+			var result = new double[oldArray.Length + 1];
+			result[0] = newValue;
+			for (int i = 0; i < oldArray.Length; i++)
+			{
+				result[i + 1] = oldArray[i];
+			}
+			return result;
+		}
+
+		public static double[] PrependAndConvertToFloat(float newValue, double[] oldArray)
+		{
+			var result = new double[oldArray.Length + 1];
+			result[0] = newValue;
+			Array.Copy(oldArray, 0, result, 1, oldArray.Length);
+			return result;
+		}
+
+		public static double[] PrependAndConvertToDouble(double newValue, float[] oldArray)
+		{
+			var result = new double[oldArray.Length + 1];
+			result[0] = newValue;
+			for (int i = 0; i < oldArray.Length; i++)
+			{
+				result[i + 1] = oldArray[i];
+			}
+			return result;
+		}
+
+		public static double[] PrependAndConvertToDouble(float newValue, int[] oldArray)
+		{
+			var result = new double[oldArray.Length + 1];
+			result[0] = newValue;
+			for (int i = 0; i < oldArray.Length; i++)
+			{
+				result[i + 1] = oldArray[i];
+			}
+			return result;
+		}
+
 		public static float[] PrependAndConvertToFloat(int newValue, double[] oldArray)
 		{
 			var result = new float[oldArray.Length + 1];
