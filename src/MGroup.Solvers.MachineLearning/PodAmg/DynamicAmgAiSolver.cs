@@ -270,10 +270,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			IMatrix matrix = LinearSystem.Matrix.SingleMatrix;
 			int systemSize = matrix.NumRows;
+			Vector rhs = LinearSystem.RhsVector.SingleVector;
+			Vector solution = LinearSystem.Solution.SingleVector;
 
 			// Iterative algorithm
-			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, initialPreconditioner,
-				LinearSystem.RhsVector.SingleVector, LinearSystem.Solution.SingleVector,
+			solution.Clear();
+			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, initialPreconditioner, rhs, solution,
 				true, () => Vector.CreateZero(systemSize));
 			if (!stats.HasConverged)
 			{
@@ -300,16 +302,19 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			// Use ML prediction as initial guess.
 			double[] prediction = solutionPrediction.Predict(currentTimeStep, modelParametersCurrent);
-			LinearSystem.Solution.SingleVector.CopyFrom(Vector.CreateFromArray(prediction));
+			var solution = Vector.CreateFromArray(prediction);
 
-			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, LinearSystem.Solution.SingleVector,
+			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, solution,
 				false, () => Vector.CreateZero(systemSize));
+
+			LinearSystem.Solution.SingleVector = solution;
 			if (!stats.HasConverged)
 			{
 				throw new IterativeSolverNotConvergedException(Name + " did not converge to a solution. PCG algorithm with "
 					+ $"AMG-POD preconditioner run for {stats.NumIterationsRequired} iterations and the residual norm ratio was"
 					+ $" {stats.ResidualNormRatioEstimation}");
 			}
+
 			
 			watch.Stop();
 			Logger.LogTaskDuration(Subtask.SolveWithPcg.ToString(), watch.ElapsedMilliseconds);
@@ -355,7 +360,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private void TrainMLModels()
 		{
 			Console.WriteLine();
-			Console.Write("ML training: start ...");
+			Console.WriteLine("Start of ML training ...");
 			var watch = new Stopwatch();
 			watch.Start();
 
@@ -371,7 +376,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			watch.Stop();
 			Logger.LogTaskDuration(Subtask.TrainML.ToString(), watch.ElapsedMilliseconds);
-			Console.WriteLine(" end");
+			Console.WriteLine("... end of ML training");
 		}
 
 		private void PrintProgress()

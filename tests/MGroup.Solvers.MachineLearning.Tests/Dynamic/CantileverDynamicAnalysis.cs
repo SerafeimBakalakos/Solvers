@@ -12,10 +12,15 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Iterative.Termination.Iterations;
 	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.MSolve.Solution;
+	using MGroup.MSolve.Solution.AlgebraicModel;
 	using MGroup.MSolve.Solution.LinearSystem;
 	using MGroup.NumericalAnalyzers;
+	using MGroup.Solvers.AlgebraicModel;
+	using MGroup.Solvers.Direct;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
+	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.MachineLearning.AnalyzersExtensions;
 	using MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.IterativeMethods.PCG;
 	using MGroup.Solvers.MachineLearning.MLExtensions.TensorFlow;
@@ -63,25 +68,26 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double correlationLength = 0.5 * beamLength;
 
 		// Solver: general
-		private const double pcgTol = 1E-10;
+		private const double pcgTol = 1E-6;
 		private const bool pcgConvergenceBasedOnResidualOnly = true;
-		private const bool useAlwaysInitialPreconditioner = false;
+		private const bool useDirectSolverInstead = false;
 
 		// Solver: POD
 		private const int numPrincipalComponents = 10; // 1 (not that effective), 5, 10 (start here), 15, 20 (doubtful)
 		private const int timeStepSavePeriod = 5; // 1 (too expensive), 5 (good), 10 (good), 15, 20
+		private const bool useAlwaysInitialPreconditioner = false;
 
 		// Solver: surrogate
 		private const bool enableSurrogate = true;
+		private const bool useSolutionFromPreviousStep = true;
 		private const bool useBinaryIOFiles = true;
-		private const bool useSolutionDifferenceFromPreviousStep = true;
 
 		// Reports
 		private const bool printAnalysisMessagesToConsole = true;
 		private const bool printSurrogatePredictionMessagesToConsole = false;
 
 		// Misc
-		private const char saveLoadOrNotPretrainingAnalyses = 'S'; // 'S' for save, 'L' for load, anything else for neither.
+		private const char saveLoadOrNotPretrainingAnalyses = 'N'; // 'S' for save, 'L' for load, anything else for neither.
 		private const int rngSeed = 23;
 
 		private static CaeFfnnArchitecture DescribeSurrogate(int[] numElementsPerAxis)
@@ -158,6 +164,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		private CantileverDynamicModel example;
 		private DynamicAmgAiSolver solver;
+		private SkylineSolver.Factory directSolverFactory;
 
 		public CantileverDynamicAnalysis()
 		{
@@ -177,6 +184,12 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public void InitializeSolver()
 		{
+			if (useDirectSolverInstead)
+			{
+				directSolverFactory = new SkylineSolver.Factory();
+				return;
+			}
+
 			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements);
 			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
 			//surrogate.float64 = false;
@@ -185,7 +198,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
 			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
 			surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
-			surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
+			surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionFromPreviousStep;
 			surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
 			surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
 
@@ -196,9 +209,15 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 			else
 			{
-				solutionPrediction = new NullSolutionPredictionStrategy();
+				if (useSolutionFromPreviousStep)
+				{
+					solutionPrediction = new SolutionOfPreviousTimestepAsPrediction();
+				}
+				else
+				{
+					solutionPrediction = new NullSolutionPredictionStrategy();
+				}
 			}
-			//solutionPrediction = new SolutionOfPreviousTimestepAsPrediction();
 
 			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, solutionPrediction);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
@@ -310,17 +329,12 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			return runner;
 		}
 
-		public Dictionary<string, object> RunSingleAnalysis(int analysisId)
+		private static double RunDynamicAnalysis(Model model, IAlgebraicModel algebraicModel, ISolver solver, int monitorNodeId)
 		{
-			(Model model, double[] parameters, int monitorNodeId) = example.CreateFemModel();
+			var problem = new ProblemStructural(model, algebraicModel);
 
-			INode monitorNode = model.GetNode(monitorNodeId);
-
-			solver.SetModel(analysisId, parameters, model);
-			var problem = new ProblemStructural(model, solver.AlgebraicModel);
-
-			var linearAnalyzer = new LinearAnalyzer(solver.AlgebraicModel, solver, problem);
-			var dynamicAnalyzerBuilder = new NewmarkDynamicAnalyzer.Builder(solver.AlgebraicModel, problem, linearAnalyzer,
+			var linearAnalyzer = new LinearAnalyzer(algebraicModel, solver, problem);
+			var dynamicAnalyzerBuilder = new NewmarkDynamicAnalyzer.Builder(algebraicModel, problem, linearAnalyzer,
 				timeStepSize, timeStepSize * numTimeSteps, calculateInitialDerivativeVectors: false);
 			dynamicAnalyzerBuilder.SetNewmarkParametersForConstantAcceleration();
 			var dynamicAnalyzer = dynamicAnalyzerBuilder.Build();
@@ -328,23 +342,54 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			dynamicAnalyzer.Initialize();
 			dynamicAnalyzer.Solve();
 
-			double displ = solver.AlgebraicModel.ExtractSingleValue(
+			INode monitorNode = model.GetNode(monitorNodeId);
+			double displ = algebraicModel.ExtractSingleValue(
 				solver.LinearSystem.Solution, monitorNode, StructuralDof.TranslationX);
+			return displ;
+		}
 
-			int numPcgIterations = 0;
-			for (int t = 0; t < numTimeSteps; t++)
+		public Dictionary<string, object> RunSingleAnalysis(int analysisId)
+		{
+			(Model model, double[] parameters, int monitorNodeId) = example.CreateFemModel();
+
+			SolverLogger solverLogger;
+			double monitorDisplacement;
+			int numDofs;
+			string preconditionerName;
+			int numPcgIterations;
+			if (useDirectSolverInstead)
 			{
-				numPcgIterations += solver.Logger.GetNumIterationsOfIterativeAlgorithm(t);
+				var algebraicModel = directSolverFactory.BuildAlgebraicModel(model);
+				SkylineSolver directSolver = directSolverFactory.BuildSolver(algebraicModel);
+				solverLogger = (SolverLogger)(directSolver.Logger);
+				monitorDisplacement = RunDynamicAnalysis(model, algebraicModel, directSolver, monitorNodeId);
+				numDofs = directSolver.LinearSystem.Solution.SingleVector.Length;
+				preconditionerName = "SkylineSolver";
+				numPcgIterations = 0;
+			}
+			else
+			{
+				this.solver.SetModel(analysisId, parameters, model);
+				solverLogger = this.solver.Logger;
+				monitorDisplacement = RunDynamicAnalysis(model, solver.AlgebraicModel, solver, monitorNodeId);
+				numDofs = this.solver.LinearSystem.Solution.SingleVector.Length;
+				preconditionerName = this.solver.CurrentPreconditionerName;
+
+				numPcgIterations = 0;
+				for (int t = 0; t < numTimeSteps; t++)
+				{
+					numPcgIterations += solver.Logger.GetNumIterationsOfIterativeAlgorithm(t);
+				}
 			}
 
-			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.UpdatePreconditioner.ToString(), out long precCalcDuration);
-			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.SolveWithPcg.ToString(), out long solveDuration);
-			solver.Logger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.TrainML.ToString(), out long trainingDuration);
+			solverLogger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.UpdatePreconditioner.ToString(), out long precCalcDuration);
+			solverLogger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.SolveWithPcg.ToString(), out long solveDuration);
+			solverLogger.TryGetTaskDuration(DynamicAmgAiSolver.Subtask.TrainML.ToString(), out long trainingDuration);
 
 			var results = new Dictionary<string, object>();
-			results["MonitoredDisplacement"] = displ;
-			results["NumDofs"] = solver.LinearSystem.Solution.SingleVector.Length;
-			results["Preconditioner"] = solver.CurrentPreconditionerName;
+			results["MonitoredDisplacement"] = monitorDisplacement;
+			results["NumDofs"] = numDofs;
+			results["Preconditioner"] = preconditionerName;
 			results["PcgIterations"] = Math.Round(((double)numPcgIterations) / numTimeSteps);
 			results["PreconditionerDuration"] = precCalcDuration;
 			results["PcgSolutionDuration"] = solveDuration;
