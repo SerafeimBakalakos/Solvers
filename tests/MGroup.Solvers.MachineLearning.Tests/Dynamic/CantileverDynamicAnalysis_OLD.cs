@@ -66,7 +66,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements);
 			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
-			surrogate.Float64 = false;
+			//surrogate.float64 = false;
 			surrogate.TensorFlowSeed = rngSeed;
 			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
 			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0

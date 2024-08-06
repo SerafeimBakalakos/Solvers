@@ -30,9 +30,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	{
 		// Paths
 		private const string workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
-		private const string pythonInterpreter = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates\\venv\\Scripts\\python.exe";
-		private const string trainScript = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
-		private const string predictScript = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
+		private const string pythonProjectDirectory = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates";
+		private const string pythonInterpreter = pythonProjectDirectory + "\\venv\\Scripts\\python.exe";
+		private const string trainScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
+		private const string predictScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
 		private const int numAnalysesTotal = 300;
@@ -65,11 +66,12 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const int timeStepSavePeriod = 5; // 1 (too expensive), 5 (good), 10 (good), 15, 20
 
 		// Solver: surrogate
+		private const bool enableSurrogate = true;
 		private const bool useBinaryIOFiles = true;
 		private const bool useSolutionDifferenceFromPreviousStep = true;
 
 		// Misc
-		private const char saveLoadOrNotPretrainingAnalyses = 'N'; // 'S' for save, 'L' for load, anything else for neither.
+		private const char saveLoadOrNotPretrainingAnalyses = 'S'; // 'S' for save, 'L' for load, anything else for neither.
 		private const bool printMessagesToConsole = true;
 		private const int rngSeed = 23;
 
@@ -168,7 +170,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		{
 			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements);
 			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
-			surrogate.Float64 = false;
+			//surrogate.float64 = false;
 			surrogate.TensorFlowSeed = rngSeed;
 			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
 			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
@@ -176,9 +178,16 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
 			surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
 
-			//ISolutionPredictionStrategy solutionPrediction = surrogate;
-			ISolutionPredictionStrategy solutionPrediction = new NullSolutionPredictionStrategy();
-			//ISolutionPredictionStrategy solutionPrediction = new SolutionOfPreviousTimestepAsPrediction();
+			ISolutionPredictionStrategy solutionPrediction;
+			if (enableSurrogate)
+			{
+				solutionPrediction = surrogate;
+			}
+			else
+			{
+				solutionPrediction = new NullSolutionPredictionStrategy();
+			}
+			//solutionPrediction = new SolutionOfPreviousTimestepAsPrediction();
 
 			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, solutionPrediction);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
@@ -227,7 +236,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			runner.Responses.Add(new ResponseString()
 			{
 				Name = "Preconditioner",
-				IsConstant = true,
 				DescriptionPerAnalysis = "Preconditioner",
 				PrintOnSameLineAsPrevious = true,
 			});

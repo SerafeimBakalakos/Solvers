@@ -7,18 +7,22 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	using System.Text;
 	using System.Text.RegularExpressions;
 
+	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MachineLearning.TensorFlow;
 	using MGroup.MachineLearning.TensorFlow.KerasLayers;
 	using MGroup.MachineLearning.Utilities;
 	using MGroup.Solvers.MachineLearning.MLExtensions;
 	using MGroup.Solvers.MachineLearning.MLExtensions.Normalization;
+	using MGroup.Solvers.MachineLearning.Utilities;
 
 	using Newtonsoft.Json;
 	using Tensorflow.IO;
 
 	public class CaeFfnnSurrogateDynamicPythonTF : ISolutionPredictionStrategy
 	{
+		private readonly bool float64 = false;
+
 		private readonly string workDirectory;
 		private readonly int pythonModelID;
 		private readonly CaeFfnnArchitecture caeFfnnArch;
@@ -45,8 +49,6 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		/// True (default) to delete any files created by this class. False to retain the files for manual inspection.
 		/// </summary>
 		public bool CleanupIOFiles { get; set; } = true;
-
-		public bool Float64 { get; set; } = false;
 
 		public INormalizationStrategy NormalizationOfParameters { get; set; } = new MinMaxNormalization();
 
@@ -103,19 +105,20 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			// Prepare arrays and normalize
 			watch.Start();
-			double[] input = Prepend(timeStep, parameters);
-			NormalizationOfParameters.Normalize(input);
-			var output = new double[caeFfnnArch.NumDofs];
+			float[] inputPy = ArrayTypeUtilities.PrependAndConvertToFloat(timeStep, parameters);
+			NormalizationOfParameters.Normalize(inputPy);
+			var outputPy = new float[caeFfnnArch.NumDofs];
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
 			// Determine IO files
 			watch.Restart();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PyPredictSettings(workDirectory, extension, pythonModelID);
-			settingsFile.Float64 = this.Float64;
-			var resultsFile = new Py2CsResults(workDirectory);
-			var logFile = new Py2CsLog(workDirectory);
+			Guid guid = Guid.NewGuid();
+			var settingsFile = new Cs2PyPredictSettings(workDirectory, extension, pythonModelID, guid);
+			settingsFile.Float64 = this.float64;
+			var resultsFile = new Py2CsResults(workDirectory, guid);
+			var logFile = new Py2CsLog(workDirectory, guid);
 			string processArgs = $"{predictScript} {settingsFile.Path} {resultsFile.Path} {logFile.Path}";
 			watch.Stop();
 			durations.SetupWork += watch.ElapsedMilliseconds;
@@ -127,7 +130,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				settingsFile.WriteToFileSystem();
 				resultsFile.WriteToFileSystem();
 				logFile.WriteToFileSystem();
-				arrayIO.WriteArray1DToFile(input, settingsFile.ModelParamsPath);
+				arrayIO.WriteArray1DToFile(inputPy, settingsFile.ModelParamsPath);
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
 
@@ -140,14 +143,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 				// Read output files from filesystem
 				watch.Restart();
-				arrayIO.ReadArray1DFromFile(output, settingsFile.SolutionVectorPath);
+				arrayIO.ReadArray1DFromFile(outputPy, settingsFile.SolutionVectorPath);
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
 
 				// Denormalize
 				watch.Restart();
-				NormalizationOfSolutions.Denormalize(output);
-				watch.Stop();
+				NormalizationOfSolutions.Denormalize(outputPy);
+				double[] output = ArrayTypeUtilities.ConvertToDouble(outputPy);
 				if (UseSolutionDifferenceFromPreviousStep)
 				{
 					// In this case, the surrogate returns du[t] = u[t] - u[t-1]
@@ -155,11 +158,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 					if (timeStep > 1)
 					{
 						Vector uPrevious = solutionDb.GetCurrentSolution();
-						var u = Vector.CreateFromArray(output);
-						u.AddIntoThis(uPrevious);
-						output = u.RawData;
+						output.AddIntoThis(uPrevious.RawData);
 					}
 				}
+				watch.Stop();
 				durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
 				Console.WriteLine(durations.Report());
@@ -187,29 +189,30 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			// Create datasets and normalize
 			watch.Start();
-			double[,] allParams = solutionDb.ToArray2DAllParametersAndTimestepsAsRows(true);
-			double[,] allSolutions = solutionDb.ToArray2DAllSolutionsAsRows(true);
 			if (UseSolutionDifferenceFromPreviousStep)
 			{
-				solutionDb.SubtractSolutionOfPreviousTimestep();
+				solutionDb.SubtractSolutionOfPreviousTimestep(); //This will mess up POD if called before it
 			}
+			float[,] allParams = solutionDb.ToFloatArray2DAllParametersAndTimestepsAsRows(true);
+			float[,] allSolutions = solutionDb.ToFloatArray2DAllSolutionsAsRows(true);
 
 			NormalizationOfSolutions.InitializeAndApply(allSolutions);
 			NormalizationOfParameters.InitializeAndApply(allParams);
 			Splitter.SetupSplittingRules(allSolutions.GetLength(0));
-			(double[,] trainSolutions, double[,] testSolutions, _) = Splitter.SplitDataset(allSolutions);
-			(double[,] trainParams, double[,] testParams, _) = Splitter.SplitDataset(allParams);
+			(float[,] trainSolutions, float[,] testSolutions, _) = Splitter.SplitDataset(allSolutions);
+			(float[,] trainParams, float[,] testParams, _) = Splitter.SplitDataset(allParams);
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
 			// Determine IO files
 			watch.Restart();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
-			var settingsFile = new Cs2PyTrainingSettings(caeFfnnArch, workDirectory, extension, pythonModelID);
-			settingsFile.Float64 = this.Float64;
+			Guid guid = Guid.NewGuid();
+			var settingsFile = new Cs2PyTrainingSettings(caeFfnnArch, workDirectory, extension, pythonModelID, guid);
+			settingsFile.Float64 = this.float64;
 			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
-			var resultsFile = new Py2CsResults(workDirectory);
-			var logFile = new Py2CsLog(workDirectory);
+			var resultsFile = new Py2CsResults(workDirectory, guid);
+			var logFile = new Py2CsLog(workDirectory, guid);
 			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path} {logFile.Path}";
 			watch.Stop();
 			durations.SetupWork += watch.ElapsedMilliseconds;
@@ -288,18 +291,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			}
 		}
 
-		private double[] Prepend(double newValue, double[] oldArray)
-		{
-			var result = new double[oldArray.Length + 1];
-			result[0] = newValue;
-			Array.Copy(oldArray, 0, result, 1, oldArray.Length);
-			return result;
-		}
-
 		private class Cs2PyTrainingSettings : InteropTempFile
 		{
-			public Cs2PyTrainingSettings(CaeFfnnArchitecture descr, string workDirectory, string arrayExtension, int modelID)
-				: base(workDirectory, "_cs2py_settings.json")
+			public Cs2PyTrainingSettings(CaeFfnnArchitecture descr, string workDirectory, string arrayExtension, 
+				int modelID, Guid guid)
+				: base(workDirectory, "_cs2py_settings.json", guid)
 			{
 				ModelArchitecture = descr;
 				TrainModelParamsPath = tempFilePrefix + "_train_model_params" + arrayExtension;
@@ -334,8 +330,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		private class Cs2PyPredictSettings : InteropTempFile
 		{
-			public Cs2PyPredictSettings(string workDirectory, string arrayExtension, int modelID)
-				: base(workDirectory, "_cs2py_settings.json")
+			public Cs2PyPredictSettings(string workDirectory, string arrayExtension, int modelID, Guid guid)
+				: base(workDirectory, "_cs2py_settings.json", guid)
 			{
 				ModelParamsPath = tempFilePrefix + "_model_params" + arrayExtension;
 				SolutionVectorPath = tempFilePrefix + "_solution_vector" + arrayExtension;
@@ -356,7 +352,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		private class Py2CsLog : InteropTempFile
 		{
-			public Py2CsLog(string workDirectory) : base(workDirectory, "_py2cs_log.json")
+			public Py2CsLog(string workDirectory, Guid guid) : base(workDirectory, "_py2cs_log.json", guid)
 			{
 			}
 
@@ -368,7 +364,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		/// </summary>
 		private class Py2CsResults : InteropTempFile
 		{
-			public Py2CsResults(string workDirectory) : base(workDirectory, "_py2cs_results.json")
+			public Py2CsResults(string workDirectory, Guid guid) : base(workDirectory, "_py2cs_results.json", guid)
 			{
 			}
 

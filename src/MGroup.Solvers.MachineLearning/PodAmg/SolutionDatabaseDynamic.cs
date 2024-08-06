@@ -329,6 +329,20 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			return result;
 		}
 
+		public float[,] ToFloatArray2DAllSolutionsAsRows(bool consecutiveTimeSteps)
+		{
+			int numDofs = this.numDofs;
+			int numVectorsTotal = CountAllSolutions();
+			var result = new float[numVectorsTotal, numDofs];
+			int row = 0;
+			foreach (Vector solution in EnumerateAllSolutions(consecutiveTimeSteps))
+			{
+				SetRow(result, row, solution.RawData);
+				row++;
+			}
+			return result;
+		}
+
 		/// <summary>
 		/// Each row of the returned matrix is an array that stores the timestep, followed by the model parameters: 
 		/// [timestep, param0, param1, ..., paramN]. The rows are in the same order as those in the matrix returned by 
@@ -350,6 +364,42 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			int numParams = 1 + CountModelParameters(); // The first parameter will be the timestep
 			int numVectorsTotal = CountAllSolutions(); // This is numParameterSets * numTim
 			var result = new double[numVectorsTotal, numParams];
+			int row = 0;
+			if (consecutiveTimeSteps)
+			{
+				foreach (int paramSetID in EnumerateParameterSetIDs())
+				{
+					double[] parameters = GetModelParameters(paramSetID);
+					foreach (int timeStep in EnumerateTimeSteps())
+					{
+						double[] paramsAndTimestep = Prepend(timeStep, parameters);
+						SetRow(result, row, paramsAndTimestep);
+						row++;
+					}
+				}
+			}
+			else
+			{
+				foreach (int timeStep in EnumerateTimeSteps())
+				{
+					foreach (int paramSetID in EnumerateParameterSetIDs())
+					{
+						double[] parameters = GetModelParameters(paramSetID);
+						double[] paramsAndTimestep = Prepend(timeStep, parameters);
+						SetRow(result, row, paramsAndTimestep);
+						row++;
+					}
+				}
+			}
+
+			return result;
+		}
+
+		public float[,] ToFloatArray2DAllParametersAndTimestepsAsRows(bool consecutiveTimeSteps)
+		{
+			int numParams = 1 + CountModelParameters(); // The first parameter will be the timestep
+			int numVectorsTotal = CountAllSolutions(); // This is numParameterSets * numTim
+			var result = new float[numVectorsTotal, numParams];
 			int row = 0;
 			if (consecutiveTimeSteps)
 			{
@@ -468,6 +518,16 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			//Array.Copy(rowValues, 0, array2D, rowIdx * numCols, numCols);
 			int size = sizeof(double);
 			System.Buffer.BlockCopy(rowValues, 0, array2D, size * rowIdx * numCols, size * numCols);
+		}
+
+		private void SetRow(float[,] array2D, int rowIdx, double[] rowValues)
+		{
+			int numCols = array2D.GetLength(1);
+			Debug.Assert(rowValues.Length == numCols);
+			for (int j = 0; j < numCols; j++)
+			{
+				array2D[rowIdx, j] = (float)(rowValues[j]);
+			}
 		}
 
 		private void SetArrayAlongDim2(double[,,] array3D, int idxDim0, int idxDim1, double[] values)
