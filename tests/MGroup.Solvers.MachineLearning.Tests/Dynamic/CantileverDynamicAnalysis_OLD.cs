@@ -65,7 +65,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			example.BeamSectionWidth = beamSectionWidth;
 
 			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements);
-			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
+			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43, 
+				timestepAsModelParam:true);
 			//surrogate.float64 = false;
 			surrogate.TensorFlowSeed = rngSeed;
 			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations

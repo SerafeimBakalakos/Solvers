@@ -63,7 +63,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		// Model: material
 		private const double elasticityModulusMean = 200E6;
 		private const double elasticityModulusStdDev = 10E6;
-		private const string elasticityFieldType = "HG"; // Valid inputs: "KL"=Karhunen-Loeve, "WN"=white noise, "HG"=homogeneous
+		private const string elasticityFieldType = "KL"; // Valid inputs: "KL"=Karhunen-Loeve, "WN"=white noise, "HG"=homogeneous
 		private const int numKarhunenLoeveTerms = 6;
 		private const double correlationLength = 0.5 * beamLength;
 
@@ -184,7 +184,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 
 			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
-			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
+			bool timestepAsModelParam = numTimeSteps > 1;
+			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43, 
+				timestepAsModelParam);
 			//surrogate.float64 = false;
 			surrogate.TensorFlowSeed = rngSeed;
 			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations

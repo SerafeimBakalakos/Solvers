@@ -359,9 +359,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		///  {t1, p00, p10, p20, ... pN0}, {t1, p01, p11, p21, ... pN1}, ...}.
 		/// </param>
 		/// <returns></returns>
-		public double[,] ToArray2DAllParametersAndTimestepsAsRows(bool consecutiveTimeSteps)
+		public double[,] ToArray2DAllParametersAndTimestepsAsRows(bool includeTimestep, bool consecutiveTimeSteps)
 		{
-			int numParams = 1 + CountModelParameters(); // The first parameter will be the timestep
+			int numParams = includeTimestep ? 1 + CountModelParameters() : CountModelParameters();
 			int numVectorsTotal = CountAllSolutions(); // This is numParameterSets * numTim
 			var result = new double[numVectorsTotal, numParams];
 			int row = 0;
@@ -372,7 +372,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					double[] parameters = GetModelParameters(paramSetID);
 					foreach (int timeStep in EnumerateTimeSteps())
 					{
-						double[] paramsAndTimestep = Prepend(timeStep, parameters);
+						double[] paramsAndTimestep = includeTimestep ? Prepend(timeStep, parameters) : parameters;
 						SetRow(result, row, paramsAndTimestep);
 						row++;
 					}
@@ -385,7 +385,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					foreach (int paramSetID in EnumerateParameterSetIDs())
 					{
 						double[] parameters = GetModelParameters(paramSetID);
-						double[] paramsAndTimestep = Prepend(timeStep, parameters);
+						double[] paramsAndTimestep = includeTimestep ? Prepend(timeStep, parameters) : parameters;
 						SetRow(result, row, paramsAndTimestep);
 						row++;
 					}
@@ -395,9 +395,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			return result;
 		}
 
-		public float[,] ToFloatArray2DAllParametersAndTimestepsAsRows(bool consecutiveTimeSteps)
+		public float[,] ToFloatArray2DAllParametersAndTimestepsAsRows(bool includeTimestep, bool consecutiveTimeSteps)
 		{
-			int numParams = 1 + CountModelParameters(); // The first parameter will be the timestep
+			int numParams = includeTimestep ? 1 + CountModelParameters() : CountModelParameters();
 			int numVectorsTotal = CountAllSolutions(); // This is numParameterSets * numTim
 			var result = new float[numVectorsTotal, numParams];
 			int row = 0;
@@ -408,7 +408,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					double[] parameters = GetModelParameters(paramSetID);
 					foreach (int timeStep in EnumerateTimeSteps())
 					{
-						double[] paramsAndTimestep = Prepend(timeStep, parameters);
+						double[] paramsAndTimestep = includeTimestep ? Prepend(timeStep, parameters) : parameters;
 						SetRow(result, row, paramsAndTimestep);
 						row++;
 					}
@@ -421,7 +421,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					foreach (int paramSetID in EnumerateParameterSetIDs())
 					{
 						double[] parameters = GetModelParameters(paramSetID);
-						double[] paramsAndTimestep = Prepend(timeStep, parameters);
+						double[] paramsAndTimestep = includeTimestep ? Prepend(timeStep, parameters) : parameters;
 						SetRow(result, row, paramsAndTimestep);
 						row++;
 					}

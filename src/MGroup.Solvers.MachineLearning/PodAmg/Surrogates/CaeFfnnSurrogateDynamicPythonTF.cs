@@ -25,6 +25,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		private readonly string workDirectory;
 		private readonly int pythonModelID;
+		private readonly bool timestepAsModelParam;
 		private readonly CaeFfnnArchitecture caeFfnnArch;
 
 		private IArrayFileIO arrayIO = new ArrayBinaryFileIO();
@@ -34,11 +35,13 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private string trainScript = null;
 		private string predictScript = null;
 
-		public CaeFfnnSurrogateDynamicPythonTF(CaeFfnnArchitecture caeFfnnArchitecture, string workDirectory, int pythonModelID)
+		public CaeFfnnSurrogateDynamicPythonTF(CaeFfnnArchitecture caeFfnnArchitecture, string workDirectory, int pythonModelID,
+			bool timestepAsModelParam)
 		{
 			this.caeFfnnArch = caeFfnnArchitecture;
 			this.workDirectory = workDirectory;
 			this.pythonModelID = pythonModelID;
+			this.timestepAsModelParam = timestepAsModelParam;
 			Splitter = new DatasetSplitter();
 			Splitter.MinTestSetPercentage = 0.2;
 			Splitter.MinValidationSetPercentage = 0.0;
@@ -109,7 +112,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			// Prepare arrays and normalize
 			watch.Start();
-			float[] inputPy = ArrayTypeUtilities.PrependAndConvertToFloat(timeStep, parameters);
+			float[] inputPy = timestepAsModelParam ? ArrayTypeUtilities.PrependAndConvertToFloat(timeStep, parameters)
+				: ArrayTypeUtilities.ConvertToFloat(parameters);
 			NormalizationOfParameters.Normalize(inputPy);
 			var outputPy = new float[caeFfnnArch.NumDofs];
 			watch.Stop();
@@ -200,7 +204,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			{
 				solutionDb.SubtractSolutionOfPreviousTimestep(); //This will mess up POD if called before it
 			}
-			float[,] allParams = solutionDb.ToFloatArray2DAllParametersAndTimestepsAsRows(true);
+			float[,] allParams = solutionDb.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsModelParam, true);
 			float[,] allSolutions = solutionDb.ToFloatArray2DAllSolutionsAsRows(true);
 
 			NormalizationOfSolutions.InitializeAndApply(allSolutions);
