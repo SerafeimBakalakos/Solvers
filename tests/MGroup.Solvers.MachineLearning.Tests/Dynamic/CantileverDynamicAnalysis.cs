@@ -37,10 +37,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		// Paths
 		private const bool runOnCluster = false;
 		private const string workDirectory = runOnCluster ?
-			"C:\\Users\\cluster\\Desktop\\AISolve\\results\\CantileverDynamicLinear"
+			"C:\\Users\\cluster\\Desktop\\Serafeim\\results\\CantileverDynamicLinear"
 			: "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
 		private const string pythonProjectDirectory = runOnCluster ?
-			"C:\\Users\\cluster\\Desktop\\AISolve\\code\\Python\\cs2py_ml_surrogates"
+			"C:\\Users\\cluster\\Desktop\\Serafeim\\code\\Python\\cs2py_ml_surrogates"
 			: "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates";
 		private const string pythonInterpreter = pythonProjectDirectory + "\\venv\\Scripts\\python.exe";
 		private const string trainScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
