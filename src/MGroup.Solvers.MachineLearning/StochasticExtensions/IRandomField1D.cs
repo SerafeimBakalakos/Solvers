@@ -6,6 +6,8 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions
 
 	public interface IRandomField1D
 	{
+		public int NumParameters { get; }
+
 		public double CalcValueAt(double coords);
 
 		public void Initialize();

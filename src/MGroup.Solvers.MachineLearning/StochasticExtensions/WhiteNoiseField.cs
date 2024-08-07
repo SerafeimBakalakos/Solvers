@@ -27,6 +27,8 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions
 				: NormalDistribution.CreateWithMeanStddev(rng, variableMean, variableStdDev);
 		}
 
+		public int NumParameters => numSamples;
+
 		private static void PrintSamples(double[] samples) 
 		{
 			Console.WriteLine("Samples: ");

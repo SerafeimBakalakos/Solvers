@@ -48,6 +48,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		/// </summary>
 		public double ExternalLoadCyclicFrequency { get; set; } = 15;
 
+		public int NumModelParameters => elasticityField.NumParameters;
+
 		public double PoissonRatio { get; set; } = 0.3;
 
 		/// <summary>

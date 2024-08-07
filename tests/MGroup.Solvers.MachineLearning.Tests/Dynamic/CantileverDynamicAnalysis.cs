@@ -63,7 +63,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		// Model: material
 		private const double elasticityModulusMean = 200E6;
 		private const double elasticityModulusStdDev = 10E6;
-		private const bool useKarhunenLoeve = true;
+		private const string elasticityFieldType = "HG"; // Valid inputs: "KL"=Karhunen-Loeve, "WN"=white noise, "HG"=homogeneous
 		private const int numKarhunenLoeveTerms = 6;
 		private const double correlationLength = 0.5 * beamLength;
 
@@ -90,21 +90,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const char saveLoadOrNotPretrainingAnalyses = 'N'; // 'S' for save, 'L' for load, anything else for neither.
 		private const int rngSeed = 23;
 
-		private static CaeFfnnArchitecture DescribeSurrogate(int[] numElementsPerAxis)
+		private static CaeFfnnArchitecture DescribeSurrogate(int[] numElementsPerAxis, int numModelParameters)
 		{
 			int ffnnHiddenSize = 32;
 
 			var arch = new CaeFfnnArchitecture();
 
 			arch.NumDofs = 2 * (numElementsPerAxis[0] + 1) * numElementsPerAxis[1]; //200
-			if (useKarhunenLoeve)
-			{
-				arch.NumModelParams = numKarhunenLoeveTerms + 1;
-			}
-			else
-			{
-				arch.NumModelParams = numElementsPerAxis[0] * numElementsPerAxis[1] + 1; //80 element E + 1 time
-			}
+			arch.NumModelParams = (numTimeSteps > 1) ? numModelParameters + 1 : numModelParameters;
 			arch.LatentSpaceDim = 8;
 
 			arch.CaeLearningRate = 5E-4f;
@@ -162,7 +155,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			runner.RunAll();
 		}
 
-		private CantileverDynamicModel example;
+		private CantileverDynamicModel exampleModel;
 		private DynamicAmgAiSolver solver;
 		private SkylineSolver.Factory directSolverFactory;
 
@@ -179,7 +172,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			example.BeamSectionHeight = beamSectionHeight;
 			example.BeamSectionWidth = beamSectionWidth;
 
-			this.example = example;
+			this.exampleModel = example;
 		}
 
 		public void InitializeSolver()
@@ -190,7 +183,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				return;
 			}
 
-			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements);
+			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
 			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
 			//surrogate.float64 = false;
 			surrogate.TensorFlowSeed = rngSeed;
@@ -350,7 +343,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public Dictionary<string, object> RunSingleAnalysis(int analysisId)
 		{
-			(Model model, double[] parameters, int monitorNodeId) = example.CreateFemModel();
+			(Model model, double[] parameters, int monitorNodeId) = exampleModel.CreateFemModel();
 
 			SolverLogger solverLogger;
 			double monitorDisplacement;
@@ -411,7 +404,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		private static IRandomField1D DefineElasticityField(int[] numElementsPerAxis, Random rng)
 		{
-			if (useKarhunenLoeve)
+			if (elasticityFieldType == "KL")
 			{
 				int numNodesAlongBeamLength = numElementsPerAxis[numElementsPerAxis.Length - 1] + 1;
 
@@ -419,7 +412,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 					elasticityModulusMean, elasticityModulusStdDev, correlationLength, numKarhunenLoeveTerms, rng);
 				return elasticityField;
 			}
-			else
+			else if (elasticityFieldType == "WN")
 			{
 				int numElementsTotal = 1;
 				for (int d = 0; d < numElementsPerAxis.Length; d++)
@@ -430,6 +423,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				var elasticityField = new WhiteNoiseField(elasticityModulusMean, elasticityModulusStdDev,
 					numElementsTotal, rng, true);
 				return elasticityField;
+			}
+			else if (elasticityFieldType == "HG")
+			{
+				return new RandomHomogeneousField(elasticityModulusMean, elasticityModulusStdDev, rng, true);
+			}
+			else
+			{
+				throw new ArgumentException("Invalid elasticity field type");
 			}
 		}
 

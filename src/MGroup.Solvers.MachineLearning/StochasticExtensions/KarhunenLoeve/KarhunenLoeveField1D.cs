@@ -19,6 +19,8 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 		private readonly KarhunenLoeve1DCoefficientsProvider klProvider;
 		private double[] fieldAtNodes;
 
+		public int NumParameters => numKarLoeveTerms;
+
 		public KarhunenLoeveField1D(double domainMin, double domainMax, int numNodes, double fieldMean, double fieldStdDev,
 			double correlationLength, int numKarLoeveTerms, Random rng)
 		{
