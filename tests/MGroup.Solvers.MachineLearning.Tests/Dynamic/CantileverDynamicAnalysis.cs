@@ -5,6 +5,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.IO;
 	using System.Linq;
 	using System.Text;
 	using System.Threading.Tasks;
@@ -23,6 +24,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.MachineLearning.AnalyzersExtensions;
 	using MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.IterativeMethods.PCG;
+	using MGroup.Solvers.MachineLearning.MLExtensions;
+	using MGroup.Solvers.MachineLearning.MLExtensions.Normalization;
 	using MGroup.Solvers.MachineLearning.MLExtensions.TensorFlow;
 	using MGroup.Solvers.MachineLearning.Plotting;
 	using MGroup.Solvers.MachineLearning.PodAmg;
@@ -70,10 +73,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		// Solver: general
 		private const double pcgTol = 1E-6;
 		private const bool pcgConvergenceBasedOnResidualOnly = true;
-		private const bool useDirectSolverInstead = false;
+		private static bool useDirectSolverInstead = false;
 
 		// Solver: POD
-		private const int numPrincipalComponents = 10; // 1 (not that effective), 5, 10 (start here), 15, 20 (doubtful)
+		private const int numPrincipalComponents = 5; // 1 (not that effective), 5, 10 (start here), 15, 20 (doubtful)
 		private const int timeStepSavePeriod = 5; // 1 (too expensive), 5 (good), 10 (good), 15, 20
 		private const bool useAlwaysInitialPreconditioner = false;
 
@@ -153,6 +156,46 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			var analysis = new CantileverDynamicAnalysis();
 			StochasticAnalysisRunner runner = analysis.PrepareStochasticAnalysis(numAnalysesTotal, numAnalysesForTraining);
 			runner.RunAll();
+		}
+
+		public static void RunAllAnalysesAndSaveSolutions()
+		{
+			var rng = new RepeatableRandom(rngSeed);
+			useDirectSolverInstead = true;
+			var stochasticAnalysis = new CantileverDynamicAnalysis();
+			stochasticAnalysis.InitializeModel(rng);
+			stochasticAnalysis.InitializeSolver();
+
+			var solutionDB = new SolutionDatabaseDynamic();
+
+			Action<int> runAnalyses = (int numAnalyses) =>
+			{
+				for (int i = 0; i < numAnalyses; i++)
+				{
+					Console.WriteLine($"Analysis {i + 1}/{numAnalyses}");
+					(Model model, double[] parameters, int monitorNodeId) = stochasticAnalysis.exampleModel.CreateFemModel();
+
+					var algebraicModel = stochasticAnalysis.directSolverFactory.BuildAlgebraicModel(model);
+					SkylineSolver directSolver = stochasticAnalysis.directSolverFactory.BuildSolver(algebraicModel);
+					directSolver.LogSolutionVectors = true;
+					RunDynamicAnalysis(model, algebraicModel, directSolver, monitorNodeId);
+
+					SolverLogger solverLogger = (SolverLogger)(((ISolver)directSolver).Logger);
+
+					solutionDB.SaveModelParameters(i, parameters);
+					for (int t = 0; t < numTimeSteps; t++)
+					{
+						solutionDB.SaveSolution(i, t, solverLogger.GetSolutionVector(t));
+					}
+				}
+			};
+
+			runAnalyses(numAnalysesForTraining);
+			WriteTrainingData(solutionDB, false);
+
+			solutionDB.Clear();
+			runAnalyses(numAnalysesTotal - numAnalysesForTraining);
+			WriteTrainingData(solutionDB, true);
 		}
 
 		private CantileverDynamicModel exampleModel;
@@ -356,7 +399,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			{
 				var algebraicModel = directSolverFactory.BuildAlgebraicModel(model);
 				SkylineSolver directSolver = directSolverFactory.BuildSolver(algebraicModel);
-				solverLogger = (SolverLogger)(directSolver.Logger);
+				solverLogger = (SolverLogger)(((ISolver)directSolver).Logger);
 				monitorDisplacement = RunDynamicAnalysis(model, algebraicModel, directSolver, monitorNodeId);
 				numDofs = directSolver.LinearSystem.Solution.SingleVector.Length;
 				preconditionerName = "SkylineSolver";
@@ -448,6 +491,30 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 			msg.AppendLine();
 			Console.Write(msg);
+		}
+
+		private static void WriteTrainingData(SolutionDatabaseDynamic solutionDB, bool testData)
+		{
+			float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(true, true);
+			float[,] allSolutions = solutionDB.ToFloatArray2DAllSolutionsAsRows(true);
+
+			INormalizationStrategy normalization = new MinMaxNormalization();
+			normalization.InitializeAndApply(allParams);
+
+			if (!Directory.Exists(workDirectory))
+			{
+				throw new IOException($"Directory {workDirectory} does not exist");
+			}
+
+			string directory = Path.Combine(workDirectory, "python_experimenting");
+			Directory.CreateDirectory(directory);
+			string prefix = testData ? "test" : "train";
+			string pathModelParams = Path.Combine(directory, prefix + "_model_params.npy");
+			string pathSolutions = Path.Combine(directory, prefix + "_solutions.npy");
+
+			IArrayFileIO arrayIO = new ArrayBinaryFileIO();
+			arrayIO.WriteArray2DToFile(allParams, pathModelParams);
+			arrayIO.WriteArray2DToFile(allSolutions, pathSolutions);
 		}
 	}
 }
