@@ -41,13 +41,17 @@ namespace MGroup.Solvers
 			this.Logger = new SolverLogger(name);
 		}
 
-		public ISolverLogger Logger { get; }
+		ISolverLogger ISolver.Logger => Logger;
+
+		protected SolverLogger Logger { get; }
 
 		public string Name { get; }
 
 		IGlobalLinearSystem ISolver.LinearSystem => LinearSystem;
 
 		public GlobalLinearSystem<TMatrix> LinearSystem { get; set; }
+
+		public bool LogSolutionVectors { get; set; } = false;
 
 		/// <summary>
 		/// Solves multiple linear systems A * X = B, where: A is one of the matrices stored in <see cref="Solvers.LinearSystem"/>,

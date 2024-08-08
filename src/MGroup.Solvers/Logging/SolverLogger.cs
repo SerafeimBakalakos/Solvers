@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+
+using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.Solution;
 
 //TODO: Use enums instead of strings for the solver task and dof category. Or use interfaces & enum classes, to adhere to 
@@ -15,6 +17,7 @@ namespace MGroup.Solvers.Logging
 		private readonly List<(int iterations, double residualNormRatio)> iterativeAlgorithmData = new List<(int, double)>();
 		private readonly List<SortedDictionary<string, long>> taskDurations = new List<SortedDictionary<string, long>>();
 		private readonly List<SortedDictionary<string, int>> numDofsPerCategory = new List<SortedDictionary<string, int>>();
+		private readonly List<Vector> solutionVectors = new List<Vector>();
 		private int currentStep;
 
 		public SolverLogger(string solverName)
@@ -35,14 +38,18 @@ namespace MGroup.Solvers.Logging
 			taskDurations.Add(new SortedDictionary<string, long>());
 			numDofsPerCategory.Clear();
 			numDofsPerCategory.Add(new SortedDictionary<string, int>());
+			solutionVectors.Clear();
 		}
 
 		public int GetNumDofs(int analysisStep, string category) => numDofsPerCategory[analysisStep][category];
 
 		public int GetNumIterationsOfIterativeAlgorithm(int analysisStep) => iterativeAlgorithmData[analysisStep].iterations;
+		
 		public double GetResidualNormRatioOfIterativeAlgorithm(int analysisStep) 
 			=> iterativeAlgorithmData[analysisStep].residualNormRatio;
 
+		public Vector GetSolutionVector(int analysisStep) => solutionVectors[analysisStep];
+		
 		public bool TryGetTaskDuration(string task, out long duration) 
 			=> taskDurations[currentStep].TryGetValue(task, out duration);
 
@@ -62,6 +69,8 @@ namespace MGroup.Solvers.Logging
 
 		public void LogIterativeAlgorithm(int iterations, double residualNormRatio)
 			=> iterativeAlgorithmData.Add((iterations, residualNormRatio));
+
+		public void LogSolutionVector(Vector vector) => solutionVectors.Add(vector.Copy());
 
 		/// <summary>
 		/// Each iteration is defined by the solution phase of ISolver. Dof ordering and matrix assembly may also be included, 

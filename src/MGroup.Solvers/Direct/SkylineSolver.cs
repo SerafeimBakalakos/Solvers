@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using DotNumerics.ODE.Radau5;
+
 using MGroup.LinearAlgebra.Matrices;
 using MGroup.LinearAlgebra.Triangulation;
 using MGroup.LinearAlgebra.Vectors;
@@ -72,7 +74,13 @@ namespace MGroup.Solvers.Direct
 			watch.Start();
 			factorizedMatrix.SolveLinearSystem(LinearSystem.RhsVector.SingleVector, LinearSystem.Solution.SingleVector);
 			watch.Stop();
+			
+			//Logging
 			Logger.LogTaskDuration("Back/forward substitutions", watch.ElapsedMilliseconds);
+			if (LogSolutionVectors)
+			{
+				Logger.LogSolutionVector(LinearSystem.Solution.SingleVector);
+			}
 			Logger.IncrementAnalysisStep();
 		}
 
