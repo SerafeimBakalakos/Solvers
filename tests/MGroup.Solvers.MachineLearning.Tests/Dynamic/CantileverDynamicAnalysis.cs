@@ -50,8 +50,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string predictScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
-		private const int numAnalysesTotal = 300;
-		private const int numAnalysesForTraining = 50;
+		private const int numAnalysesTotal = 500;
+		private const int numAnalysesForTraining = 150;
 		private const int numTimeSteps = 60;
 		private const double timeStepSize = 0.05;
 

@@ -25,7 +25,8 @@ namespace MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve
 			double correlationLength, int numKarLoeveTerms, Random rng)
 		{
 			this.numNodes = numNodes;
-			nodeDistance = (domainMax - domainMin) / (numNodes - 1);
+			this.nodeDistance = (domainMax - domainMin) / (numNodes - 1);
+			this.numKarLoeveTerms = numKarLoeveTerms;
 			klProvider = new KarhunenLoeve1DCoefficientsProvider(new double[] { domainMin, domainMax }, numNodes,
 				fieldMean, fieldStdDev, correlationLength, numKarLoeveTerms, rng, true, true);
 		}
