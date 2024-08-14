@@ -56,7 +56,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double timeStepSize = 0.05;
 
 		// Model: geometry
-		private static readonly int[] numElements = { 4, 20 };
+		private static readonly int[] numElements = { 35, 140
+		};
 		//private static readonly int[] numElements = { 16, 80 };
 		//private static readonly int[] numElements = { 32, 160 };
 		private const double beamLength = 10;
@@ -495,11 +496,15 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		private static void WriteTrainingData(SolutionDatabaseDynamic solutionDB, bool testData)
 		{
-			float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(true, true);
+			bool timestepAsParam = numTimeSteps > 1;
+			float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
 			float[,] allSolutions = solutionDB.ToFloatArray2DAllSolutionsAsRows(true);
 
-			INormalizationStrategy normalization = new MinMaxNormalization();
-			normalization.InitializeAndApply(allParams);
+			INormalizationStrategy normalizationParams = new MinMaxNormalization();
+			normalizationParams.InitializeAndApply(allParams);
+
+			INormalizationStrategy normalizationSolutions = new MinMaxNormalization();
+			normalizationSolutions.InitializeAndApply(allSolutions);
 
 			if (!Directory.Exists(workDirectory))
 			{
