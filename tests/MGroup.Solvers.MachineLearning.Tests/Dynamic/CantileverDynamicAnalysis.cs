@@ -56,8 +56,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double timeStepSize = 0.05;
 
 		// Model: geometry
-		private static readonly int[] numElements = { 35, 140
-		};
+		private static readonly int[] numElements = { 35, 140 };
 		//private static readonly int[] numElements = { 16, 80 };
 		//private static readonly int[] numElements = { 32, 160 };
 		private const double beamLength = 10;
@@ -82,8 +81,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool useAlwaysInitialPreconditioner = false;
 
 		// Solver: surrogate
-		private const bool enableSurrogate = true;
-		private const bool useSolutionFromPreviousStep = true;
+		private const bool enableSurrogate = false;
+		private const bool useSolutionFromPreviousStep = false;
 		private const bool useBinaryIOFiles = true;
 
 		// Reports
@@ -104,11 +103,11 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			arch.NumModelParams = (numTimeSteps > 1) ? numModelParameters + 1 : numModelParameters;
 			arch.LatentSpaceDim = 8;
 
-			arch.CaeLearningRate = 5E-4f;
-			arch.CaeNumEpochs = 40;
+			arch.CaeLearningRate = 1E-5f;
+			arch.CaeNumEpochs = 50;
 			arch.CaeBatchSize = 10;
-			arch.FfnnLearningRate = 1E-4f;
-			arch.FfnnNumEpochs = 500; //3000 took too long for 81 model params
+			arch.FfnnLearningRate = 1E-3f;
+			arch.FfnnNumEpochs = 5000; //3000 took too long for 81 model params
 			arch.FfnnBatchSize = 20;
 
 			arch.EncoderLayers.Add(new Conv1DLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
@@ -123,9 +122,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			arch.EncoderLayers.Add(new DenseLayer(units: arch.LatentSpaceDim));
 
 			arch.DecoderLayers.Add(new Input1DLayer(arch.LatentSpaceDim));
-			arch.DecoderLayers.Add(new DenseLayer(units: 32));
+			arch.DecoderLayers.Add(new DenseLayer(units: 16));
 			arch.DecoderLayers.Add(new LeakyReLULayer());
-			arch.DecoderLayers.Add(new ReshapeLayer(new int[] { 1, 32 }));
+			arch.DecoderLayers.Add(new ReshapeLayer(new int[] { 1, 16 }));
 			arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 32, kernelSize: 5, strides: 1, padding: "same"));
 			arch.DecoderLayers.Add(new LeakyReLULayer());
 			arch.DecoderLayers.Add(new Conv1DTransposeLayer(filters: 64, kernelSize: 5, strides: 1, padding: "same"));
@@ -229,7 +228,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
 			bool timestepAsModelParam = numTimeSteps > 1;
-			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43, 
+			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
 				timestepAsModelParam);
 			//surrogate.float64 = false;
 			surrogate.TensorFlowSeed = rngSeed;
