@@ -27,13 +27,16 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public int CaeNumEpochs { get; set; } = -1;
 
-		public float CaeLearningRate { get; set; } = 0.0f;
+		public float CaeLearningRateStart { get; set; } = 0.0f;
+
+		public float CaeLearningRateEnd { get; set; } = 0.0f;
 
 		public int FfnnBatchSize { get; set; } = -1;
 
 		public int FfnnNumEpochs { get; set; } = -1;
 
-		public float FfnnLearningRate { get; set; } = 0.0f;
+		public float FfnnLearningRateStart { get; set; } = 0.0f;
+		public float FfnnLearningRateEnd { get; set; } = 0.0f;
 
 		public List<IKerasLayer> EncoderLayers { get; set; } = new List<IKerasLayer>();
 

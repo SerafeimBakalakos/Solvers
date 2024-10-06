@@ -38,7 +38,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
-		private const bool runOnCluster = true;
+		private const bool runOnCluster = false;
 		private const string workDirectory = runOnCluster ?
 			"C:\\Users\\cluster\\Desktop\\Serafeim\\results\\CantileverDynamicLinear"
 			: "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
@@ -82,7 +82,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		// Solver: surrogate		
 		private const bool enableSurrogate = true;
-		private const bool useSolutionFromPreviousStep = false;
+		private const bool useSolutionDifferenceFromPreviousStep = true;
 		private const bool useBinaryIOFiles = true;
 		//TODO: option to read models from files, instead of creating them from start
 		//TODO: option to predict initial solutions for all timesteps (of the same dynamic analysis) at once, instead of each timestep separately. This will greatly reduce communication overheads
@@ -93,6 +93,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		// Misc
 		private const char saveLoadOrNotPretrainingAnalyses = 'N'; // 'S' for save, 'L' for load, anything else for neither.
+		private const bool readMLNetworksFromFileWithoutTraining = true;
+		private const double exactSolutionPercentageForPrediction = 0.0;
 		private const int rngSeed = 23;
 
 		private static CaeFfnnArchitecture DescribeSurrogate(int[] numElementsPerAxis, int numModelParameters)
@@ -105,11 +107,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			arch.NumModelParams = (numTimeSteps > 1) ? numModelParameters + 1 : numModelParameters;
 			arch.LatentSpaceDim = 8;
 
-			arch.CaeLearningRate = 1E-5f;
-			arch.CaeNumEpochs = 50;
-			arch.CaeBatchSize = 10;
-			arch.FfnnLearningRate = 1E-3f;
-			arch.FfnnNumEpochs = 5000; //3000 took too long for 81 model params
+			arch.CaeLearningRateStart = 1E-3f;
+			arch.CaeLearningRateEnd = 1E-4f;
+			arch.CaeNumEpochs = 250;
+			arch.CaeBatchSize = 20;
+
+			arch.FfnnLearningRateStart = 1E-3f;
+			arch.FfnnLearningRateEnd = 1E-5f;
+			arch.FfnnNumEpochs = 4200; //3000 took too long for 81 model params
 			arch.FfnnBatchSize = 20;
 
 			arch.EncoderLayers.Add(new Conv1DLayer(filters: 128, kernelSize: 5, strides: 1, padding: "same"));
@@ -238,9 +243,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
 			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
 			surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
-			surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionFromPreviousStep;
+			surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
 			surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
 			surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
+			surrogate.ReadMLNetworksFromFileWithoutTraining = readMLNetworksFromFileWithoutTraining;
 
 			ISolutionPredictionStrategy solutionPrediction;
 			if (enableSurrogate)
@@ -249,7 +255,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 			else
 			{
-				if (useSolutionFromPreviousStep)
+				if (useSolutionDifferenceFromPreviousStep)
 				{
 					solutionPrediction = new SolutionOfPreviousTimestepAsPrediction();
 				}
@@ -273,6 +279,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 
 			DynamicAmgAiSolver solver = solverFactory.BuildSolver();
+			solver.ExactSolutionPercentageForPrediction = exactSolutionPercentageForPrediction;
 
 			this.solver = solver;
 		}

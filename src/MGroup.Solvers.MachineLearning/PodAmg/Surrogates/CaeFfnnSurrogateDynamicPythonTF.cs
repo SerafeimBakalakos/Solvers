@@ -57,6 +57,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public INormalizationStrategy NormalizationOfSolutions { get; set; } = new NullNormalization();
 
+		public bool ReadMLNetworksFromFileWithoutTraining { get; set; }
+
 		public DatasetSplitter Splitter { get; set; }
 
 		public int TensorFlowSeed { get; set; } = -1;
@@ -158,7 +160,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				// Denormalize
 				watch.Restart();
 				NormalizationOfSolutions.Denormalize(outputPy);
-				double[] output = ArrayTypeUtilities.ConvertToDouble(outputPy);
+				var prediction = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(outputPy));
 				if (UseSolutionDifferenceFromPreviousStep)
 				{
 					// In this case, the surrogate returns du[t] = u[t] - u[t-1]
@@ -166,7 +168,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 					if (timeStep > 1)
 					{
 						Vector uPrevious = solutionDb.GetCurrentSolution();
-						output.AddIntoThis(uPrevious.RawData);
+						prediction.AddIntoThis(uPrevious);
 					}
 				}
 				watch.Stop();
@@ -176,7 +178,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				{
 					Console.WriteLine(durations.Report());
 				}
-				return output;
+
+				return prediction.RawData;
 			}
 			finally
 			{
@@ -227,7 +230,27 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			string processArgs = $"{trainScript} {settingsFile.Path} {resultsFile.Path} {logFile.Path}";
 			watch.Stop();
 			durations.SetupWork += watch.ElapsedMilliseconds;
-			
+
+			if (ReadMLNetworksFromFileWithoutTraining)
+			{
+				if (!File.Exists(settingsFile.ModelDecoderPath))
+				{
+					throw new InvalidOperationException(
+						"Training is set to be skipped, but there is no convolutional decoder network at path = "
+						+ settingsFile.ModelDecoderPath);
+				}
+				else if (!File.Exists(settingsFile.ModelFfnnPath))
+				{
+					throw new InvalidOperationException(
+						"Training is set to be skipped, but there is no FFNN network at path = " + settingsFile.ModelFfnnPath);
+				}
+				else
+				{
+					Console.WriteLine("Skipped training step. The ML surrogate networks will be read from filesystem instead.");
+					return;
+				}
+			}
+
 			try
 			{
 				// Write the files to filesystem
@@ -303,6 +326,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 						$"Python script exited with code {exitCode}, instead of 0 (successful) or 100 (handled error).");
 				}
 			}
+		}
+
+		private Vector SolveExactly()
+		{
+			throw new NotImplementedException();
 		}
 
 		private class Cs2PyTrainingSettings : InteropTempFile

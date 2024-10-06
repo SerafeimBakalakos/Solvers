@@ -293,10 +293,12 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				}
 				arch.LatentSpaceDim = 8;
 
-				arch.CaeLearningRate = 5E-4f;
+				arch.CaeLearningRateStart = 5E-4f;
+				arch.CaeLearningRateEnd = 5E-4f;
 				arch.CaeNumEpochs = 40;
 				arch.CaeBatchSize = 10;
-				arch.FfnnLearningRate = 1E-4f;
+				arch.FfnnLearningRateStart = 1E-4f;
+				arch.FfnnLearningRateEnd = 1E-4f;
 				arch.FfnnNumEpochs = 500; //3000 took too long for 81 model params
 				arch.FfnnBatchSize = 20;
 

@@ -83,6 +83,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		public GlobalAlgebraicModel<CsrMatrix> AlgebraicModel { get; private set; }
 
+		public double ExactSolutionPercentageForPrediction { get; set; } = 0.0;
+
 		IGlobalLinearSystem ISolver.LinearSystem => LinearSystem;
 
 		public GlobalLinearSystem<CsrMatrix> LinearSystem { get; private set; }
@@ -303,6 +305,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			// Use ML prediction as initial guess.
 			double[] prediction = solutionPrediction.Predict(currentTimeStep, modelParametersCurrent);
 			var solution = Vector.CreateFromArray(prediction);
+			CombineExactSolutionWithSurrogatePrediction(solution);
 
 			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, solution,
 				false, () => Vector.CreateZero(systemSize));
@@ -314,7 +317,6 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					+ $"AMG-POD preconditioner run for {stats.NumIterationsRequired} iterations and the residual norm ratio was"
 					+ $" {stats.ResidualNormRatioEstimation}");
 			}
-
 
 			watch.Stop();
 			Logger.LogTaskDuration(Subtask.SolveWithPcg.ToString(), watch.ElapsedMilliseconds);
@@ -382,6 +384,31 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private void PrintProgress()
 		{
 			Console.WriteLine($"Parameter set = {currentParameterSetId}, time step = {currentTimeStep}");
+		}
+
+		// Only for debugging purposes
+		private void CombineExactSolutionWithSurrogatePrediction(Vector surrogatePrediction)
+		{
+			if (ExactSolutionPercentageForPrediction > 0.0)
+			{
+				CsrMatrix matrix = LinearSystem.Matrix.SingleMatrix; 
+				int systemSize = matrix.NumRows;
+				Vector rhs = LinearSystem.RhsVector.SingleVector;
+				var exactSolution = Vector.CreateZero(systemSize);
+
+				initialPreconditioner.UpdateMatrix(matrix, !matrixPatternWillNotBeModified);
+				IterativeStatistics stats = pcgAlgorithm.Solve(matrix, initialPreconditioner, rhs, exactSolution,
+					true, () => Vector.CreateZero(systemSize));
+				if (!stats.HasConverged)
+				{
+					throw new IterativeSolverNotConvergedException(Name + " did not converge to a solution. PCG algorithm with "
+						+ $"diagonal preconditioner run for {stats.NumIterationsRequired} iterations and the residual norm ratio was"
+						+ $" {stats.ResidualNormRatioEstimation}");
+				}
+
+				surrogatePrediction.LinearCombinationIntoThis(
+					1 - ExactSolutionPercentageForPrediction, exactSolution, ExactSolutionPercentageForPrediction);
+			}
 		}
 
 		public class Factory

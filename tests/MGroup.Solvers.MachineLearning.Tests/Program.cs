@@ -35,10 +35,12 @@ namespace MGroup.Solvers.MachineLearning.Tests
 			arch.NumModelParams = 2;
 			arch.LatentSpaceDim = 8;
 
-			arch.CaeLearningRate = 5E-4f;
+			arch.CaeLearningRateStart = 5E-4f;
+			arch.CaeLearningRateEnd = 5E-4f;
 			arch.CaeNumEpochs = 40;
 			arch.CaeBatchSize = 10;
-			arch.FfnnLearningRate = 1E-4f;
+			arch.FfnnLearningRateStart = 1E-4f;
+			arch.FfnnLearningRateEnd = 1E-4f;
 			arch.FfnnNumEpochs = 3000;
 			arch.FfnnBatchSize = 20;
 
