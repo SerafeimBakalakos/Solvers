@@ -38,7 +38,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
-		private const bool runOnCluster = false;
+		private const bool runOnCluster = true;
 		private const string workDirectory = runOnCluster ?
 			"C:\\Users\\cluster\\Desktop\\Serafeim\\results\\CantileverDynamicLinear"
 			: "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
@@ -50,8 +50,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string predictScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
-		private const int numAnalysesTotal = 500;
-		private const int numAnalysesForTraining = 150;
+		private const int numAnalysesTotal = 800;
+		private const int numAnalysesForTraining = 450;
 		private const int numTimeSteps = 60;
 		private const double timeStepSize = 0.05;
 
@@ -80,10 +80,12 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const int timeStepSavePeriod = 5; // 1 (too expensive), 5 (good), 10 (good), 15, 20
 		private const bool useAlwaysInitialPreconditioner = false;
 
-		// Solver: surrogate
-		private const bool enableSurrogate = false;
+		// Solver: surrogate		
+		private const bool enableSurrogate = true;
 		private const bool useSolutionFromPreviousStep = false;
 		private const bool useBinaryIOFiles = true;
+		//TODO: option to read models from files, instead of creating them from start
+		//TODO: option to predict initial solutions for all timesteps (of the same dynamic analysis) at once, instead of each timestep separately. This will greatly reduce communication overheads
 
 		// Reports
 		private const bool printAnalysisMessagesToConsole = true;

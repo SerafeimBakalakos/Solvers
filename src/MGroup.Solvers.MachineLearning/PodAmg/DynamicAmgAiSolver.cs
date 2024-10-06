@@ -32,13 +32,13 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 	public class DynamicAmgAiSolver : ISolver
 	{
-		public enum Subtask 
-		{ 
+		public enum Subtask
+		{
 			UpdatePreconditioner, SolveWithPcg, TrainML
 		}
 
-		private enum Stage 
-		{ 
+		private enum Stage
+		{
 			Start, UpdateInitPrecond, SolveWithInitPrecond, TrainMLModels, UpdateMLPrecondForNewModel, SolveWithMLPrecond
 		}
 
@@ -62,7 +62,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private int currentTimeStep;
 
 		private DynamicAmgAiSolver(IDofOrderer dofOrderer, PcgAlgorithm pcgAlgorithm, bool matrixPatternWillNotBeModified,
-			IPreconditioner initialPreconditioner, IDynamicMLPreconditioner mlPreconditioner, 
+			IPreconditioner initialPreconditioner, IDynamicMLPreconditioner mlPreconditioner,
 			ISolutionTrainingStrategy trainingStrategy, int numParameterSetsBeforeTraining, int numPrincipalComponentsInPod,
 			ISolutionPredictionStrategy solutionPrediction, bool alwaysUseInitialPreconditioner)
 		{
@@ -93,7 +93,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 		public string Name => name;
 
-		public string CurrentPreconditionerName 
+		public string CurrentPreconditionerName
 			=> currentStage == Stage.SolveWithMLPrecond ? "POD-2G preconditioner" : initialPreconditioner.GetType().Name;
 
 		public SolutionDatabaseDynamic SavedSolutions { get; private set; } = new SolutionDatabaseDynamic();
@@ -130,7 +130,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			// Manage solver stage
 			if (currentParameterSetIdx < numParameterSetsBeforeTraining)
-			{ 
+			{
 				SavedSolutions.SaveModelParameters(parameterSetId, modelParameters);
 				currentStage = Stage.UpdateInitPrecond;
 			}
@@ -192,7 +192,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			if (currentStage == Stage.SolveWithMLPrecond)
 			{
 				UpdateMLPreconditionerForNewTimeStep();
-				Vector solution = alwaysUseInitialPreconditioner ? 
+				Vector solution = alwaysUseInitialPreconditioner ?
 					SolveUsingInitialPreconditioner() : SolveUsingPodAmgPreconditioner();
 				SavedSolutions.SaveCurrentSolutionOnly(solution);
 			}
@@ -315,7 +315,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 					+ $" {stats.ResidualNormRatioEstimation}");
 			}
 
-			
+
 			watch.Stop();
 			Logger.LogTaskDuration(Subtask.SolveWithPcg.ToString(), watch.ElapsedMilliseconds);
 			Logger.LogIterativeAlgorithm(stats.NumIterationsRequired, stats.ResidualNormRatioEstimation);
@@ -413,7 +413,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 
 			public IMaxIterationsProvider PcgMaxIterationsProvider { get; set; } = new PercentageMaxIterationsProvider(1.0);
 
-			public ISolutionTrainingStrategy TrainingStrategy { get; set; } 
+			public ISolutionTrainingStrategy TrainingStrategy { get; set; }
 				= new BulkSolutionsTrainingStrategy(timeStepSavePeriod: 1);
 
 
