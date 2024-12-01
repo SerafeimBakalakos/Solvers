@@ -47,8 +47,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			"C:\\Users\\cluster\\Desktop\\Serafeim\\code\\Python\\cs2py_ml_surrogates"
 			: "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates";
 		private const string pythonInterpreter = pythonProjectDirectory + "\\venv\\Scripts\\python.exe";
-		private const string trainScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
-		private const string predictScript = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
+		private const string trainScriptCaeFffnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
+		private const string trainScriptPodFffnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\train.py";
+		private const string predictScriptCaeFfnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
+		private const string predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
 		private const int numAnalysesTotal = 800; // originally 800 (x60 = 48000)
@@ -83,18 +85,20 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool pcgConvergenceBasedOnResidualOnly = true;
 		private static bool useDirectSolverInstead = false;
 
-		// Solver: POD
+		// Solver: POD preconditioner
 		private const int numPrincipalComponents = 5; // 1 (not that effective), 5, 10 (start here), 15, 20 (doubtful)
 		private const int timeStepSavePeriod = 5; // 1 (too expensive), 5 (good), 10 (good), 15, 20
 		private const bool useAlwaysInitialPreconditioner = false;
 
-		// Solver: surrogate		
-		private const bool enableSurrogate = true;
+		// Surrogate
+		private const string surrogateType = "PodFfnn"; // Options: "CaeFfnn", "PodFfnn", "None"
 		private const bool useSolutionDifferenceFromPreviousStep = false;
 		private const bool useBinaryIOFiles = true;
 		private const bool batchTimeHistoryPredictions = true;
 		private const string normalizationForModelParams = "MinMax"; // Choose from "Null", "MinMax", "MinMaxWithoutShifting", "Zscore"
 		private const string normalizationForSolutions = "MinMax";
+		private const int numSurrogatePodPrincipalComponents = 5;
+		private static readonly int surrogatePodTimeStepSavePeriod = Math.Min(5, timeStepSavePeriod);
 		//TODO: option to read models from files, instead of creating them from start
 		//TODO: option to predict initial solutions for all timesteps (of the same dynamic analysis) at once, instead of each timestep separately. This will greatly reduce communication overheads
 
@@ -254,12 +258,20 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.TensorFlowSeed = rngSeed;
 			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
 			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
-			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
 			surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
 			surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
 			surrogate.WriteTrainReportToConsole = false;
 			surrogate.WritePredictReportsToConsole = true;
 			surrogate.ReadMLNetworksFromFilesWithoutTraining = true;
+			if (surrogateType == "PodFfnn")
+			{
+				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptPodFffnn, predictScriptPodFfnn);
+
+			}
+			else
+			{
+				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptCaeFffnn, predictScriptCaeFfnn);
+			}
 
 			// Train surrogate
 			Console.WriteLine("Training the surrogate");
@@ -377,27 +389,48 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				return;
 			}
 
-			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
-			bool timestepAsModelParam = numTimeSteps > 1;
-			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
-				timestepAsModelParam);
-			//surrogate.float64 = false;
-			surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
-			surrogate.NormalizationOfSolutions = ChooseNormalization(normalizationForSolutions);
-			surrogate.TensorFlowSeed = rngSeed;
-			surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
-			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
-			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
-			surrogate.SetPythonCodePaths(pythonInterpreter, trainScript, predictScript);
-			surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
-			surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
-			surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
-			surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
-			surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
-
 			ISolutionPredictionStrategy solutionPrediction;
-			if (enableSurrogate)
+			if (surrogateType == "CaeFfnn")
 			{
+				CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
+				bool timestepAsModelParam = numTimeSteps > 1;
+				var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
+					timestepAsModelParam);
+				//surrogate.float64 = false;
+				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
+				surrogate.NormalizationOfSolutions = ChooseNormalization(normalizationForSolutions);
+				surrogate.TensorFlowSeed = rngSeed;
+				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
+				surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
+				surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
+				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptCaeFffnn, predictScriptCaeFfnn);
+				surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
+				surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
+				surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
+				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
+				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
+				solutionPrediction = surrogate;
+			}
+			else if (surrogateType == "PodFfnn")
+			{
+				CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
+				bool timestepAsModelParam = numTimeSteps > 1;
+				var surrogate = new PodFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
+					timestepAsModelParam);
+				//surrogate.float64 = false;
+				surrogate.NumPodPrincipalComponents = numSurrogatePodPrincipalComponents;
+				surrogate.PodTimeStepPediod = surrogatePodTimeStepSavePeriod;
+				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
+				surrogate.TensorFlowSeed = rngSeed;
+				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
+				surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
+				surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
+				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptPodFffnn, predictScriptPodFfnn);
+				surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
+				surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
+				surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
+				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
+				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
 				solutionPrediction = surrogate;
 			}
 			else
