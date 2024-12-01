@@ -38,6 +38,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public double BeamSectionWidth { get; set; } = 1.0;
 
+		public double Density { get; set; } = 1.0;
+
 		/// <summary>
 		/// In kN
 		/// </summary>
@@ -47,6 +49,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		/// In rad/s
 		/// </summary>
 		public double ExternalLoadCyclicFrequency { get; set; } = 15;
+
+		public double ExternalLoadPhaseDiff { get; set; } = 0;
+
+		public bool NodalLoadIsConcentrated { get; set; } = true;
 
 		public int NumModelParameters => elasticityField.NumParameters;
 
@@ -85,7 +91,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			Model model = use3DElements ? CreateMesh3D() : CreateMesh2D();
 			ApplyPermanentBoundaryConditions(model);
 			ApplyInitialConditions(model);
-			ApplyDynamicTopLoad(model);
+			if (NodalLoadIsConcentrated)
+			{
+				ApplyDynamicTopLoad(model);
+			}
+			else
+			{
+				ApplyDistributedLoad(model);
+			}
 
 			int monitorNodeId = FindMonitorNode(model);
 			return (model, modelParams, monitorNodeId);
@@ -118,7 +131,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			// Elements
 			double thickness = BeamSectionWidth;
-			var dynamicProperties = new TransientAnalysisProperties(density: 1.0, rayleighCoeffMass: 0.0, rayleighCoeffStiffness: 0.0);
+			var dynamicProperties = new TransientAnalysisProperties(density: Density, rayleighCoeffMass: 0.0, rayleighCoeffStiffness: 0.0);
 			var elementFactory = new ContinuumElement2DFactory(BeamSectionWidth, null, dynamicProperties);
 			for (int elementID = 0; elementID < mesh.NumElementsTotal; elementID++)
 			{
@@ -231,7 +244,27 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				spatialLoadDistribution.Add(new NodalLoad(node, StructuralDof.TranslationX, amount: 1.0));
 			}
 
-			var load = new DynamicLoad(ExternalLoadAmplitude, ExternalLoadCyclicFrequency, TimeStep);
+			var load = new DynamicLoad(ExternalLoadAmplitude, ExternalLoadCyclicFrequency, TimeStep, ExternalLoadPhaseDiff);
+			var transientConstraints = new List<INodalDisplacementBoundaryCondition>(); // Empty: no transient constraints
+			var transientBoundaryConditions = new StructuralTransientBoundaryConditionSet(
+				new List<IBoundaryConditionSet<IStructuralDofType>>()
+				{
+					new StructuralBoundaryConditionSet(transientConstraints, spatialLoadDistribution)
+				},
+				load.Evaluate/*EvaluateExternalLoad*/);
+			model.BoundaryConditions.Add(transientBoundaryConditions);
+		}
+
+		private void ApplyDistributedLoad(Model model)
+		{
+			IEnumerable<INode> loadedNodes = model.EnumerateNodes().Where(n => n.Y > 0);
+			var spatialLoadDistribution = new List<INodalLoadBoundaryCondition>();
+			foreach (INode node in loadedNodes)
+			{
+				spatialLoadDistribution.Add(new NodalLoad(node, StructuralDof.TranslationX, amount: 1.0));
+			}
+
+			var load = new DynamicLoad(ExternalLoadAmplitude, ExternalLoadCyclicFrequency, TimeStep, ExternalLoadPhaseDiff);
 			var transientConstraints = new List<INodalDisplacementBoundaryCondition>(); // Empty: no transient constraints
 			var transientBoundaryConditions = new StructuralTransientBoundaryConditionSet(
 				new List<IBoundaryConditionSet<IStructuralDofType>>()
@@ -299,12 +332,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			private readonly double amplitude;
 			private readonly double frequency;
 			private readonly double delay;
+			private readonly double phaseDiff;
 
-			public DynamicLoad(double amplitude, double frequency, double delay)
+			public DynamicLoad(double amplitude, double frequency, double delay, double phaseDiff)
 			{
 				this.amplitude = amplitude;
 				this.frequency = frequency;
 				this.delay = delay;
+				this.phaseDiff = phaseDiff;
 			}
 
 			public double Evaluate(double t, double spatialLoadComponent)
@@ -312,7 +347,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				double time = t;
 				//double time = t + delay;
 				//Console.WriteLine(time);
-				return spatialLoadComponent * amplitude * Math.Sin(frequency * time);
+				return spatialLoadComponent * amplitude * Math.Sin(frequency * time + phaseDiff);
 			}
 		}
 	}

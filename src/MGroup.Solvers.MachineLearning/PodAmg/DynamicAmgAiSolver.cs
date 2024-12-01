@@ -307,10 +307,19 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			var solution = Vector.CreateFromArray(prediction);
 			CombineExactSolutionWithSurrogatePrediction(solution);
 
+			//#region debug
+			//Vector solution2 = solution.Copy();
+			//#endregion
+
 			IterativeStatistics stats = pcgAlgorithm.Solve(matrix, mlPreconditioner, rhs, solution,
 				false, () => Vector.CreateZero(systemSize));
 
-			LinearSystem.Solution.SingleVector = solution;
+			//#region debug
+			//IterativeStatistics stats2 = pcgAlgorithm.Solve(matrix, initialPreconditioner, rhs, solution2,
+			//	false, () => Vector.CreateZero(systemSize));
+			//#endregion
+
+			LinearSystem.Solution.SingleVector.CopyFrom(solution);
 			if (!stats.HasConverged)
 			{
 				throw new IterativeSolverNotConvergedException(Name + " did not converge to a solution. PCG algorithm with "
@@ -406,8 +415,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 						+ $" {stats.ResidualNormRatioEstimation}");
 				}
 
-				surrogatePrediction.LinearCombinationIntoThis(
-					1 - ExactSolutionPercentageForPrediction, exactSolution, ExactSolutionPercentageForPrediction);
+				Vector result = exactSolution * ExactSolutionPercentageForPrediction + surrogatePrediction * (1 - ExactSolutionPercentageForPrediction);
+				surrogatePrediction.CopyFrom(result);
 			}
 		}
 

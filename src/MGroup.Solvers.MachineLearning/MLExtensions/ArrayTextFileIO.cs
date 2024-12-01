@@ -38,6 +38,8 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			}
 		}
 
+		public float[,] ReadArray2DFromFile(string file) => throw new NotImplementedException();
+
 		public void WriteArray1DToFile(double[] array, string file)
 		{
 			using (var f = File.Open(file, FileMode.OpenOrCreate))

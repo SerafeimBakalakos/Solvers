@@ -21,6 +21,11 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 			Array.Copy(arr, array, array.Length);
 		}
 
+		public float[,] ReadArray2DFromFile(string file)
+		{
+			return np.Load<float[,]>(file);
+		}
+
 		public void WriteArray1DToFile(double[] array, string file)
 		{
 			np.Save(array, file);

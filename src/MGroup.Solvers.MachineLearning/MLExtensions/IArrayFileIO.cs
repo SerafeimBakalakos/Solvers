@@ -10,6 +10,8 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		void ReadArray1DFromFile(float[] array, string file);
 
+		float[,] ReadArray2DFromFile(string file);
+
 		void WriteArray1DToFile(double[] array, string file);
 
 		void WriteArray1DToFile(float[] array, string file);

@@ -18,12 +18,13 @@ namespace MGroup.Solvers.MachineLearning.Tests
 	{
 		public static void Main(string[] args)
 		{
-			//CallingPythonTests.TestTrainAndPredict(doublePrecision: false, binaryIOFiles: true);
 			//CantileverDynamicAnalysis.RunAllAnalysesAndSaveSolutions();
+			//CantileverDynamicAnalysis.CalcSurrogateError();
 			CantileverDynamicAnalysis.RunStochasticAnalysis();
-			//CantileverDynamicAnalysis_OLD.RunStochasticAnalysis();
-			//CantileverDynamicAnalysis.RunStandAloneAnalysis();
-			//TrySerialization();
+
+			//CantileverStaticAnalysis.RunAllAnalysesAndSaveSolutions();
+			//CantileverStaticAnalysis.CalcSurrogateError();
+			//CantileverStaticAnalysis.RunStochasticAnalysis();
 		}
 
 		private static void TrySerialization()
