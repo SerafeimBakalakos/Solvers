@@ -1,7 +1,5 @@
 //TODO: Mixing calls to Python with other logic makes this too hard to maintain. Abstract the calls to Python in a different
 //		class that does not know that input = model params and output = solutions/podCoeffs
-//TODO: Make the surrogate work outside the solver
-//TODO: Normalization for POD coeffs
 namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 {
 	using System;
@@ -127,6 +125,22 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public bool WritePredictReportsToConsole { get; set; } = false;
 
+		public double CalcPodReconstructionError(SolutionDatabaseDynamic solutionDB) 
+		{
+			double error = 0.0;
+			int numSamples = 0;
+			foreach (Vector solution in solutionDB.EnumerateAllSolutions(consecutiveTimeSteps: true))
+			{
+				Vector coeffVector = podPrincipalComponents.Multiply(solution, transposeThis: true);
+				Vector predictedSolution = podPrincipalComponents.Multiply(coeffVector, transposeThis: false);
+				error += solution.Subtract(predictedSolution).Norm2() / solution.Norm2(); //TODO: Aggregation should be done by different classes to implement various metrics
+				numSamples++;
+			}
+			
+			error /= numSamples;
+			return error;
+		}
+
 		/// <summary>
 		/// Projects the sample solution vectors onto the principal component vectors and returns the coefficients in a matrix 
 		/// C (n x r), where n = number of solution samples = number of analyses * number of timesteps.
@@ -140,9 +154,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			var sampleCoeffs = new float[numSamples, numEffectivePrincipalComponents];
 			int i = 0;
-			foreach (var solution in solutionDB.EnumerateAllSolutions(consecutiveTimeSteps: true))
+			foreach (Vector solution in solutionDB.EnumerateAllSolutions(consecutiveTimeSteps: true))
 			{
-				var coeffVector = podPrincipalComponents.Multiply(solution, transposeThis: true);
+				Vector coeffVector = podPrincipalComponents.Multiply(solution, transposeThis: true);
 				SetRow(sampleCoeffs, i, coeffVector.RawData);
 				i++;
 			}

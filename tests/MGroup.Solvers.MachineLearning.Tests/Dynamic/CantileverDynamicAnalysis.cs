@@ -217,6 +217,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			float[,] testModelParams = testDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
 			float[,] testPodCoeffs = surrogate.CompressSolutionVectors(testDB);
 			WriteTrainingDataForPodFfnn(testModelParams, testPodCoeffs, true);
+
+			double error = surrogate.CalcPodReconstructionError(testDB);
+			Console.WriteLine($"POD reconstruction error = {error}");
 		}
 
 		private static SolutionDatabaseDynamic RunAndSaveAnalyses(CantileverDynamicAnalysis stochasticAnalysis, int numAnalyses)
