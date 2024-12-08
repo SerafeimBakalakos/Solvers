@@ -612,7 +612,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				surrogate.NumRequestedPodPrincipalComponents = numSurrogatePodPrincipalComponents;
 				surrogate.PodTimeStepPediod = surrogatePodTimeStepSavePeriod;
 				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
-				//surrogate.NormalizationOfPodCoeffs = ChooseNormalization(normalizationForPodCoeffs);
+				surrogate.NormalizationOfPodCoeffs = ChooseNormalization(normalizationForPodCoeffs);
 				surrogate.TensorFlowSeed = rngSeed;
 				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
 				//surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations

@@ -78,6 +78,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public INormalizationStrategy NormalizationOfParameters { get; set; } = new MinMaxNormalization();
 
+		public INormalizationStrategy NormalizationOfPodCoeffs { get; set; } = new MinMaxNormalization();
+
 		/// <summary>
 		/// Will keep fewer, if the requested vectors turn out to be linearly dependent.
 		/// </summary>
@@ -234,11 +236,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
 
-				// Process python surrogate's output
+				// Denormalize and process python surrogate's output
 				watch.Restart();
 				#region debug
 				//WriteArrayToFile(Path.Combine(workDirectory, "output_after_denormalization_cs.txt"), outputPy);
 				#endregion
+				NormalizationOfPodCoeffs.Denormalize(outputPy);
 				var predictedCoeffs = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(outputPy));
 				Vector prediction = podPrincipalComponents.Multiply(predictedCoeffs);
 
@@ -349,6 +352,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				for (int t = 0; t < batchSize; t++)
 				{
 					float[] singleOutputVector = GetRow(outputArraysPy, t);
+					NormalizationOfPodCoeffs.Denormalize(singleOutputVector);
 					var predictedCoeffs = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(singleOutputVector));
 					Vector prediction = podPrincipalComponents.Multiply(predictedCoeffs);
 					batchInitialGuessesForHistory[t] = prediction;
@@ -407,6 +411,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			float[,] allCoeffs = sampleCoeffs; //TODO: ensure that the order of coefficients and parameters is the same. It is too fragile right now.
 
 			NormalizationOfParameters.InitializeAndApply(allParams);
+			NormalizationOfPodCoeffs.InitializeAndApply(allCoeffs);
+
 			#region extend: Adapt the code to use dataset splitters or completely remove them. Not sure if they are needed here.
 			//Splitter.SetupSplittingRules(allSolutions.GetLength(0));
 			//(float[,] trainCoeffs, float[,] testCoeffs, _) = Splitter.SplitDataset(allCoeffs);
