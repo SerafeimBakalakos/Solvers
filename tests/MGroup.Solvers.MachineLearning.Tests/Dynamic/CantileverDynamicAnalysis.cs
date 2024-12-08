@@ -12,6 +12,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Iterative.Termination.Iterations;
+	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Solution;
@@ -39,7 +40,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
-		private const bool runOnCluster = true;
+		private const bool runOnCluster = false;
 		private const string workDirectory = runOnCluster ?
 			"C:\\Users\\cluster\\Desktop\\Serafeim\\results\\CantileverDynamicLinear"
 			: "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
@@ -55,7 +56,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		// Number of analyses
 		private const int numAnalysesTotal = 800; // originally 800 (x60 = 48000)
 		private const int numAnalysesForTraining = 450; // originally 450 (x60 = 27000)
-		private const int numTimeSteps = 1; // originally 60
+		private const int numTimeSteps = 60; // originally 60
 		private const double timeStepSize = 0.05;
 
 		// Model: geometry
@@ -97,6 +98,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool batchTimeHistoryPredictions = true;
 		private const string normalizationForModelParams = "MinMax"; // Choose from "Null", "MinMax", "MinMaxWithoutShifting", "Zscore"
 		private const string normalizationForSolutions = "MinMax";
+		private const string normalizationForPodCoeffs = "MinMax";
 		private const int numSurrogatePodPrincipalComponents = 5;
 		private static readonly int surrogatePodTimeStepSavePeriod = Math.Min(5, timeStepSavePeriod);
 		//TODO: option to read models from files, instead of creating them from start
@@ -189,10 +191,32 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			stochasticAnalysis.InitializeSolver();
 
 			var trainDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTraining);
-			WriteTrainingData(trainDB, false);
+			WriteTrainingDataForCaeFfnn(trainDB, false);
 
 			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesTotal - numAnalysesForTraining);
-			WriteTrainingData(testDB, true);
+			WriteTrainingDataForCaeFfnn(testDB, true);
+		}
+
+		public static void RunAllAnalysesAndSaveModelParamsAndPodCoeffs()
+		{
+			var rng = new RepeatableRandom(rngSeed);
+			useDirectSolverInstead = true;
+			var stochasticAnalysis = new CantileverDynamicAnalysis();
+			stochasticAnalysis.InitializeModel(rng);
+			stochasticAnalysis.InitializeSolver();
+			var surrogate = (PodFfnnSurrogateDynamicPythonTF)stochasticAnalysis.SolutionPredictionStrategy;
+
+			var trainDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTraining);
+			bool timestepAsParam = numTimeSteps > 1;
+			float[,] trainModelParams = trainDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
+			surrogate.TrainPod(trainDB);
+			float[,] trainPodCoeffs = surrogate.CompressSolutionVectors(trainDB);
+			WriteTrainingDataForPodFfnn(trainModelParams, trainPodCoeffs, false);
+
+			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesTotal - numAnalysesForTraining);
+			float[,] testModelParams = testDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
+			float[,] testPodCoeffs = surrogate.CompressSolutionVectors(testDB);
+			WriteTrainingDataForPodFfnn(testModelParams, testPodCoeffs, true);
 		}
 
 		private static SolutionDatabaseDynamic RunAndSaveAnalyses(CantileverDynamicAnalysis stochasticAnalysis, int numAnalyses)
@@ -365,6 +389,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		{
 		}
 
+		public ISolutionPredictionStrategy SolutionPredictionStrategy { get; private set; }
+
 		public void InitializeModel(RepeatableRandom rng)
 		{
 			IRandomField1D elasticityField = DefineElasticityField(numElements, rng);
@@ -383,69 +409,15 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public void InitializeSolver()
 		{
+			CreateSolutionPredictionStrategy();
+
 			if (useDirectSolverInstead)
 			{
 				directSolverFactory = new SkylineSolver.Factory();
 				return;
 			}
 
-			ISolutionPredictionStrategy solutionPrediction;
-			if (surrogateType == "CaeFfnn")
-			{
-				CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
-				bool timestepAsModelParam = numTimeSteps > 1;
-				var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
-					timestepAsModelParam);
-				//surrogate.float64 = false;
-				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
-				surrogate.NormalizationOfSolutions = ChooseNormalization(normalizationForSolutions);
-				surrogate.TensorFlowSeed = rngSeed;
-				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
-				surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
-				surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
-				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptCaeFffnn, predictScriptCaeFfnn);
-				surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
-				surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
-				surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
-				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
-				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
-				solutionPrediction = surrogate;
-			}
-			else if (surrogateType == "PodFfnn")
-			{
-				CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
-				bool timestepAsModelParam = numTimeSteps > 1;
-				var surrogate = new PodFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
-					timestepAsModelParam);
-				//surrogate.float64 = false;
-				surrogate.NumPodPrincipalComponents = numSurrogatePodPrincipalComponents;
-				surrogate.PodTimeStepPediod = surrogatePodTimeStepSavePeriod;
-				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
-				surrogate.TensorFlowSeed = rngSeed;
-				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
-				surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
-				surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
-				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptPodFffnn, predictScriptPodFfnn);
-				surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
-				surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
-				surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
-				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
-				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
-				solutionPrediction = surrogate;
-			}
-			else
-			{
-				if (useSolutionDifferenceFromPreviousStep)
-				{
-					solutionPrediction = new SolutionOfPreviousTimestepAsPrediction();
-				}
-				else
-				{
-					solutionPrediction = new NullSolutionPredictionStrategy();
-				}
-			}
-
-			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, solutionPrediction);
+			var solverFactory = new DynamicAmgAiSolver.Factory(numAnalysesForTraining, numPrincipalComponents, SolutionPredictionStrategy);
 			solverFactory.DofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 			solverFactory.TrainingStrategy = new BulkSolutionsTrainingStrategy(timeStepSavePeriod);
 			//solverFactory.TrainingStrategy = new SeparateTimeStepSolutionsTrainingStrategy(numTimeSteps);
@@ -556,25 +528,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			return runner;
 		}
 
-		private static double RunDynamicAnalysis(Model model, IAlgebraicModel algebraicModel, ISolver solver, int monitorNodeId)
-		{
-			var problem = new ProblemStructural(model, algebraicModel);
-
-			var linearAnalyzer = new LinearAnalyzer(algebraicModel, solver, problem);
-			var dynamicAnalyzerBuilder = new NewmarkDynamicAnalyzer.Builder(algebraicModel, problem, linearAnalyzer,
-				timeStepSize, timeStepSize * numTimeSteps, calculateInitialDerivativeVectors: false);
-			dynamicAnalyzerBuilder.SetNewmarkParametersForConstantAcceleration();
-			var dynamicAnalyzer = dynamicAnalyzerBuilder.Build();
-
-			dynamicAnalyzer.Initialize();
-			dynamicAnalyzer.Solve();
-
-			INode monitorNode = model.GetNode(monitorNodeId);
-			double displ = algebraicModel.ExtractSingleValue(
-				solver.LinearSystem.Solution, monitorNode, StructuralDof.TranslationX);
-			return displ;
-		}
-
 		public Dictionary<string, object> RunSingleAnalysis(int analysisId)
 		{
 			(Model model, double[] parameters, int monitorNodeId) = exampleModel.CreateFemModel();
@@ -624,6 +577,84 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			results["TrainingDuration"] = trainingDuration;
 
 			return results;
+		}
+
+		private void CreateSolutionPredictionStrategy()
+		{
+			if (surrogateType == "CaeFfnn")
+			{
+				CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
+				bool timestepAsModelParam = numTimeSteps > 1;
+				var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
+					timestepAsModelParam);
+				//surrogate.float64 = false;
+				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
+				surrogate.NormalizationOfSolutions = ChooseNormalization(normalizationForSolutions);
+				surrogate.TensorFlowSeed = rngSeed;
+				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
+				surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
+				surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
+				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptCaeFffnn, predictScriptCaeFfnn);
+				surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
+				surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
+				surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
+				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
+				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
+				SolutionPredictionStrategy = surrogate;
+			}
+			else if (surrogateType == "PodFfnn")
+			{
+				CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
+				bool timestepAsModelParam = numTimeSteps > 1;
+				var surrogate = new PodFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
+					timestepAsModelParam);
+				//surrogate.float64 = false;
+				surrogate.NumRequestedPodPrincipalComponents = numSurrogatePodPrincipalComponents;
+				surrogate.PodTimeStepPediod = surrogatePodTimeStepSavePeriod;
+				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
+				//surrogate.NormalizationOfPodCoeffs = ChooseNormalization(normalizationForPodCoeffs);
+				surrogate.TensorFlowSeed = rngSeed;
+				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
+				//surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
+				//surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
+				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptPodFffnn, predictScriptPodFfnn);
+				surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
+				surrogate.UseSolutionDifferenceFromPreviousStep = useSolutionDifferenceFromPreviousStep;
+				surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
+				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
+				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
+				SolutionPredictionStrategy = surrogate;
+			}
+			else
+			{
+				if (useSolutionDifferenceFromPreviousStep)
+				{
+					SolutionPredictionStrategy = new SolutionOfPreviousTimestepAsPrediction();
+				}
+				else
+				{
+					SolutionPredictionStrategy = new NullSolutionPredictionStrategy();
+				}
+			}
+		}
+
+		private static double RunDynamicAnalysis(Model model, IAlgebraicModel algebraicModel, ISolver solver, int monitorNodeId)
+		{
+			var problem = new ProblemStructural(model, algebraicModel);
+
+			var linearAnalyzer = new LinearAnalyzer(algebraicModel, solver, problem);
+			var dynamicAnalyzerBuilder = new NewmarkDynamicAnalyzer.Builder(algebraicModel, problem, linearAnalyzer,
+				timeStepSize, timeStepSize * numTimeSteps, calculateInitialDerivativeVectors: false);
+			dynamicAnalyzerBuilder.SetNewmarkParametersForConstantAcceleration();
+			var dynamicAnalyzer = dynamicAnalyzerBuilder.Build();
+
+			dynamicAnalyzer.Initialize();
+			dynamicAnalyzer.Solve();
+
+			INode monitorNode = model.GetNode(monitorNodeId);
+			double displ = algebraicModel.ExtractSingleValue(
+				solver.LinearSystem.Solution, monitorNode, StructuralDof.TranslationX);
+			return displ;
 		}
 
 		public void LoadState()
@@ -682,7 +713,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			Console.Write(msg);
 		}
 
-		private static void WriteTrainingData(SolutionDatabaseDynamic solutionDB, bool testData)
+		private static void WriteTrainingDataForCaeFfnn(SolutionDatabaseDynamic solutionDB, bool testData)
 		{
 			bool timestepAsParam = numTimeSteps > 1;
 			float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
@@ -691,7 +722,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			INormalizationStrategy normalizationParams = ChooseNormalization(normalizationForModelParams);
 			normalizationParams.InitializeAndApply(allParams);
 
-			INormalizationStrategy normalizationSolutions = ChooseNormalization(normalizationForModelParams);
+			INormalizationStrategy normalizationSolutions = ChooseNormalization(normalizationForSolutions);
 			normalizationSolutions.InitializeAndApply(allSolutions);
 
 			if (!Directory.Exists(workDirectory))
@@ -708,6 +739,30 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			IArrayFileIO arrayIO = new ArrayBinaryFileIO();
 			arrayIO.WriteArray2DToFile(allParams, pathModelParams);
 			arrayIO.WriteArray2DToFile(allSolutions, pathSolutions);
+		}
+
+		private static void WriteTrainingDataForPodFfnn(float[,] modelParams, float[,] podCoeffs, bool testData)
+		{ 
+			INormalizationStrategy normalizationParams = ChooseNormalization(normalizationForModelParams);
+			normalizationParams.InitializeAndApply(modelParams);
+
+			INormalizationStrategy normalizationPodCoeffs = ChooseNormalization(normalizationForPodCoeffs);
+			normalizationPodCoeffs.InitializeAndApply(podCoeffs);
+
+			if (!Directory.Exists(workDirectory))
+			{
+				throw new IOException($"Directory {workDirectory} does not exist");
+			}
+
+			string directory = Path.Combine(workDirectory, "python_experimenting");
+			Directory.CreateDirectory(directory);
+			string prefix = testData ? "test" : "train";
+			string pathModelParams = Path.Combine(directory, prefix + "_model_params.npy");
+			string pathPodCoeffs = Path.Combine(directory, prefix + "_pod_coeffs.npy");
+
+			IArrayFileIO arrayIO = new ArrayBinaryFileIO();
+			arrayIO.WriteArray2DToFile(modelParams, pathModelParams);
+			arrayIO.WriteArray2DToFile(podCoeffs, pathPodCoeffs);
 		}
 
 		private static INormalizationStrategy ChooseNormalization(string name)

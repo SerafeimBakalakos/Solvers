@@ -1,3 +1,7 @@
+//TODO: Mixing calls to Python with other logic makes this too hard to maintain. Abstract the calls to Python in a different
+//		class that does not know that input = model params and output = solutions/podCoeffs
+//TODO: Make the surrogate work outside the solver
+//TODO: Normalization for POD coeffs
 namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 {
 	using System;
@@ -31,7 +35,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private readonly bool keepOnlyNonZeroPrincipalComponents = false;
 
 		private IArrayFileIO arrayIO = new ArrayBinaryFileIO();
-		private SolutionDatabaseDynamic solutionDb;
+		private SolutionDatabaseDynamic solutionDB;
 
 		private string pythonInterpreter = null;
 		private string trainScript = null;
@@ -41,19 +45,26 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private Dictionary<int, Vector> batchInitialGuessesForHistory { get; set; }
 		private int batchSize;
 
+		/// <summary>
+		/// P (d x r) matrix, where d = number of dofs, r = number of principal components.
+		///	These principal component vectors form the latent space.
+		/// </summary>
 		private Matrix podPrincipalComponents = null;
 
 		public PodFfnnSurrogateDynamicPythonTF(CaeFfnnArchitecture caeFfnnArchitecture, string workDirectory, int pythonModelID,
 			bool timestepAsModelParam)
 		{
-			this.caeFfnnArch = caeFfnnArchitecture;
+			//TODO: MUST DO ASAP: use a different class to describe this surrogate. Find where caeFfnnArch was used in
+			//		CaeFfnnSurrogateDynamicPythonTF and use the new class, instead of the hacks I did in this file.
+			this.caeFfnnArch = caeFfnnArchitecture; 
+
 			this.workDirectory = workDirectory;
 			this.pythonModelID = pythonModelID;
 			this.timestepAsModelParam = timestepAsModelParam;
-			Splitter = new MGroup.Solvers.MachineLearning.MLExtensions.Utilities.DatasetSplitter();
-			Splitter.MinTestSetPercentage = 0.2;
-			Splitter.MinValidationSetPercentage = 0.0;
-			Splitter.SetOrderToContiguous(DataSubsetType.Training, DataSubsetType.Test);
+			//Splitter = new MGroup.Solvers.MachineLearning.MLExtensions.Utilities.DatasetSplitter();
+			//Splitter.MinTestSetPercentage = 0.0;
+			//Splitter.MinValidationSetPercentage = 0.0;
+			//Splitter.SetOrderToContiguous(DataSubsetType.Training, DataSubsetType.Test);
 		}
 
 		public bool BatchTimeHistoryPredictions { get; set; } = false;
@@ -67,13 +78,16 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public INormalizationStrategy NormalizationOfParameters { get; set; } = new MinMaxNormalization();
 
-		public int NumPodPrincipalComponents { get; set; } = 1;
+		/// <summary>
+		/// Will keep fewer, if the requested vectors turn out to be linearly dependent.
+		/// </summary>
+		public int NumRequestedPodPrincipalComponents { get; set; } = 1;
 
 		public int PodTimeStepPediod { get; set; } = 1;
 
 		public bool ReadMLNetworksFromFilesWithoutTraining { get; set; } = false;
 
-		public MGroup.Solvers.MachineLearning.MLExtensions.Utilities.DatasetSplitter Splitter { get; set; }
+		//public MGroup.Solvers.MachineLearning.MLExtensions.Utilities.DatasetSplitter Splitter { get; set; }
 
 		public int TensorFlowSeed { get; set; } = -1;
 
@@ -111,6 +125,28 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public bool WritePredictReportsToConsole { get; set; } = false;
 
+		/// <summary>
+		/// Projects the sample solution vectors onto the principal component vectors and returns the coefficients in a matrix 
+		/// C (n x r), where n = number of solution samples = number of analyses * number of timesteps.
+		///	Each row is a coeff vector c (1 x r) and corresponds to a sample solution vector.
+		/// </summary>
+		/// <param name="solutionDB">All its stored solution vectors will be used.</param>
+		public float[,] CompressSolutionVectors(SolutionDatabaseDynamic solutionDB)
+		{
+			int numSamples = solutionDB.CountAllSolutions();
+			int numEffectivePrincipalComponents = podPrincipalComponents.NumColumns;
+
+			var sampleCoeffs = new float[numSamples, numEffectivePrincipalComponents];
+			int i = 0;
+			foreach (var solution in solutionDB.EnumerateAllSolutions(consecutiveTimeSteps: true))
+			{
+				var coeffVector = podPrincipalComponents.Multiply(solution, transposeThis: true);
+				SetRow(sampleCoeffs, i, coeffVector.RawData);
+				i++;
+			}
+			return sampleCoeffs;
+		}
+
 		public bool MustSaveSolution(int timeStep) => true;
 
 		public void SetPythonCodePaths(string pythonInterpreter, string trainScript, string predictScript)
@@ -124,23 +160,6 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			if (fileExtPos >= 0)
 			{
 				predictHistoryScript = predictScript.Substring(0, fileExtPos) + "_history.py";
-			}
-		}
-
-
-		private static void WriteArrayToFile(string path, float[] array, string separator = "\n")
-		{
-			using (var f = File.Open(path, FileMode.OpenOrCreate))
-			{
-				using (var writer = new StreamWriter(f))
-				{
-					writer.Write(array[0]);
-					for (int i = 1; i < array.Length; i++)
-					{
-						writer.Write(separator);
-						writer.Write(array[i].ToString("G"));
-					}
-				}
 			}
 		}
 
@@ -171,7 +190,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			#region debug
 			//WriteArrayToFile(Path.Combine(workDirectory, "input_after_normalization_cs.txt"), inputPy);
 			#endregion
-			var outputPy = new float[caeFfnnArch.NumDofs];
+
+			var outputPy = new float[podPrincipalComponents.NumColumns]; // TODO: This should be read from the surrogate architecture description, similarly to CaeFfnn version.
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
@@ -207,32 +227,35 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 				// Read output files from filesystem
 				watch.Restart();
-				arrayIO.ReadArray1DFromFile(outputPy, settingsFile.SolutionVectorPath);
+				arrayIO.ReadArray1DFromFile(outputPy, settingsFile.PodCoeffsPath);
 				#region debug
 				//WriteArrayToFile(Path.Combine(workDirectory, "output_before_denormalization_cs.txt"), outputPy);
 				#endregion
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
 
-				// Denormalize
+				// Process python surrogate's output
 				watch.Restart();
 				#region debug
 				//WriteArrayToFile(Path.Combine(workDirectory, "output_after_denormalization_cs.txt"), outputPy);
 				#endregion
-				var prediction = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(outputPy));
+				var predictedCoeffs = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(outputPy));
+				Vector prediction = podPrincipalComponents.Multiply(predictedCoeffs);
+
 				if (UseSolutionDifferenceFromPreviousStep)
 				{
 					// In this case, the surrogate returns du[t] = u[t] - u[t-1]
 					// If t = 0, u[0] = du[0]
 					if (timeStep > 1)
 					{
-						Vector uPrevious = solutionDb.GetCurrentSolution();
+						Vector uPrevious = solutionDB.GetCurrentSolution();
 						prediction.AddIntoThis(uPrevious);
 					}
 				}
 				watch.Stop();
-				durations.DataArraysPreparation += watch.ElapsedMilliseconds;
+				durations.DataArraysPreparation += watch.ElapsedMilliseconds; //TODO: This is no longer only data array preparation. It also has POD logic
 
+				// Finalize
 				if (WritePredictReportsToConsole)
 				{
 					Console.WriteLine(durations.Report());
@@ -249,7 +272,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 					File.Delete(resultsFile.Path);
 					File.Delete(logFile.Path);
 					File.Delete(settingsFile.ModelParamsPath);
-					File.Delete(settingsFile.SolutionVectorPath);
+					File.Delete(settingsFile.PodCoeffsPath);
 				}
 			}
 		}
@@ -307,7 +330,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 				// Read output files from filesystem
 				watch.Restart();
-				outputArraysPy = arrayIO.ReadArray2DFromFile(settingsFile.SolutionVectorPath);
+				outputArraysPy = arrayIO.ReadArray2DFromFile(settingsFile.PodCoeffsPath);
+				Debug.Assert(outputArraysPy.GetLength(0) == batchSize);
+				Debug.Assert(outputArraysPy.GetLength(1) == podPrincipalComponents.NumColumns); // TODO: This should be read from the surrogate architecture description.
 
 				#region debug
 				//var outputArrayPy1D = new float[300];
@@ -318,13 +343,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
 
-				// Denormalize and store for later calls
+				// Project back to solution space using POD principal vectors and store for later calls
 				watch.Restart();
 				batchInitialGuessesForHistory.Clear();
 				for (int t = 0; t < batchSize; t++)
 				{
 					float[] singleOutputVector = GetRow(outputArraysPy, t);
-					var prediction = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(singleOutputVector));
+					var predictedCoeffs = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(singleOutputVector));
+					Vector prediction = podPrincipalComponents.Multiply(predictedCoeffs);
 					batchInitialGuessesForHistory[t] = prediction;
 				}
 				
@@ -333,8 +359,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 					throw new NotImplementedException("Must add to the predictions obtained");
 				}
 				watch.Stop();
-				durations.DataArraysPreparation += watch.ElapsedMilliseconds;
+				durations.DataArraysPreparation += watch.ElapsedMilliseconds; //TODO: This is no longer only data array preparation. It also has POD logic
 
+				// Finalize
 				if (WritePredictReportsToConsole)
 				{
 					Console.WriteLine(durations.Report());
@@ -349,78 +376,47 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 					File.Delete(resultsFile.Path);
 					File.Delete(logFile.Path);
 					File.Delete(settingsFile.ModelParamsPath);
-					File.Delete(settingsFile.SolutionVectorPath);
+					File.Delete(settingsFile.PodCoeffsPath);
 				}
 			}
 		}
 
-		/// <returns>
-		/// principalComponents: P (d x r) matrix, where d = number of dofs, r = number of principal components.
-		///		These principal component vectors form the latent space.
-		/// sampleCoeffs: C (n x r) matrix, where n = number of samples = number of analyses * number of timesteps.
-		///		Each row is a coeff vector c (1 x r) and corresponds to a sample vector. 
-		/// </returns>
-		private (Matrix principalComponents, float[,] sampleCoeffs) TrainPod(double[,] solutionVectorsAsRows)
+		public void Train(SolutionDatabaseDynamic solutionDB)
 		{
-			// Gather the required previous solution vectors as columns of a matrix
-			Matrix solutionColVectors = solutionDb.ToMatrixSolutionsAsColumns(true, t => t % PodTimeStepPediod == 0);
-			
-			// Calculate the principal components
-			var pod = new ProperOrthogonalDecomposition(keepOnlyNonZeroPrincipalComponents);
-			Matrix principalComponents = pod.CalculatePrincipalComponents(
-				solutionColVectors.NumColumns, solutionColVectors, NumPodPrincipalComponents);
-			int numEffectivePrincipalComponents = principalComponents.NumColumns;
-			
-			// Calculate the projection coefficients of each solution vector onto the principal component basis
-			int numSamples  = solutionDb.CountAllSolutions();
-			var sampleCoeffs = new float[numSamples, numEffectivePrincipalComponents];
-			int i = 0;
-			foreach (Vector solution in solutionDb.EnumerateAllSolutions(consecutiveTimeSteps: true))
-			{
-				Vector coeffVector = principalComponents.Multiply(solution, transposeThis: true);
-				SetRow(sampleCoeffs, i, coeffVector.RawData);
-				i++;
-			}
-
-			return (principalComponents, sampleCoeffs);
-		}
-
-		private Matrix ExtractRowsAsColumns(double[,] matrix, Func<int, bool> keepRow)
-		{
-			throw new NotImplementedException();
-		}
-
-		public void Train(SolutionDatabaseDynamic solutionDb)
-		{
-			this.solutionDb = solutionDb;
+			this.solutionDB = solutionDB;
 			var watch = new Stopwatch();
 			var durations = new PythonCallDurations();
 
 			if (BatchTimeHistoryPredictions)
 			{
-				batchSize = solutionDb.CountTimeSteps();
+				batchSize = solutionDB.CountTimeSteps();
 				batchInitialGuessesForHistory = new Dictionary<int, Vector>();
 			}
+
+			// POD training
+			TrainPod(solutionDB); //TODO. Reuse POD from preconditioner
+			float[,] sampleCoeffs = CompressSolutionVectors(solutionDB);
 
 			// Create datasets and normalize
 			watch.Start();
 			if (UseSolutionDifferenceFromPreviousStep)
 			{
-				solutionDb.SubtractSolutionOfPreviousTimestep(); //This will mess up POD if called before it
+				solutionDB.SubtractSolutionOfPreviousTimestep(); //This will mess up POD if called before it
 			}
-			float[,] allParams = solutionDb.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsModelParam, consecutiveTimeSteps:true);
-			double[,] allSolutions = solutionDb.ToArray2DAllSolutionsAsRows(true);
+			float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsModelParam, consecutiveTimeSteps:true); 
+			float[,] allCoeffs = sampleCoeffs; //TODO: ensure that the order of coefficients and parameters is the same. It is too fragile right now.
 
 			NormalizationOfParameters.InitializeAndApply(allParams);
-			Splitter.SetupSplittingRules(allSolutions.GetLength(0));
-			(double[,] trainSolutions, double[,] testSolutions, _) = Splitter.SplitDataset(allSolutions);
-			(float[,] trainParams, float[,] testParams, _) = Splitter.SplitDataset(allParams);
+			#region extend: Adapt the code to use dataset splitters or completely remove them. Not sure if they are needed here.
+			//Splitter.SetupSplittingRules(allSolutions.GetLength(0));
+			//(float[,] trainCoeffs, float[,] testCoeffs, _) = Splitter.SplitDataset(allCoeffs);
+			//(float[,] trainParams, float[,] testParams, _) = Splitter.SplitDataset(allParams);
+			float[,] trainCoeffs = allCoeffs;
+			float[,] trainParams = allParams;
+			#endregion
+
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
-
-			// POD training
-			throw new NotImplementedException();
-			(Matrix principalComponents, float[,] sampleCoeffs) = TrainPod(allSolutions);
 
 			// Determine IO files
 			watch.Restart();
@@ -441,12 +437,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				//string ffnnPath = $"{workDirectory}\\model_ffnn_{pythonModelID}.keras";
 				string decoderPath = settingsFile.ModelDecoderPath;
 				string ffnnPath = settingsFile.ModelFfnnPath;
-				if (!File.Exists(decoderPath))
-				{
-					throw new InvalidOperationException(
-						"Training is set to be skipped, but there is no convolutional decoder network at path = " + decoderPath);
-				}
-				else if (!File.Exists(ffnnPath))
+				//if (!File.Exists(decoderPath))
+				//{
+				//	throw new InvalidOperationException(
+				//		"Training is set to be skipped, but there is no convolutional decoder network at path = " + decoderPath);
+				//}
+				/*else*/ if (!File.Exists(ffnnPath))
 				{
 					throw new InvalidOperationException("Training is set to be skipped, but there is no FFNN network at path = " + ffnnPath);
 				}
@@ -464,7 +460,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				settingsFile.WriteToFileSystem();
 				resultsFile.WriteToFileSystem();
 				logFile.WriteToFileSystem();
-				arrayIO.WriteArray2DToFile(trainSolutions, settingsFile.TrainSolutionVectorsPath);
+				arrayIO.WriteArray2DToFile(trainCoeffs, settingsFile.TrainPodCoeffsPath);
 				arrayIO.WriteArray2DToFile(trainParams, settingsFile.TrainModelParamsPath);
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
@@ -489,10 +485,29 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 					File.Delete(settingsFile.Path);
 					File.Delete(resultsFile.Path);
 					File.Delete(logFile.Path);
-					File.Delete(settingsFile.TrainSolutionVectorsPath);
+					File.Delete(settingsFile.TrainPodCoeffsPath);
 					File.Delete(settingsFile.TrainModelParamsPath);
 				}
 			}
+		}
+
+		/// <summary>
+		/// Performs POD analysis and calculates the principal component (basis) vectors. These are returned as columns of a 
+		/// matrix P (d x r) matrix, where d = number of dofs, r = number of principal components. 
+		/// Warning: only linearly independent principal component vectors will be kept, thus they may be fewer than the ones 
+		/// requested by <see cref="NumRequestedPodPrincipalComponents"/>.
+		/// </summary>
+		public void TrainPod(SolutionDatabaseDynamic solutionDB)
+		{
+			// Gather the required previous solution vectors as columns of a matrix
+			Matrix solutionColVectors = solutionDB.ToMatrixSolutionsAsColumns(true, t => t % PodTimeStepPediod == 0);
+
+			// Calculate and store the principal components
+			var pod = new ProperOrthogonalDecomposition(keepOnlyNonZeroPrincipalComponents);
+			Matrix principalComponents = pod.CalculatePrincipalComponents(
+				solutionColVectors.NumColumns, solutionColVectors, NumRequestedPodPrincipalComponents);
+			
+			this.podPrincipalComponents = principalComponents;
 		}
 
 		private void CallPythonScript(string processArgs, string pathLog)
@@ -574,6 +589,22 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			}
 		}
 
+		private static void WriteArrayToFile(string path, float[] array, string separator = "\n")
+		{
+			using (var f = File.Open(path, FileMode.OpenOrCreate))
+			{
+				using (var writer = new StreamWriter(f))
+				{
+					writer.Write(array[0]);
+					for (int i = 1; i < array.Length; i++)
+					{
+						writer.Write(separator);
+						writer.Write(array[i].ToString("G"));
+					}
+				}
+			}
+		}
+
 		#region debug
 		//private static T[,] Array1DTo2D<T>(T[] array1D)
 		//{
@@ -594,11 +625,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			{
 				ModelArchitecture = descr;
 				TrainModelParamsPath = tempFilePrefix + "_train_model_params" + arrayExtension;
-				TrainSolutionVectorsPath = tempFilePrefix + "_train_solution_vectors" + arrayExtension;
+				TrainPodCoeffsPath = tempFilePrefix + "_train_pod_coeffs" + arrayExtension;
 				//TestModelParamsPath = "";
 				//TestSolutionVectorsPath = "";
 				//ModelEncoderPath = $"{workDirectory}\\model_encoder_{modelID}.keras";
-				ModelDecoderPath = $"{workDirectory}\\model_decoder_{modelID}.keras";
+				ModelDecoderPath = "unused";
 				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.keras";
 			}
 
@@ -608,7 +639,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			public string TrainModelParamsPath { get; }
 
-			public string TrainSolutionVectorsPath { get; }
+			public string TrainPodCoeffsPath { get; }
 
 			//public string TestModelParamsPath { get; }
 
@@ -629,7 +660,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				: base(workDirectory, "_cs2py_settings.json", guid)
 			{
 				ModelParamsPath = tempFilePrefix + "_model_params" + arrayExtension;
-				SolutionVectorPath = tempFilePrefix + "_solution_vector" + arrayExtension;
+				PodCoeffsPath = tempFilePrefix + "_pod_coeffs" + arrayExtension;
 				ModelDecoderPath = $"{workDirectory}\\model_decoder_{modelID}.keras";
 				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.keras";
 			}
@@ -638,7 +669,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			public string ModelParamsPath { get; }
 
-			public string SolutionVectorPath { get; }
+			public string PodCoeffsPath { get; }
 
 			public string ModelDecoderPath { get; }
 

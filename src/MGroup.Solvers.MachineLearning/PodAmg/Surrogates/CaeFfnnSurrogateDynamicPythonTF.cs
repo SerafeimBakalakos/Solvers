@@ -207,7 +207,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
 
-				// Denormalize
+				// Denormalize and process python surrogate's output
 				watch.Restart();
 				NormalizationOfSolutions.Denormalize(outputPy);
 				#region debug
@@ -227,6 +227,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				watch.Stop();
 				durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
+				// Finalize
 				if (WritePredictReportsToConsole)
 				{
 					Console.WriteLine(durations.Report());
