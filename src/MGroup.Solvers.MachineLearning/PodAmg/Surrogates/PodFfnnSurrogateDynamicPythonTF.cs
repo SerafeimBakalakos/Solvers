@@ -455,7 +455,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			{
 				//string decoderPath = $"{workDirectory}\\model_decoder_{pythonModelID}.keras";
 				//string ffnnPath = $"{workDirectory}\\model_ffnn_{pythonModelID}.keras";
-				string decoderPath = settingsFile.ModelDecoderPath;
+				//string decoderPath = settingsFile.ModelDecoderPath;
 				string ffnnPath = settingsFile.ModelFfnnPath;
 				//if (!File.Exists(decoderPath))
 				//{

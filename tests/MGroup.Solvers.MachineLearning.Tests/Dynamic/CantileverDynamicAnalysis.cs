@@ -54,8 +54,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
-		private const int numAnalysesTotal = 800; // originally 800 (x60 = 48000)
-		private const int numAnalysesForTraining = 450; // originally 450 (x60 = 27000)
+		private const int numAnalysesTotal = 100; // originally 800 (x60 = 48000)
+		private const int numAnalysesForTraining = 50; // originally 450 (x60 = 27000)
 		private const int numTimeSteps = 60; // originally 60
 		private const double timeStepSize = 0.05;
 
@@ -92,7 +92,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool useAlwaysInitialPreconditioner = false;
 
 		// Surrogate
-		private const string surrogateType = "PodFfnn"; // Options: "CaeFfnn", "PodFfnn", "None"
+		private const string surrogateType = "None"; // Options: "CaeFfnn", "PodFfnn", "None"
 		private const bool useSolutionDifferenceFromPreviousStep = false;
 		private const bool useBinaryIOFiles = true;
 		private const bool batchTimeHistoryPredictions = true;
