@@ -18,6 +18,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 	using MGroup.Solvers.MachineLearning.LinearAlgebraExtensions.PodAmg;
 	using MGroup.Solvers.MachineLearning.MLExtensions;
 	using MGroup.Solvers.MachineLearning.MLExtensions.Normalization;
+	using MGroup.Solvers.MachineLearning.MLExtensions.Utilities;
 	using MGroup.Solvers.MachineLearning.Utilities;
 
 	using Newtonsoft.Json;
@@ -41,7 +42,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private string predictHistoryScript = null;
 
 		//TODO: Perhaps it is better to just store the Python's output. It would surely reduce the memory footprint
-		private Dictionary<int, Vector> batchInitialGuessesForHistory { get; set; } 
+		private Dictionary<int, Vector> batchInitialGuessesForHistory { get; set; }
 
 		private int batchSize;
 
@@ -75,6 +76,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		public bool CleanupIOFiles { get; set; } = true;
 
 		public bool Float64 { get; set; } = false;
+
+		public ISurrogateIODatabase FfnnIOData { get; set; } = new NullSurrogateIODatabase();
 
 		public INormalizationStrategy NormalizationOfParameters { get; set; } = new MinMaxNormalization();
 
@@ -215,12 +218,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			// Prepare arrays and normalize
 			watch.Start();
 			float[] inputPy = PrepareInput(timeStep, parameters);
+			FfnnIOData.StoreInputData(inputPy, normalized: false);
 
-			#region debug
-			//WriteArrayToFile(Path.Combine(workDirectory, "input_before_normalization_cs.txt"), inputPy);
-			#endregion
 
 			NormalizationOfParameters.Normalize(inputPy);
+			FfnnIOData.StoreInputData(inputPy, normalized: true);
+
 			#region debug
 			//WriteArrayToFile(Path.Combine(workDirectory, "input_after_normalization_cs.txt"), inputPy);
 			#endregion
@@ -262,18 +265,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				// Read output files from filesystem
 				watch.Restart();
 				arrayIO.ReadArray1DFromFile(outputPy, settingsFile.PodCoeffsPath);
-				#region debug
-				//WriteArrayToFile(Path.Combine(workDirectory, "output_before_denormalization_cs.txt"), outputPy);
-				#endregion
+				FfnnIOData.StoreOutputData(outputPy, normalized:true);
 				watch.Stop();
 				durations.IO += watch.ElapsedMilliseconds;
 
 				// Denormalize and process python surrogate's output
 				watch.Restart();
-				#region debug
-				//WriteArrayToFile(Path.Combine(workDirectory, "output_after_denormalization_cs.txt"), outputPy);
-				#endregion
 				NormalizationOfPodCoeffs.Denormalize(outputPy);
+				FfnnIOData.StoreOutputData(outputPy, normalized:false);
 				var predictedCoeffs = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(outputPy));
 				Vector prediction = podPrincipalComponents.Multiply(predictedCoeffs);
 
@@ -326,7 +325,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			for (int t = 0; t < batchSize; t++)
 			{
 				float[] inputPy = PrepareInput(t, parameters);
+				FfnnIOData.StoreInputData(inputPy, normalized:false);
 				NormalizationOfParameters.Normalize(inputPy);
+				FfnnIOData.StoreInputData(inputPy, normalized:true);
 				SetRow(inputArraysPy, t, inputPy);
 			}
 
@@ -385,7 +386,10 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				for (int t = 0; t < batchSize; t++)
 				{
 					float[] singleOutputVector = GetRow(outputArraysPy, t);
+					FfnnIOData.StoreOutputData(singleOutputVector, normalized: true);
 					NormalizationOfPodCoeffs.Denormalize(singleOutputVector);
+					FfnnIOData.StoreOutputData(singleOutputVector, normalized: false);
+
 					var predictedCoeffs = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(singleOutputVector));
 					Vector prediction = podPrincipalComponents.Multiply(predictedCoeffs);
 					batchInitialGuessesForHistory[t] = prediction;
@@ -457,9 +461,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsModelParam, NumRequestedKarhunenLoeveTerms, consecutiveTimeSteps: true);
 			}
 
+			FfnnIOData.StoreTrainingData(allParams, allCoeffs, vectorsAsRows:true, normalized:false);
+
 			// Normalization
 			NormalizationOfParameters.InitializeAndApply(allParams);
 			NormalizationOfPodCoeffs.InitializeAndApply(allCoeffs);
+			FfnnIOData.StoreTrainingData(allParams, allCoeffs, vectorsAsRows: true, normalized: true);
+
+			// Store the training data after normalizing them
 
 			#region extend: Adapt the code to use dataset splitters or completely remove them. Not sure if they are needed here.
 			//Splitter.SetupSplittingRules(allSolutions.GetLength(0));

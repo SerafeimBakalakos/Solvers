@@ -29,6 +29,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.MachineLearning.MLExtensions;
 	using MGroup.Solvers.MachineLearning.MLExtensions.Normalization;
 	using MGroup.Solvers.MachineLearning.MLExtensions.TensorFlow;
+	using MGroup.Solvers.MachineLearning.MLExtensions.Utilities;
 	using MGroup.Solvers.MachineLearning.Plotting;
 	using MGroup.Solvers.MachineLearning.PodAmg;
 	using MGroup.Solvers.MachineLearning.PodAmg.Surrogates;
@@ -111,7 +112,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		// Misc
 		private const char saveLoadOrNotPretrainingAnalyses = 'S'; // 'S' for save, 'L' for load, anything else for neither.
-		private const bool readMLNetworksFromFileWithoutTraining = true;
+		private const bool readMLNetworksFromFileWithoutTraining = false;
 		private const double exactSolutionPercentageForPrediction = 0;
 		private const int rngSeed = 23;
 
@@ -671,6 +672,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
 				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
 				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
+				surrogate.FfnnIOData = new SurrogateIODatabase();
 				SolutionPredictionStrategy = surrogate;
 			}
 			else
