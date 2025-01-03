@@ -54,16 +54,16 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
-		private const int numAnalysesTotal = 100; // originally 800 (x60 = 48000)
-		private const int numAnalysesForTraining = 50; // originally 450 (x60 = 27000)
+		private const int numAnalysesTotal = 50; // originally 800 (x60 = 48000)
+		private const int numAnalysesForTraining = 25; // originally 450 (x60 = 27000)
 		private const int numTimeSteps = 60; // originally 60
 		private const double timeStepSize = 0.05;
 
 		// Model: geometry
 		//private static readonly int[] numElements = { 35, 140 }; //10080 dofs
 		private static readonly int[] numElements = { 5, 25 }; //300 dofs
-															   //private static readonly int[] numElements = { 16, 80 };
-															   //private static readonly int[] numElements = { 32, 160 };
+		//private static readonly int[] numElements = { 16, 80 };
+		//private static readonly int[] numElements = { 32, 160 };
 		private const double beamLength = 10;
 		private const double beamSectionHeight = 2.0;
 		private const double beamSectionWidth = 1.0;
@@ -95,7 +95,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string surrogateType = "PodFfnn"; // Options: "CaeFfnn", "PodFfnn", "None"
 		private const bool useSolutionDifferenceFromPreviousStep = false;
 		private const bool useBinaryIOFiles = true;
-		private const bool batchTimeHistoryPredictions = false;
+		private const bool batchTimeHistoryPredictions = true;
 		private const string normalizationForModelParams = "MinMax"; // Choose from "Null", "MinMax", "MinMaxWithoutShifting", "Zscore"
 		private const string normalizationForSolutions = "MinMax";
 		private const string normalizationForPodCoeffs = "MinMax";
@@ -111,11 +111,11 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		// Misc
 		private const char saveLoadOrNotPretrainingAnalyses = 'S'; // 'S' for save, 'L' for load, anything else for neither.
-		private const bool readMLNetworksFromFileWithoutTraining = false;
+		private const bool readMLNetworksFromFileWithoutTraining = true;
 		private const double exactSolutionPercentageForPrediction = 0;
 		private const int rngSeed = 23;
 
-		private static CaeFfnnArchitecture DescribeSurrogate(int[] numElementsPerAxis, int numModelParameters)
+		private static CaeFfnnArchitecture DescribeCaeFfnnSurrogate(int[] numElementsPerAxis, int numModelParameters)
 		{
 			int ffnnHiddenSize = 32;
 
@@ -172,6 +172,45 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
 			arch.FfnnLayers.Add(new LeakyReLULayer());
 			arch.FfnnLayers.Add(new DenseLayer(units: arch.LatentSpaceDim));
+
+			return arch;
+		}
+
+		private static FfnnArchitecture DescribeFfnnSurrogate()
+		{
+			int ffnnHiddenSize = 64;
+
+			var arch = new FfnnArchitecture();
+
+			arch.NumPodBasisVectors = numSurrogatePodPrincipalComponents;
+			if (numSurrogateKLTerms > 0)
+			{
+				arch.NumModelParams = (numTimeSteps > 1) ? numSurrogateKLTerms + 1 : numSurrogateKLTerms;
+			}
+			else
+			{
+				arch.NumModelParams = (numTimeSteps > 1) ? numKarhunenLoeveTerms + 1 : numKarhunenLoeveTerms;
+			}
+
+			arch.FfnnLearningRateStart = 1E-3f;
+			arch.FfnnLearningRateEnd = 1E-5f;
+			arch.FfnnNumEpochs = 500; //5000 is more than enough
+			arch.FfnnBatchSize = 20;
+
+			arch.FfnnLayers.Add(new Input1DLayer(arch.NumModelParams));
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: ffnnHiddenSize));
+			arch.FfnnLayers.Add(new LeakyReLULayer());
+			arch.FfnnLayers.Add(new DenseLayer(units: numSurrogatePodPrincipalComponents));
 
 			return arch;
 		}
@@ -275,7 +314,11 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			// Surrogate settings
 			Console.WriteLine("Initializing surrogate");
 			int numModelParams = numKarhunenLoeveTerms;
-			CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, numModelParams);
+			if (surrogateType != "CaeFfnn")
+			{
+				throw new NotImplementedException();
+			}
+			CaeFfnnArchitecture architecture = DescribeCaeFfnnSurrogate(numElements, numModelParams);
 			bool timestepAsModelParam = numTimeSteps > 1;
 			var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
 				timestepAsModelParam);
@@ -587,7 +630,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		{
 			if (surrogateType == "CaeFfnn")
 			{
-				CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
+				CaeFfnnArchitecture architecture = DescribeCaeFfnnSurrogate(numElements, exampleModel.NumModelParameters);
 				bool timestepAsModelParam = numTimeSteps > 1;
 				var surrogate = new CaeFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
 					timestepAsModelParam);
@@ -608,7 +651,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 			else if (surrogateType == "PodFfnn")
 			{
-				CaeFfnnArchitecture architecture = DescribeSurrogate(numElements, exampleModel.NumModelParameters);
+				FfnnArchitecture architecture = DescribeFfnnSurrogate();
 				bool timestepAsModelParam = numTimeSteps > 1;
 				var surrogate = new PodFfnnSurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43,
 					timestepAsModelParam);

@@ -29,7 +29,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private readonly string workDirectory;
 		private readonly int pythonModelID;
 		private readonly bool timestepAsModelParam;
-		private readonly CaeFfnnArchitecture caeFfnnArch; //TODO: Change this to FFNN only
+		private readonly FfnnArchitecture ffnnArch;
 		private readonly bool keepOnlyNonZeroPrincipalComponents = false;
 
 		private IArrayFileIO arrayIO = new ArrayBinaryFileIO();
@@ -40,7 +40,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		private string predictScript = null;
 		private string predictHistoryScript = null;
 
-		private Dictionary<int, Vector> batchInitialGuessesForHistory { get; set; }
+		//TODO: Perhaps it is better to just store the Python's output. It would surely reduce the memory footprint
+		private Dictionary<int, Vector> batchInitialGuessesForHistory { get; set; } 
+
 		private int batchSize;
 
 		/// <summary>
@@ -49,12 +51,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		/// </summary>
 		private Matrix podPrincipalComponents = null;
 
-		public PodFfnnSurrogateDynamicPythonTF(CaeFfnnArchitecture caeFfnnArchitecture, string workDirectory, int pythonModelID,
+		public PodFfnnSurrogateDynamicPythonTF(FfnnArchitecture ffnnArchitecture, string workDirectory, int pythonModelID,
 			bool timestepAsModelParam)
 		{
 			//TODO: MUST DO ASAP: use a different class to describe this surrogate. Find where caeFfnnArch was used in
 			//		CaeFfnnSurrogateDynamicPythonTF and use the new class, instead of the hacks I did in this file.
-			this.caeFfnnArch = caeFfnnArchitecture;
+			this.ffnnArch = ffnnArchitecture;
 
 			this.workDirectory = workDirectory;
 			this.pythonModelID = pythonModelID;
@@ -474,7 +476,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			watch.Restart();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
 			Guid guid = Guid.NewGuid();
-			var settingsFile = new Cs2PyTrainingSettings(caeFfnnArch, workDirectory, extension, pythonModelID, guid);
+			var settingsFile = new Cs2PyTrainingSettings(ffnnArch, workDirectory, extension, pythonModelID, guid);
 			settingsFile.Float64 = this.Float64;
 			settingsFile.TensorFlowSeed = this.TensorFlowSeed;
 			var resultsFile = new Py2CsResults(workDirectory, guid);
@@ -485,16 +487,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			if (ReadMLNetworksFromFilesWithoutTraining == true)
 			{
-				//string decoderPath = $"{workDirectory}\\model_decoder_{pythonModelID}.keras";
-				//string ffnnPath = $"{workDirectory}\\model_ffnn_{pythonModelID}.keras";
-				//string decoderPath = settingsFile.ModelDecoderPath;
 				string ffnnPath = settingsFile.ModelFfnnPath;
-				//if (!File.Exists(decoderPath))
-				//{
-				//	throw new InvalidOperationException(
-				//		"Training is set to be skipped, but there is no convolutional decoder network at path = " + decoderPath);
-				//}
-				/*else*/
 				if (!File.Exists(ffnnPath))
 				{
 					throw new InvalidOperationException("Training is set to be skipped, but there is no FFNN network at path = " + ffnnPath);
@@ -692,7 +685,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		private class Cs2PyTrainingSettings : InteropTempFile
 		{
-			public Cs2PyTrainingSettings(CaeFfnnArchitecture descr, string workDirectory, string arrayExtension,
+			public Cs2PyTrainingSettings(FfnnArchitecture descr, string workDirectory, string arrayExtension,
 				int modelID, Guid guid)
 				: base(workDirectory, "_cs2py_settings.json", guid)
 			{
@@ -701,8 +694,6 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				TrainPodCoeffsPath = tempFilePrefix + "_train_pod_coeffs" + arrayExtension;
 				//TestModelParamsPath = "";
 				//TestSolutionVectorsPath = "";
-				//ModelEncoderPath = $"{workDirectory}\\model_encoder_{modelID}.keras";
-				ModelDecoderPath = "unused";
 				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.keras";
 			}
 
@@ -718,13 +709,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			//public string TestSolutionVectorsPath { get; }
 
-			//public string ModelEncoderPath { get; }
-
-			public string ModelDecoderPath { get; }
-
 			public string ModelFfnnPath { get; }
 
-			public CaeFfnnArchitecture ModelArchitecture { get; }
+			public FfnnArchitecture ModelArchitecture { get; }
 		}
 
 		private class Cs2PyPredictSettings : InteropTempFile
@@ -734,7 +721,6 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			{
 				ModelParamsPath = tempFilePrefix + "_model_params" + arrayExtension;
 				PodCoeffsPath = tempFilePrefix + "_pod_coeffs" + arrayExtension;
-				ModelDecoderPath = $"{workDirectory}\\model_decoder_{modelID}.keras";
 				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.keras";
 			}
 
@@ -743,8 +729,6 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			public string ModelParamsPath { get; }
 
 			public string PodCoeffsPath { get; }
-
-			public string ModelDecoderPath { get; }
 
 			public string ModelFfnnPath { get; }
 		}
