@@ -62,8 +62,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		// Model: geometry
 		//private static readonly int[] numElements = { 35, 140 }; //10080 dofs
 		private static readonly int[] numElements = { 5, 25 }; //300 dofs
-		//private static readonly int[] numElements = { 16, 80 };
-		//private static readonly int[] numElements = { 32, 160 };
+															   //private static readonly int[] numElements = { 16, 80 };
+															   //private static readonly int[] numElements = { 32, 160 };
 		private const double beamLength = 10;
 		private const double beamSectionHeight = 2.0;
 		private const double beamSectionWidth = 1.0;
@@ -72,8 +72,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double elasticityModulusMean = 200E6;
 		private const double elasticityModulusStdDev = 10E6;
 		private const string elasticityFieldType = "KL"; // Valid inputs: "KL"=Karhunen-Loeve, "WN"=white noise, "HG"=homogeneous
-		private const int numKarhunenLoeveTerms = 6;
-		private const double correlationLength = 0.5 * beamLength;
+		private const int numKarhunenLoeveTerms = 6; // Originally 6.
+		private const double correlationLength = 0.5 * beamLength; // originally 0.5 * beamLength
 		private const bool nodalLoadIsConcentrated = true;
 		private const double materialDensity = 0.0001;
 
@@ -92,14 +92,15 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool useAlwaysInitialPreconditioner = false;
 
 		// Surrogate
-		private const string surrogateType = "None"; // Options: "CaeFfnn", "PodFfnn", "None"
+		private const string surrogateType = "PodFfnn"; // Options: "CaeFfnn", "PodFfnn", "None"
 		private const bool useSolutionDifferenceFromPreviousStep = false;
 		private const bool useBinaryIOFiles = true;
-		private const bool batchTimeHistoryPredictions = true;
+		private const bool batchTimeHistoryPredictions = false;
 		private const string normalizationForModelParams = "MinMax"; // Choose from "Null", "MinMax", "MinMaxWithoutShifting", "Zscore"
 		private const string normalizationForSolutions = "MinMax";
 		private const string normalizationForPodCoeffs = "MinMax";
-		private const int numSurrogatePodPrincipalComponents = 5;
+		private const int numSurrogatePodPrincipalComponents = 2;
+		private const int numSurrogateKLTerms = 2; // 0 = use the same as numKarhunenLoeveTerms
 		private static readonly int surrogatePodTimeStepSavePeriod = Math.Min(5, timeStepSavePeriod);
 		//TODO: option to read models from files, instead of creating them from start
 		//TODO: option to predict initial solutions for all timesteps (of the same dynamic analysis) at once, instead of each timestep separately. This will greatly reduce communication overheads
@@ -110,7 +111,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		// Misc
 		private const char saveLoadOrNotPretrainingAnalyses = 'S'; // 'S' for save, 'L' for load, anything else for neither.
-		private const bool readMLNetworksFromFileWithoutTraining = true;
+		private const bool readMLNetworksFromFileWithoutTraining = false;
 		private const double exactSolutionPercentageForPrediction = 0;
 		private const int rngSeed = 23;
 
@@ -613,6 +614,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 					timestepAsModelParam);
 				//surrogate.float64 = false;
 				surrogate.NumRequestedPodPrincipalComponents = numSurrogatePodPrincipalComponents;
+				surrogate.NumRequestedKarhunenLoeveTerms = numSurrogateKLTerms;
 				surrogate.PodTimeStepPediod = surrogatePodTimeStepSavePeriod;
 				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
 				surrogate.NormalizationOfPodCoeffs = ChooseNormalization(normalizationForPodCoeffs);
@@ -745,7 +747,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		}
 
 		private static void WriteTrainingDataForPodFfnn(float[,] modelParams, float[,] podCoeffs, bool testData)
-		{ 
+		{
 			INormalizationStrategy normalizationParams = ChooseNormalization(normalizationForModelParams);
 			normalizationParams.InitializeAndApply(modelParams);
 

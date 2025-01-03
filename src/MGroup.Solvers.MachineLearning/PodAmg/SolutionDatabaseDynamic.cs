@@ -6,6 +6,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Text;
+
 	using DotNumerics.ODE.Radau5;
 
 	using Google.Protobuf.WellKnownTypes;
@@ -23,7 +24,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		private readonly List<int> savedParameterSetIDs;
 
 		//TODO: This can be saved in a 1D list and the indices inferred by the param set IDs and timesteps
-		private readonly Dictionary<int, Dictionary<int, double[]>> savedSolutions; 
+		private readonly Dictionary<int, Dictionary<int, double[]>> savedSolutions;
 
 		/// <summary>
 		/// Must be the same for all saved parameter sets. Determined by all saved vectors of the first parameter set.
@@ -314,7 +315,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			return result;
 		}
 
-		
+
 		public double[,] ToArray2DAllSolutionsAsRows(bool consecutiveTimeSteps)
 		{
 			int numDofs = this.numDofs;
@@ -431,6 +432,42 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			return result;
 		}
 
+		public float[,] ToFloatArray2DAllParametersAndTimestepsAsRows(bool includeTimestep, int numParamsToKeep, bool consecutiveTimeSteps)
+		{
+			int numModelParams = CountModelParameters();
+			if (numParamsToKeep > numModelParams)
+			{
+				throw new ArgumentException($"{numParamsToKeep} parameters were requested, but there are only {numModelParams}");
+			}
+
+			int numParamsTotal = includeTimestep ? 1 + numParamsToKeep : numParamsToKeep;
+			int numVectorsTotal = CountAllSolutions(); // This is numParameterSets * numTim
+			var result = new float[numVectorsTotal, numParamsTotal];
+			int row = 0;
+			if (consecutiveTimeSteps)
+			{
+				foreach (int paramSetID in EnumerateParameterSetIDs())
+				{
+					double[] parameters = GetModelParameters(paramSetID);
+					foreach (int timeStep in EnumerateTimeSteps())
+					{
+						result[row, 0] = timeStep;
+						for (int j = 0; j < numParamsToKeep; j++)
+						{
+							result[row, 1 + j] = (float)parameters[j];
+						}
+						row++;
+					}
+				}
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}
+
+			return result;
+		}
+
 		public Matrix ToMatrixAllSolutionsAsColumns(bool consecutiveTimeSteps)
 		{
 			int numDofs = this.numDofs;
@@ -494,12 +531,12 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 			int numParamSets = CountParameterSets();
 			var result = Matrix.CreateZero(numDofs, numParamSets);
 			int col = 0;
-			foreach (Vector solution in EnumerateSolutionsForTimestep(timestep)) 
+			foreach (Vector solution in EnumerateSolutionsForTimestep(timestep))
 			{
 				result.SetSubcolumn(col, solution);
 				col++;
 			}
-			
+
 			return result;
 		}
 

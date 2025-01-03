@@ -54,7 +54,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		{
 			//TODO: MUST DO ASAP: use a different class to describe this surrogate. Find where caeFfnnArch was used in
 			//		CaeFfnnSurrogateDynamicPythonTF and use the new class, instead of the hacks I did in this file.
-			this.caeFfnnArch = caeFfnnArchitecture; 
+			this.caeFfnnArch = caeFfnnArchitecture;
 
 			this.workDirectory = workDirectory;
 			this.pythonModelID = pythonModelID;
@@ -79,9 +79,26 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 		public INormalizationStrategy NormalizationOfPodCoeffs { get; set; } = new MinMaxNormalization();
 
 		/// <summary>
+		/// If less than 1, all Karhunen-Loeve terms will be kept. 
+		/// The same will happen, if more Karhunen-Loeve terms than the available ones are requested.
+		/// </summary>
+		public int NumRequestedKarhunenLoeveTerms { get; set; } = 0;
+
+
+		/// <summary>
 		/// Will keep fewer, if the requested vectors turn out to be linearly dependent.
 		/// </summary>
 		public int NumRequestedPodPrincipalComponents { get; set; } = 1;
+
+		/// <summary>
+		/// The ones actually used by the surrogate.
+		/// </summary>
+		public int NumUsedKarhunenLoeveTerms { get; private set; }
+
+		/// <summary>
+		/// The ones actually used by the surrogate.
+		/// </summary>
+		public int NumUsedPodPrincipalComponents { get; set; }
 
 		public int PodTimeStepPediod { get; set; } = 1;
 
@@ -125,7 +142,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public bool WritePredictReportsToConsole { get; set; } = false;
 
-		public double CalcPodReconstructionError(SolutionDatabaseDynamic solutionDB) 
+		public double CalcPodReconstructionError(SolutionDatabaseDynamic solutionDB)
 		{
 			double error = 0.0;
 			int numSamples = 0;
@@ -136,7 +153,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				error += solution.Subtract(predictedSolution).Norm2() / solution.Norm2(); //TODO: Aggregation should be done by different classes to implement various metrics
 				numSamples++;
 			}
-			
+
 			error /= numSamples;
 			return error;
 		}
@@ -175,7 +192,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			int fileExtPos = predictScript.LastIndexOf(".");
 			if (fileExtPos >= 0)
 			{
-				predictHistoryScript = predictScript.Substring(0, fileExtPos) + "_history.py";
+				predictHistoryScript = predictScript.Substring(0, fileExtPos) + "_history.py"; //TODO: Why is this filepath inferred, while "train.py" and "predict.py" are explicitly injected?
 			}
 		}
 
@@ -195,8 +212,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			// Prepare arrays and normalize
 			watch.Start();
-			float[] inputPy = timestepAsModelParam ? ArrayTypeUtilities.PrependAndConvertToFloat(timeStep, parameters)
-				: ArrayTypeUtilities.ConvertToFloat(parameters);
+			float[] inputPy = PrepareInput(timeStep, parameters);
 
 			#region debug
 			//WriteArrayToFile(Path.Combine(workDirectory, "input_before_normalization_cs.txt"), inputPy);
@@ -207,7 +223,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			//WriteArrayToFile(Path.Combine(workDirectory, "input_after_normalization_cs.txt"), inputPy);
 			#endregion
 
-			var outputPy = new float[podPrincipalComponents.NumColumns]; // TODO: This should be read from the surrogate architecture description, similarly to CaeFfnn version.
+			var outputPy = new float[NumUsedPodPrincipalComponents];
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
@@ -294,6 +310,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			}
 		}
 
+
 		private void PredictHistory(double[] parameters)
 		{
 			var watch = new Stopwatch();
@@ -301,16 +318,16 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			// Prepare arrays and normalize
 			watch.Start();
-			int numParams = timestepAsModelParam ? parameters.Length + 1 : parameters.Length;
+
+			int numParams = timestepAsModelParam ? 1 + NumUsedKarhunenLoeveTerms : NumUsedKarhunenLoeveTerms;
 			float[,] inputArraysPy = new float[batchSize, numParams];
 			for (int t = 0; t < batchSize; t++)
 			{
-				float[] inputPy = timestepAsModelParam ? ArrayTypeUtilities.PrependAndConvertToFloat(t, parameters)
-					: ArrayTypeUtilities.ConvertToFloat(parameters);
+				float[] inputPy = PrepareInput(t, parameters);
 				NormalizationOfParameters.Normalize(inputPy);
 				SetRow(inputArraysPy, t, inputPy);
 			}
-			
+
 			float[,] outputArraysPy = null;
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
@@ -349,7 +366,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				watch.Restart();
 				outputArraysPy = arrayIO.ReadArray2DFromFile(settingsFile.PodCoeffsPath);
 				Debug.Assert(outputArraysPy.GetLength(0) == batchSize);
-				Debug.Assert(outputArraysPy.GetLength(1) == podPrincipalComponents.NumColumns); // TODO: This should be read from the surrogate architecture description.
+				Debug.Assert(outputArraysPy.GetLength(1) == NumUsedPodPrincipalComponents);
 
 				#region debug
 				//var outputArrayPy1D = new float[300];
@@ -371,7 +388,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 					Vector prediction = podPrincipalComponents.Multiply(predictedCoeffs);
 					batchInitialGuessesForHistory[t] = prediction;
 				}
-				
+
 				if (UseSolutionDifferenceFromPreviousStep)
 				{
 					throw new NotImplementedException("Must add to the predictions obtained");
@@ -413,7 +430,9 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 			// POD training
 			TrainPod(solutionDB); //TODO. Reuse POD from preconditioner
+			this.NumUsedPodPrincipalComponents = podPrincipalComponents.NumColumns; // TODO: This should be read from the surrogate architecture description, similarly to CaeFfnn version.
 			float[,] sampleCoeffs = CompressSolutionVectors(solutionDB);
+			float[,] allCoeffs = sampleCoeffs; //TODO: ensure that the order of coefficients and parameters is the same. It is too fragile right now.
 
 			// Create datasets and normalize
 			watch.Start();
@@ -421,9 +440,22 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			{
 				solutionDB.SubtractSolutionOfPreviousTimestep(); //This will mess up POD if called before it
 			}
-			float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsModelParam, consecutiveTimeSteps:true); 
-			float[,] allCoeffs = sampleCoeffs; //TODO: ensure that the order of coefficients and parameters is the same. It is too fragile right now.
 
+			// Extract model params from DB
+			int numKLTermsInDB = solutionDB.CountModelParameters();
+			float[,] allParams;
+			if ((NumRequestedKarhunenLoeveTerms < 1) || (NumRequestedKarhunenLoeveTerms > numKLTermsInDB))
+			{
+				NumUsedKarhunenLoeveTerms = numKLTermsInDB;
+				allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsModelParam, consecutiveTimeSteps: true);
+			}
+			else
+			{
+				NumUsedKarhunenLoeveTerms = NumRequestedKarhunenLoeveTerms;
+				allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsModelParam, NumRequestedKarhunenLoeveTerms, consecutiveTimeSteps: true);
+			}
+
+			// Normalization
 			NormalizationOfParameters.InitializeAndApply(allParams);
 			NormalizationOfPodCoeffs.InitializeAndApply(allCoeffs);
 
@@ -462,7 +494,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				//	throw new InvalidOperationException(
 				//		"Training is set to be skipped, but there is no convolutional decoder network at path = " + decoderPath);
 				//}
-				/*else*/ if (!File.Exists(ffnnPath))
+				/*else*/
+				if (!File.Exists(ffnnPath))
 				{
 					throw new InvalidOperationException("Training is set to be skipped, but there is no FFNN network at path = " + ffnnPath);
 				}
@@ -526,7 +559,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			var pod = new ProperOrthogonalDecomposition(keepOnlyNonZeroPrincipalComponents);
 			Matrix principalComponents = pod.CalculatePrincipalComponents(
 				solutionColVectors.NumColumns, solutionColVectors, NumRequestedPodPrincipalComponents);
-			
+
 			this.podPrincipalComponents = principalComponents;
 		}
 
@@ -567,6 +600,26 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 						$"Python script exited with code {exitCode}, instead of 0 (successful) or 100 (handled error).");
 				}
 			}
+		}
+
+		private float[] PrepareInput(int timeStep, double[] modelParams)
+		{
+			int inputSize = timestepAsModelParam ? 1 + NumUsedKarhunenLoeveTerms : NumUsedKarhunenLoeveTerms;
+			var inputArray = new float[inputSize];
+
+			int offset = 0;
+			if (timestepAsModelParam)
+			{
+				inputArray[0] = timeStep;
+				offset = 1;
+			}
+
+			for (int i = 0; i < NumUsedKarhunenLoeveTerms; i++)
+			{
+				inputArray[offset + i] = (float)modelParams[i];
+			}
+
+			return inputArray;
 		}
 
 		private Vector SolveExactly()
