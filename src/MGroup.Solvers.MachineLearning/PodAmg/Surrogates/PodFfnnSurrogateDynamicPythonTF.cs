@@ -147,6 +147,11 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public bool WritePredictReportsToConsole { get; set; } = false;
 
+		/// <summary>
+		/// If null, nothing will be writen
+		/// </summary>
+		public string WriteFfnnIoToDirectoryForMatlab { get; set; } = null;
+
 		public double CalcPodReconstructionError(SolutionDatabaseDynamic solutionDB)
 		{
 			double error = 0.0;
@@ -530,6 +535,13 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				if (WriteTrainReportToConsole)
 				{
 					Console.WriteLine(durations.Report());
+				}
+
+				if (WriteFfnnIoToDirectoryForMatlab != null)
+				{
+					var ffnnIO = (SurrogateIODatabase)FfnnIOData;
+					ffnnIO.WriteSurfaceGraphForMatlab(false, WriteFfnnIoToDirectoryForMatlab);
+					ffnnIO.WriteSurfaceGraphForMatlab(true, WriteFfnnIoToDirectoryForMatlab);
 				}
 			}
 			finally

@@ -100,8 +100,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string normalizationForModelParams = "MinMax"; // Choose from "Null", "MinMax", "MinMaxWithoutShifting", "Zscore"
 		private const string normalizationForSolutions = "MinMax";
 		private const string normalizationForPodCoeffs = "MinMax";
-		private const int numSurrogatePodPrincipalComponents = 2;
-		private const int numSurrogateKLTerms = 2; // 0 = use the same as numKarhunenLoeveTerms
+		private const int numSurrogatePodPrincipalComponents = 1;
+		private const int numSurrogateKLTerms = 1; // 0 = use the same as numKarhunenLoeveTerms
 		private static readonly int surrogatePodTimeStepSavePeriod = Math.Min(5, timeStepSavePeriod);
 		//TODO: option to read models from files, instead of creating them from start
 		//TODO: option to predict initial solutions for all timesteps (of the same dynamic analysis) at once, instead of each timestep separately. This will greatly reduce communication overheads
@@ -673,6 +673,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
 				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
 				surrogate.FfnnIOData = new SurrogateIODatabase();
+				surrogate.WriteFfnnIoToDirectoryForMatlab = workDirectory;
 				SolutionPredictionStrategy = surrogate;
 			}
 			else
