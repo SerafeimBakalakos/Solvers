@@ -77,7 +77,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public bool Float64 { get; set; } = false;
 
-		public ISurrogateIODatabase FfnnIOData { get; set; } = new NullSurrogateIODatabase();
+		public ISurrogateIODatabase FfnnIOData { get; set; } = new NullSurrogateIODatabase(); //TODO: Perhaps there should be a separate one for predictions
 
 		public INormalizationStrategy NormalizationOfParameters { get; set; } = new MinMaxNormalization();
 
@@ -486,6 +486,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
+			// Possibly export the training data
+			if (WriteFfnnIoToDirectoryForMatlab != null)
+			{
+				var ffnnIO = (SurrogateIODatabase)FfnnIOData;
+				ffnnIO.WriteSurfaceGraphForMatlab(false, WriteFfnnIoToDirectoryForMatlab);
+				ffnnIO.WriteSurfaceGraphForMatlab(true, WriteFfnnIoToDirectoryForMatlab);
+			}
+
 			// Determine IO files
 			watch.Restart();
 			string extension = (arrayIO is ArrayBinaryFileIO) ? ".npy" : ".txt";
@@ -535,13 +543,6 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				if (WriteTrainReportToConsole)
 				{
 					Console.WriteLine(durations.Report());
-				}
-
-				if (WriteFfnnIoToDirectoryForMatlab != null)
-				{
-					var ffnnIO = (SurrogateIODatabase)FfnnIOData;
-					ffnnIO.WriteSurfaceGraphForMatlab(false, WriteFfnnIoToDirectoryForMatlab);
-					ffnnIO.WriteSurfaceGraphForMatlab(true, WriteFfnnIoToDirectoryForMatlab);
 				}
 			}
 			finally

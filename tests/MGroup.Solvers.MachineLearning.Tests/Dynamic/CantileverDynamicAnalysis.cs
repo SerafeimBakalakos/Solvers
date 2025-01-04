@@ -55,8 +55,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
-		private const int numAnalysesTotal = 50; // originally 800 (x60 = 48000)
-		private const int numAnalysesForTraining = 25; // originally 450 (x60 = 27000)
+		private const int numAnalysesTotal = 800; // originally 800 (x60 = 48000)
+		private const int numAnalysesForTraining = 450; // originally 450 (x60 = 27000)
 		private const int numTimeSteps = 60; // originally 60
 		private const double timeStepSize = 0.05;
 
@@ -74,7 +74,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double elasticityModulusStdDev = 10E6;
 		private const string elasticityFieldType = "KL"; // Valid inputs: "KL"=Karhunen-Loeve, "WN"=white noise, "HG"=homogeneous
 		private const int numKarhunenLoeveTerms = 6; // Originally 6.
-		private const double correlationLength = 0.5 * beamLength; // originally 0.5 * beamLength
+		private const double correlationLength = 2 * beamLength; // originally 0.5 * beamLength
 		private const bool nodalLoadIsConcentrated = true;
 		private const double materialDensity = 0.0001;
 
