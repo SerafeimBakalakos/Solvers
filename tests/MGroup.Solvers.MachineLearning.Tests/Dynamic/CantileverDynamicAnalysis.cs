@@ -55,8 +55,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
-		private const int numAnalysesTotal = 800; // originally 800 (x60 = 48000)
 		private const int numAnalysesForTraining = 450; // originally 450 (x60 = 27000)
+		private const int numAnalysesTotal = numAnalysesForTraining + 350; // originally 800 (x60 = 48000)
 		private const int numTimeSteps = 60; // originally 60
 		private const double timeStepSize = 0.05;
 
@@ -195,7 +195,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			arch.FfnnLearningRateStart = 1E-3f;
 			arch.FfnnLearningRateEnd = 1E-5f;
-			arch.FfnnNumEpochs = 500; //5000 is more than enough
+			arch.FfnnNumEpochs = 5000; //5000 is more than enough
 			arch.FfnnBatchSize = 20;
 
 			arch.FfnnLayers.Add(new Input1DLayer(arch.NumModelParams));
