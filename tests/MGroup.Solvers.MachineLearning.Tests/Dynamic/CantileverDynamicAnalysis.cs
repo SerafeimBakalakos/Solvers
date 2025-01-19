@@ -37,7 +37,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve;
 	using MGroup.Solvers.MachineLearning.StochasticExtensions.RandomNumberGeneration;
 	using MGroup.Solvers.MachineLearning.Tests.StochasticExtensions;
-
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
@@ -55,16 +54,17 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
-		private const int numAnalysesForTraining = 450; // originally 450 (x60 = 27000)
-		private const int numAnalysesTotal = numAnalysesForTraining + 350; // originally 800 (x60 = 48000)
+		private const int numAnalysesForTraining = 500; // originally 450 (x60 = 27000)
+		private const int numAnalysesForTesting = 10000; // originally 350
+		private const int numAnalysesTotal = numAnalysesForTraining + numAnalysesForTesting; // originally 800 (x60 = 48000)
 		private const int numTimeSteps = 60; // originally 60
 		private const double timeStepSize = 0.05;
 
 		// Model: geometry
 		//private static readonly int[] numElements = { 35, 140 }; //10080 dofs
 		private static readonly int[] numElements = { 5, 25 }; //300 dofs
-		//private static readonly int[] numElements = { 16, 80 };
-		//private static readonly int[] numElements = { 32, 160 };
+															   //private static readonly int[] numElements = { 16, 80 };
+															   //private static readonly int[] numElements = { 32, 160 };
 		private const double beamLength = 10;
 		private const double beamSectionHeight = 2.0;
 		private const double beamSectionWidth = 1.0;
@@ -79,8 +79,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double materialDensity = 0.0001;
 
 		// Model: loads
-		private const double externalLoadCyclicFrequency = 15; // originally 15 
-		private const double externalLoadPhaseDiff = Math.PI / 2; // originally 0 
+		private const double externalLoadCyclicFrequency = 15; // sin(omega*t + phi). Originally omega=15 
+		private const double externalLoadPhaseDiff = Math.PI / 2; // sin(omega*t + phi). Originally phi=pi/2 
+		private const CantileverDynamicModel.LoadType externalLoadType = CantileverDynamicModel.LoadType.Ramp; // Originally LoadType.Harmonic
 
 		// Solver: general
 		private const double pcgTol = 1E-6;
@@ -115,6 +116,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool readMLNetworksFromFileWithoutTraining = false;
 		private const double exactSolutionPercentageForPrediction = 0;
 		private const int rngSeed = 23;
+		private const int rngSeedForTestSet = 17;
+
 
 		private static CaeFfnnArchitecture DescribeCaeFfnnSurrogate(int[] numElementsPerAxis, int numModelParameters)
 		{
@@ -225,41 +228,53 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public static void RunAllAnalysesAndSaveSolutions()
 		{
-			var rng = new RepeatableRandom(rngSeed);
 			useDirectSolverInstead = true;
-			var stochasticAnalysis = new CantileverDynamicAnalysis();
-			stochasticAnalysis.InitializeModel(rng);
-			stochasticAnalysis.InitializeSolver();
 
-			var trainDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTraining);
+			var rngTrain = new RepeatableRandom(rngSeed);
+			var stochasticAnalysisTrain = new CantileverDynamicAnalysis();
+			stochasticAnalysisTrain.InitializeModel(rngTrain);
+			stochasticAnalysisTrain.InitializeSolver();
+
+			var trainDB = RunAndSaveAnalyses(stochasticAnalysisTrain, numAnalysesForTraining);
 			WriteTrainingDataForCaeFfnn(trainDB, false);
 
-			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesTotal - numAnalysesForTraining);
+			var rngTest = new RepeatableRandom(rngSeed);
+			var stochasticAnalysisTest = new CantileverDynamicAnalysis();
+			stochasticAnalysisTest.InitializeModel(rngTest);
+			stochasticAnalysisTest.InitializeSolver();
+
+			var testDB = RunAndSaveAnalyses(stochasticAnalysisTest, numAnalysesForTesting);
 			WriteTrainingDataForCaeFfnn(testDB, true);
 		}
 
 		public static void RunAllAnalysesAndSaveModelParamsAndPodCoeffs()
 		{
-			var rng = new RepeatableRandom(rngSeed);
 			useDirectSolverInstead = true;
-			var stochasticAnalysis = new CantileverDynamicAnalysis();
-			stochasticAnalysis.InitializeModel(rng);
-			stochasticAnalysis.InitializeSolver();
-			var surrogate = (PodFfnnSurrogateDynamicPythonTF)stochasticAnalysis.SolutionPredictionStrategy;
 
-			var trainDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTraining);
+			var rngTrain = new RepeatableRandom(rngSeed);
+			var stochasticAnalysisTrain = new CantileverDynamicAnalysis();
+			stochasticAnalysisTrain.InitializeModel(rngTrain);
+			stochasticAnalysisTrain.InitializeSolver();
+			var surrogateTrain = (PodFfnnSurrogateDynamicPythonTF)stochasticAnalysisTrain.SolutionPredictionStrategy;
+
+			var trainDB = RunAndSaveAnalyses(stochasticAnalysisTrain, numAnalysesForTraining);
 			bool timestepAsParam = numTimeSteps > 1;
 			float[,] trainModelParams = trainDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
-			surrogate.TrainPod(trainDB);
-			float[,] trainPodCoeffs = surrogate.CompressSolutionVectors(trainDB);
+			surrogateTrain.TrainPod(trainDB);
+			float[,] trainPodCoeffs = surrogateTrain.CompressSolutionVectors(trainDB);
 			WriteTrainingDataForPodFfnn(trainModelParams, trainPodCoeffs, false);
 
-			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesTotal - numAnalysesForTraining);
+			var rngTest = new RepeatableRandom(rngSeed);
+			var stochasticAnalysisTest = new CantileverDynamicAnalysis();
+			stochasticAnalysisTest.InitializeModel(rngTest);
+			stochasticAnalysisTest.InitializeSolver();
+
+			var testDB = RunAndSaveAnalyses(stochasticAnalysisTest, numAnalysesForTesting);
 			float[,] testModelParams = testDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
-			float[,] testPodCoeffs = surrogate.CompressSolutionVectors(testDB);
+			float[,] testPodCoeffs = surrogateTrain.CompressSolutionVectors(testDB);
 			WriteTrainingDataForPodFfnn(testModelParams, testPodCoeffs, true);
 
-			double error = surrogate.CalcPodReconstructionError(testDB);
+			double error = surrogateTrain.CalcPodReconstructionError(testDB);
 			Console.WriteLine($"POD reconstruction error = {error}");
 		}
 
@@ -283,6 +298,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				{
 					solutionDB.SaveSolution(i, t, solverLogger.GetSolutionVector(t));
 				}
+
+				//Console.WriteLine($"u(dof0, maxTimestep) = {solverLogger.GetSolutionVector(numTimeSteps - 1)[0]}");
 			}
 
 			return solutionDB;
@@ -310,7 +327,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			stochasticAnalysis.InitializeModel(rng);
 			stochasticAnalysis.InitializeSolver();
 			var trainDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTraining);
-			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesTotal - numAnalysesForTraining);
+			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTesting);
 
 			// Surrogate settings
 			Console.WriteLine("Initializing surrogate");
@@ -449,6 +466,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			example.BeamSectionWidth = beamSectionWidth;
 			example.NodalLoadIsConcentrated = nodalLoadIsConcentrated;
 			example.Density = materialDensity;
+			example.ExternalLoadType = externalLoadType;
 			example.ExternalLoadCyclicFrequency = externalLoadCyclicFrequency;
 			example.ExternalLoadPhaseDiff = externalLoadPhaseDiff;
 

@@ -20,6 +20,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 	public class CantileverDynamicModel
 	{
+		public enum LoadType { Ramp, Harmonic }
+
 		private readonly bool use3DElements;
 		private readonly int[] numElementsPerAxis;
 		private readonly IRandomField1D elasticityField;
@@ -43,7 +45,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		/// <summary>
 		/// In kN
 		/// </summary>
-		public double ExternalLoadAmplitude { get; set; } = 20;
+		public double ExternalLoadMaxValue { get; set; } = 20;
 
 		/// <summary>
 		/// In rad/s
@@ -51,6 +53,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public double ExternalLoadCyclicFrequency { get; set; } = 15;
 
 		public double ExternalLoadPhaseDiff { get; set; } = 0;
+
+		public LoadType ExternalLoadType { get; set; } = LoadType.Harmonic;
 
 		public bool NodalLoadIsConcentrated { get; set; } = true;
 
@@ -244,14 +248,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				spatialLoadDistribution.Add(new NodalLoad(node, StructuralDof.TranslationX, amount: 1.0));
 			}
 
-			var load = new DynamicLoad(ExternalLoadAmplitude, ExternalLoadCyclicFrequency, TimeStep, ExternalLoadPhaseDiff);
+			Func<double, double, double> calcExternalLoad = ChooseExternalLoad();
 			var transientConstraints = new List<INodalDisplacementBoundaryCondition>(); // Empty: no transient constraints
 			var transientBoundaryConditions = new StructuralTransientBoundaryConditionSet(
 				new List<IBoundaryConditionSet<IStructuralDofType>>()
 				{
 					new StructuralBoundaryConditionSet(transientConstraints, spatialLoadDistribution)
 				},
-				load.Evaluate/*EvaluateExternalLoad*/);
+				calcExternalLoad);
 			model.BoundaryConditions.Add(transientBoundaryConditions);
 		}
 
@@ -264,14 +268,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				spatialLoadDistribution.Add(new NodalLoad(node, StructuralDof.TranslationX, amount: 1.0));
 			}
 
-			var load = new DynamicLoad(ExternalLoadAmplitude, ExternalLoadCyclicFrequency, TimeStep, ExternalLoadPhaseDiff);
+			Func<double, double, double> calcExternalLoad = ChooseExternalLoad();
 			var transientConstraints = new List<INodalDisplacementBoundaryCondition>(); // Empty: no transient constraints
 			var transientBoundaryConditions = new StructuralTransientBoundaryConditionSet(
 				new List<IBoundaryConditionSet<IStructuralDofType>>()
 				{
 					new StructuralBoundaryConditionSet(transientConstraints, spatialLoadDistribution)
 				},
-				load.Evaluate/*EvaluateExternalLoad*/);
+				calcExternalLoad);
 			model.BoundaryConditions.Add(transientBoundaryConditions);
 		}
 
@@ -280,10 +284,28 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			throw new NotImplementedException();
 		}
 
+		private Func<double, double, double> ChooseExternalLoad()
+		{
+			if (ExternalLoadType == LoadType.Harmonic)
+			{
+				var load = new DynamicHarmonicLoad(ExternalLoadMaxValue, ExternalLoadCyclicFrequency, TimeStep, ExternalLoadPhaseDiff);
+				return load.Evaluate;
+			}
+			else if (ExternalLoadType == LoadType.Ramp)
+			{
+				var load = new DynamicRampLoad(ExternalLoadMaxValue, TotalDuration);
+				return load.Evaluate;
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}
+		}
+
 		private double EvaluateExternalLoad(double t, double spatialLoadComponent)
 		{
 			Console.WriteLine(t);
-			return spatialLoadComponent * ExternalLoadAmplitude * Math.Sin(ExternalLoadCyclicFrequency * t);
+			return spatialLoadComponent * ExternalLoadMaxValue * Math.Sin(ExternalLoadCyclicFrequency * t);
 		}
 
 		private IEnumerable<INode> FindNodesAtSection(double distanceOnAxis, Model model)
@@ -327,14 +349,14 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 		}
 
-		private class DynamicLoad
+		private class DynamicHarmonicLoad
 		{
 			private readonly double amplitude;
 			private readonly double frequency;
 			private readonly double delay;
 			private readonly double phaseDiff;
 
-			public DynamicLoad(double amplitude, double frequency, double delay, double phaseDiff)
+			public DynamicHarmonicLoad(double amplitude, double frequency, double delay, double phaseDiff)
 			{
 				this.amplitude = amplitude;
 				this.frequency = frequency;
@@ -348,6 +370,31 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				//double time = t + delay;
 				//Console.WriteLine(time);
 				return spatialLoadComponent * amplitude * Math.Sin(frequency * time + phaseDiff);
+			}
+		}
+
+		private class DynamicRampLoad
+		{
+			private readonly double maxLoad;
+			private readonly double rampDuration;
+
+			public DynamicRampLoad(double maxLoad, double rampDuration)
+			{
+				this.maxLoad = maxLoad;
+				this.rampDuration = rampDuration;
+			}
+
+			public double Evaluate(double t, double spatialLoadComponent)
+			{
+				double time = t;
+				if (time < rampDuration)
+				{
+					return maxLoad * time / rampDuration;
+				}
+				else
+				{
+					return maxLoad;
+				}
 			}
 		}
 	}
