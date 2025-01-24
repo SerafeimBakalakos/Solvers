@@ -4,6 +4,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Data;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Linq;
@@ -37,6 +38,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.MachineLearning.StochasticExtensions.KarhunenLoeve;
 	using MGroup.Solvers.MachineLearning.StochasticExtensions.RandomNumberGeneration;
 	using MGroup.Solvers.MachineLearning.Tests.StochasticExtensions;
+	using MGroup.Solvers.MachineLearning.Tests.Utilities;
+
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
@@ -55,6 +58,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		// Number of analyses
 		private const int numAnalysesForTraining = 500; // originally 450 (x60 = 27000)
+		private const int numAnalysesForValidation = 125; // e.g. train / validation / test set = 60% / 20% / 20%
 		private const int numAnalysesForTesting = 10000; // originally 350
 		private const int numAnalysesTotal = numAnalysesForTraining + numAnalysesForTesting; // originally 800 (x60 = 48000)
 		private const int numTimeSteps = 60; // originally 60
@@ -115,9 +119,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const char saveLoadOrNotPretrainingAnalyses = 'S'; // 'S' for save, 'L' for load, anything else for neither.
 		private const bool readMLNetworksFromFileWithoutTraining = false;
 		private const double exactSolutionPercentageForPrediction = 0;
-		private const int rngSeed = 23;
+		private const int rngSeedForTrainSet = 23;
 		private const int rngSeedForTestSet = 17;
-
+		private const int rngSeedForValidationSet = 31;
 
 		private static CaeFfnnArchitecture DescribeCaeFfnnSurrogate(int[] numElementsPerAxis, int numModelParameters)
 		{
@@ -230,52 +234,73 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		{
 			useDirectSolverInstead = true;
 
-			var rngTrain = new RepeatableRandom(rngSeed);
-			var stochasticAnalysisTrain = new CantileverDynamicAnalysis();
-			stochasticAnalysisTrain.InitializeModel(rngTrain);
-			stochasticAnalysisTrain.InitializeSolver();
+			var rng = new RepeatableRandom(rngSeedForTrainSet);
+			var stochasticAnalysis = new CantileverDynamicAnalysis();
+			stochasticAnalysis.InitializeModel(rng);
+			stochasticAnalysis.InitializeSolver();
 
-			var trainDB = RunAndSaveAnalyses(stochasticAnalysisTrain, numAnalysesForTraining);
-			WriteTrainingDataForCaeFfnn(trainDB, false);
+			var trainDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTraining);
+			WriteTrainingDataForCaeFfnn(trainDB, DataSetType.Train);
 
-			var rngTest = new RepeatableRandom(rngSeed);
-			var stochasticAnalysisTest = new CantileverDynamicAnalysis();
-			stochasticAnalysisTest.InitializeModel(rngTest);
-			stochasticAnalysisTest.InitializeSolver();
+			rng = new RepeatableRandom(rngSeedForTestSet);
+			stochasticAnalysis = new CantileverDynamicAnalysis();
+			stochasticAnalysis.InitializeModel(rng);
+			stochasticAnalysis.InitializeSolver();
 
-			var testDB = RunAndSaveAnalyses(stochasticAnalysisTest, numAnalysesForTesting);
-			WriteTrainingDataForCaeFfnn(testDB, true);
+			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTesting);
+			WriteTrainingDataForCaeFfnn(testDB, DataSetType.Test);
+
+			rng = new RepeatableRandom(rngSeedForValidationSet);
+			stochasticAnalysis = new CantileverDynamicAnalysis();
+			stochasticAnalysis.InitializeModel(rng);
+			stochasticAnalysis.InitializeSolver();
+
+			var validationDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForValidation);
+			WriteTrainingDataForCaeFfnn(validationDB, DataSetType.Validation);
 		}
 
 		public static void RunAllAnalysesAndSaveModelParamsAndPodCoeffs()
 		{
 			useDirectSolverInstead = true;
 
-			var rngTrain = new RepeatableRandom(rngSeed);
-			var stochasticAnalysisTrain = new CantileverDynamicAnalysis();
-			stochasticAnalysisTrain.InitializeModel(rngTrain);
-			stochasticAnalysisTrain.InitializeSolver();
-			var surrogateTrain = (PodFfnnSurrogateDynamicPythonTF)stochasticAnalysisTrain.SolutionPredictionStrategy;
+			// Train set
+			var rng = new RepeatableRandom(rngSeedForTrainSet);
+			var stochasticAnalysis = new CantileverDynamicAnalysis();
+			stochasticAnalysis.InitializeModel(rng);
+			stochasticAnalysis.InitializeSolver();
+			var surrogate = (PodFfnnSurrogateDynamicPythonTF)stochasticAnalysis.SolutionPredictionStrategy;
 
-			var trainDB = RunAndSaveAnalyses(stochasticAnalysisTrain, numAnalysesForTraining);
+			var trainDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTraining);
 			bool timestepAsParam = numTimeSteps > 1;
-			float[,] trainModelParams = trainDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
-			surrogateTrain.TrainPod(trainDB);
-			float[,] trainPodCoeffs = surrogateTrain.CompressSolutionVectors(trainDB);
-			WriteTrainingDataForPodFfnn(trainModelParams, trainPodCoeffs, false);
+			float[,] modelParams = trainDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
+			surrogate.TrainPod(trainDB);  //TODO: Perhaps the validation set can be included here
+			float[,] podCoeffs = surrogate.CompressSolutionVectors(trainDB);
+			WriteTrainingDataForPodFfnn(modelParams, podCoeffs, DataSetType.Train);
 
-			var rngTest = new RepeatableRandom(rngSeed);
-			var stochasticAnalysisTest = new CantileverDynamicAnalysis();
-			stochasticAnalysisTest.InitializeModel(rngTest);
-			stochasticAnalysisTest.InitializeSolver();
+			// Test set
+			rng = new RepeatableRandom(rngSeedForTestSet);
+			stochasticAnalysis = new CantileverDynamicAnalysis();
+			stochasticAnalysis.InitializeModel(rng);
+			stochasticAnalysis.InitializeSolver();
 
-			var testDB = RunAndSaveAnalyses(stochasticAnalysisTest, numAnalysesForTesting);
-			float[,] testModelParams = testDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
-			float[,] testPodCoeffs = surrogateTrain.CompressSolutionVectors(testDB);
-			WriteTrainingDataForPodFfnn(testModelParams, testPodCoeffs, true);
+			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTesting);
+			modelParams = testDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
+			podCoeffs = surrogate.CompressSolutionVectors(testDB);
+			WriteTrainingDataForPodFfnn(modelParams, podCoeffs, DataSetType.Test);
 
-			double error = surrogateTrain.CalcPodReconstructionError(testDB);
+			double error = surrogate.CalcPodReconstructionError(testDB);
 			Console.WriteLine($"POD reconstruction error = {error}");
+
+			// Validation set
+			rng = new RepeatableRandom(rngSeedForValidationSet);
+			stochasticAnalysis = new CantileverDynamicAnalysis();
+			stochasticAnalysis.InitializeModel(rng);
+			stochasticAnalysis.InitializeSolver();
+
+			var validationDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForValidation);
+			modelParams = validationDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
+			podCoeffs = surrogate.CompressSolutionVectors(validationDB);
+			WriteTrainingDataForPodFfnn(modelParams, podCoeffs, DataSetType.Validation);
 		}
 
 		private static SolutionDatabaseDynamic RunAndSaveAnalyses(CantileverDynamicAnalysis stochasticAnalysis, int numAnalyses)
@@ -321,7 +346,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			// Create train and test databases
 			//TODO: Read the DBs from files
 			Console.WriteLine("Running all analyses to obtain the train and test datasets");
-			var rng = new RepeatableRandom(rngSeed);
+			var rng = new RepeatableRandom(rngSeedForTrainSet);
 			useDirectSolverInstead = true;
 			var stochasticAnalysis = new CantileverDynamicAnalysis();
 			stochasticAnalysis.InitializeModel(rng);
@@ -344,7 +369,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
 			surrogate.NormalizationOfSolutions = ChooseNormalization(normalizationForSolutions);
 			surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
-			surrogate.TensorFlowSeed = rngSeed;
+			surrogate.TensorFlowSeed = rngSeedForTrainSet;
 			surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
 			surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
 			surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
@@ -504,7 +529,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public StochasticAnalysisRunner PrepareStochasticAnalysis(int numAnalysesTotal, int numAnalysesForTraining)
 		{
-			var runner = new StochasticAnalysisRunner(this, rngSeed);
+			var runner = new StochasticAnalysisRunner(this, rngSeedForTrainSet);
 			runner.PrintMessagesToConsole = printAnalysisMessagesToConsole;
 
 			runner.Responses.Add(new ResponseNumeric()
@@ -656,7 +681,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				//surrogate.float64 = false;
 				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
 				surrogate.NormalizationOfSolutions = ChooseNormalization(normalizationForSolutions);
-				surrogate.TensorFlowSeed = rngSeed;
+				surrogate.TensorFlowSeed = rngSeedForTrainSet;
 				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
 				surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
 				surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
@@ -680,7 +705,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				surrogate.PodTimeStepPediod = surrogatePodTimeStepSavePeriod;
 				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
 				surrogate.NormalizationOfPodCoeffs = ChooseNormalization(normalizationForPodCoeffs);
-				surrogate.TensorFlowSeed = rngSeed;
+				surrogate.TensorFlowSeed = rngSeedForTrainSet;
 				surrogate.BatchTimeHistoryPredictions = batchTimeHistoryPredictions;
 				//surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
 				//surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
@@ -782,7 +807,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			Console.Write(msg);
 		}
 
-		private static void WriteTrainingDataForCaeFfnn(SolutionDatabaseDynamic solutionDB, bool testData)
+		private static void WriteTrainingDataForCaeFfnn(SolutionDatabaseDynamic solutionDB, DataSetType dataSet)
 		{
 			bool timestepAsParam = numTimeSteps > 1;
 			float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
@@ -801,7 +826,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			string directory = Path.Combine(workDirectory, "python_experimenting");
 			Directory.CreateDirectory(directory);
-			string prefix = testData ? "test" : "train";
+
+			string prefix = WriteDataSetPrefix(dataSet);
 			string pathModelParams = Path.Combine(directory, prefix + "_model_params.npy");
 			string pathSolutions = Path.Combine(directory, prefix + "_solutions.npy");
 
@@ -810,7 +836,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			arrayIO.WriteArray2DToFile(allSolutions, pathSolutions);
 		}
 
-		private static void WriteTrainingDataForPodFfnn(float[,] modelParams, float[,] podCoeffs, bool testData)
+		private static void WriteTrainingDataForPodFfnn(float[,] modelParams, float[,] podCoeffs, DataSetType dataSet)
 		{
 			INormalizationStrategy normalizationParams = ChooseNormalization(normalizationForModelParams);
 			normalizationParams.InitializeAndApply(modelParams);
@@ -825,7 +851,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			string directory = Path.Combine(workDirectory, "python_experimenting");
 			Directory.CreateDirectory(directory);
-			string prefix = testData ? "test" : "train";
+			string prefix = WriteDataSetPrefix(dataSet);
 			string pathModelParams = Path.Combine(directory, prefix + "_model_params.npy");
 			string pathPodCoeffs = Path.Combine(directory, prefix + "_pod_coeffs.npy");
 
@@ -855,6 +881,22 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			else
 			{
 				throw new Exception("Invalid normalization name");
+			}
+		}
+
+		private static string WriteDataSetPrefix(DataSetType dataSet)
+		{
+			if (dataSet == DataSetType.Train)
+			{
+				return "train";
+			}
+			else if (dataSet == DataSetType.Test)
+			{
+				return "test";
+			}
+			else
+			{
+				return "validation";
 			}
 		}
 	}
