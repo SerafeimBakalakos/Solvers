@@ -70,11 +70,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		/// <summary>
 		/// In seconds
 		/// </summary>
-		public double TotalDuration { get; private set; } = 100;
+		public double RampDuration { get; private set; } = 100;
 
 		public void SetTimeSteps(double totalDuration, int numTimeSteps)
 		{
-			TotalDuration = totalDuration;
 			TimeStep = totalDuration / numTimeSteps;
 		}
 
@@ -293,7 +292,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 			else if (ExternalLoadType == LoadType.Ramp)
 			{
-				var load = new DynamicRampLoad(ExternalLoadMaxValue, TotalDuration);
+				var load = new DynamicRampLoad(ExternalLoadMaxValue, RampDuration);
 				return load.Evaluate;
 			}
 			else

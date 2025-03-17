@@ -21,11 +21,13 @@ namespace MGroup.Solvers.MachineLearning.Tests
 			//CantileverDynamicAnalysis.RunAllAnalysesAndSaveSolutions();
 			//CantileverDynamicAnalysis.RunAllAnalysesAndSaveModelParamsAndPodCoeffs();
 			//CantileverDynamicAnalysis.CalcSurrogateError();
-			CantileverDynamicAnalysis.RunStochasticAnalysis();
+			//CantileverDynamicAnalysis.RunStochasticAnalysis();
 
 			//CantileverStaticAnalysis.RunAllAnalysesAndSaveSolutions();
 			//CantileverStaticAnalysis.CalcSurrogateError();
 			//CantileverStaticAnalysis.RunStochasticAnalysis();
+
+			SingleDofAnalysis.RunAllAnalysesAndSaveModelParamsAndTimeHistory();
 		}
 
 		private static void TrySerialization()
