@@ -41,7 +41,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	using MGroup.Solvers.MachineLearning.Tests.StochasticExtensions;
 	using MGroup.Solvers.MachineLearning.Tests.Utilities;
 
-	public class SingleDofAnalysis : IAutoStochasticAnalysis
+	public class SingleDofAnalysis
 	{
 		// Paths
 		private const bool runOnCluster = false;
@@ -70,14 +70,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool isExternalLoadRamp = false;
 
 		// Surrogate
-		private const bool useBinaryIOFiles = true;
-		private const bool batchTimeHistoryPredictions = true;
 		private const string normalizationForModelParams = "MinMax"; // Choose from "Null", "MinMax", "MinMaxWithoutShifting", "Zscore"
 		private const string normalizationForSolutions = "MinMax";
-
-		// Reports
-		private const bool printAnalysisMessagesToConsole = true;
-		private const bool printSurrogatePredictionMessagesToConsole = false;
 
 		// Misc
 		private const int rngSeedForTrainSet = 23;
@@ -184,11 +178,6 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 
 			return (model, parameters, solutions);
-		}
-
-		public Dictionary<string, object> RunSingleAnalysis(int analysisId)
-		{
-			throw new NotImplementedException();
 		}
 
 		private static void WriteTrainingData(float[,] modelParams, float[,] solutions, DataSetType dataSet)

@@ -123,5 +123,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 				}
 			}
 		}
+
+		public void WriteArray3DToFile(float[,,] array, string file) => throw new NotImplementedException();
 	}
 }

@@ -45,5 +45,10 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		{
 			np.Save(array, file);
 		}
+
+		public void WriteArray3DToFile(float[,,] array, string file)
+		{
+			np.Save(array, file);
+		}
 	}
 }

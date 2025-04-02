@@ -345,6 +345,34 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 		}
 
 		/// <summary>
+		/// The returned 3D array has dimensions (numParamSets x numDofs x numTimeSteps)
+		/// </summary>
+		/// <returns></returns>
+		public float[,,] ToFloatArray3DSolutions()
+		{
+			var result = new float[CountParameterSets(), CountDofs(), CountTimeSteps()];
+			int p = 0;
+			foreach (int paramSetId in EnumerateParameterSetIDs())
+			{
+				int t = 0;
+				foreach (int timeStep in EnumerateTimeSteps())
+				{
+					double[] solution = savedSolutions[paramSetId][timeStep];
+					for (int d = 0; d < solution.Length; d++)
+					{
+						result[p, d, t] = (float)(solution[d]);
+					}
+
+					t++;
+				}
+
+				p++;
+			}
+
+			return result;
+		}
+
+		/// <summary>
 		/// Each row of the returned matrix is an array that stores the timestep, followed by the model parameters: 
 		/// [timestep, param0, param1, ..., paramN]. The rows are in the same order as those in the matrix returned by 
 		/// <see cref="ToArray2DAllSolutionsAsRows(bool)"/>, provided that the same value for the flag
@@ -427,6 +455,22 @@ namespace MGroup.Solvers.MachineLearning.PodAmg
 						row++;
 					}
 				}
+			}
+
+			return result;
+		}
+
+		public float[,] ToFloatArray2DAllParametersAsRows()
+		{
+			int numParams = CountModelParameters();
+			int numParamSets = savedParameterSetIDs.Count;
+			var result = new float[numParamSets, numParams];
+			int row = 0;
+			foreach (int paramSetID in EnumerateParameterSetIDs())
+			{
+				double[] parameters = GetModelParameters(paramSetID);
+				SetRow(result, row, parameters);
+				row++;
 			}
 
 			return result;

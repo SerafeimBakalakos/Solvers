@@ -57,9 +57,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const string predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
 
 		// Number of analyses
-		private const int numAnalysesForTraining = 500; // originally 450 (x60 = 27000)
-		private const int numAnalysesForValidation = 125; // e.g. train / validation / test set = 60% / 20% / 20%
-		private const int numAnalysesForTesting = 10000; // originally 350
+		private const int numAnalysesForTraining = 1000; // originally 450 (x60 = 27000)
+		private const int numAnalysesForValidation = 500; // e.g. train / validation / test set = 60% / 20% / 20%
+		private const int numAnalysesForTesting = 1000; // originally 350
 		private const int numAnalysesTotal = numAnalysesForTraining + numAnalysesForTesting; // originally 800 (x60 = 48000)
 		private const int numTimeSteps = 60; // originally 60
 		private const double timeStepSize = 0.05;
@@ -80,7 +80,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const int numKarhunenLoeveTerms = 6; // Originally 6.
 		private const double correlationLength = 2 * beamLength; // originally 0.5 * beamLength
 		private const bool nodalLoadIsConcentrated = true;
-		private const double materialDensity = 0.0001;
+		private const double materialDensity = 0.01;
 
 		// Model: loads
 		private const double externalLoadCyclicFrequency = 15; // sin(omega*t + phi). Originally omega=15 
@@ -102,8 +102,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool useSolutionDifferenceFromPreviousStep = false;
 		private const bool useBinaryIOFiles = true;
 		private const bool batchTimeHistoryPredictions = true;
-		private const string normalizationForModelParams = "MinMax"; // Choose from "Null", "MinMax", "MinMaxWithoutShifting", "Zscore"
-		private const string normalizationForSolutions = "MinMax";
+		private const string normalizationForModelParams = "Null"; // Choose from "Null", "MinMax", "MinMaxWithoutShifting", "Zscore"
+		private const string normalizationForSolutions = "Null";
 		private const string normalizationForPodCoeffs = "MinMax";
 		private const int numSurrogatePodPrincipalComponents = 1;
 		private const int numSurrogateKLTerms = 1; // 0 = use the same as numKarhunenLoeveTerms
@@ -233,6 +233,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		public static void RunAllAnalysesAndSaveSolutions()
 		{
 			useDirectSolverInstead = true;
+			bool treatTimeAsModelParam = false;
 
 			var rng = new RepeatableRandom(rngSeedForTrainSet);
 			var stochasticAnalysis = new CantileverDynamicAnalysis();
@@ -240,7 +241,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			stochasticAnalysis.InitializeSolver();
 
 			var trainDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTraining);
-			WriteTrainingDataForCaeFfnn(trainDB, DataSetType.Train);
+			WriteTrainingDataForCaeFfnn(trainDB, DataSetType.Train, treatTimeAsModelParam);
 
 			rng = new RepeatableRandom(rngSeedForTestSet);
 			stochasticAnalysis = new CantileverDynamicAnalysis();
@@ -248,7 +249,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			stochasticAnalysis.InitializeSolver();
 
 			var testDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForTesting);
-			WriteTrainingDataForCaeFfnn(testDB, DataSetType.Test);
+			WriteTrainingDataForCaeFfnn(testDB, DataSetType.Test, treatTimeAsModelParam);
 
 			rng = new RepeatableRandom(rngSeedForValidationSet);
 			stochasticAnalysis = new CantileverDynamicAnalysis();
@@ -256,7 +257,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			stochasticAnalysis.InitializeSolver();
 
 			var validationDB = RunAndSaveAnalyses(stochasticAnalysis, numAnalysesForValidation);
-			WriteTrainingDataForCaeFfnn(validationDB, DataSetType.Validation);
+			WriteTrainingDataForCaeFfnn(validationDB, DataSetType.Validation, treatTimeAsModelParam);
 		}
 
 		public static void RunAllAnalysesAndSaveModelParamsAndPodCoeffs()
@@ -807,17 +808,10 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			Console.Write(msg);
 		}
 
-		private static void WriteTrainingDataForCaeFfnn(SolutionDatabaseDynamic solutionDB, DataSetType dataSet)
+		private static void WriteTrainingDataForCaeFfnn(SolutionDatabaseDynamic solutionDB, DataSetType dataSet, bool treatTimeAsModelParam)
 		{
-			bool timestepAsParam = numTimeSteps > 1;
-			float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
-			float[,] allSolutions = solutionDB.ToFloatArray2DAllSolutionsAsRows(true);
-
 			INormalizationStrategy normalizationParams = ChooseNormalization(normalizationForModelParams);
-			normalizationParams.InitializeAndApply(allParams);
-
 			INormalizationStrategy normalizationSolutions = ChooseNormalization(normalizationForSolutions);
-			normalizationSolutions.InitializeAndApply(allSolutions);
 
 			if (!Directory.Exists(workDirectory))
 			{
@@ -826,14 +820,40 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 			string directory = Path.Combine(workDirectory, "python_experimenting");
 			Directory.CreateDirectory(directory);
-
 			string prefix = WriteDataSetPrefix(dataSet);
 			string pathModelParams = Path.Combine(directory, prefix + "_model_params.npy");
 			string pathSolutions = Path.Combine(directory, prefix + "_solutions.npy");
 
 			IArrayFileIO arrayIO = new ArrayBinaryFileIO();
-			arrayIO.WriteArray2DToFile(allParams, pathModelParams);
-			arrayIO.WriteArray2DToFile(allSolutions, pathSolutions);
+
+			if (treatTimeAsModelParam)
+			{
+				bool timestepAsParam = numTimeSteps > 1;
+				float[,] allParams = solutionDB.ToFloatArray2DAllParametersAndTimestepsAsRows(timestepAsParam, true);
+				float[,] allSolutions = solutionDB.ToFloatArray2DAllSolutionsAsRows(true);
+
+				normalizationParams.InitializeAndApply(allParams);
+				normalizationSolutions.InitializeAndApply(allSolutions);
+
+				arrayIO.WriteArray2DToFile(allParams, pathModelParams);
+				arrayIO.WriteArray2DToFile(allSolutions, pathSolutions);
+			}
+			else
+			{
+				float[,] allParams = solutionDB.ToFloatArray2DAllParametersAsRows();
+				float[,,] allSolutions = solutionDB.ToFloatArray3DSolutions();
+
+				if (!(normalizationParams is NullNormalization && normalizationSolutions is NullNormalization))
+				{
+					throw new NotImplementedException();
+				}
+
+				//normalizationParams.InitializeAndApply(allParams);
+				//normalizationSolutions.InitializeAndApply(allSolutions);
+
+				arrayIO.WriteArray2DToFile(allParams, pathModelParams);
+				arrayIO.WriteArray3DToFile(allSolutions, pathSolutions);
+			}
 		}
 
 		private static void WriteTrainingDataForPodFfnn(float[,] modelParams, float[,] podCoeffs, DataSetType dataSet)

@@ -19,5 +19,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		public void WriteArray2DToFile(double[,] array, string file);
 
 		public void WriteArray2DToFile(float[,] array, string file);
+
+		public void WriteArray3DToFile(float[,,] array, string file);
 	}
 }
