@@ -46,7 +46,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		// Paths
 		private const bool runOnCluster = false;
 		private const string workDirectory = runOnCluster ?
-			"C:\\Users\\cluster\\Desktop\\Serafeim\\results\\SingleDof"
+			"M:\\Serafeim\\results\\SingleDof"
 			: "C:\\Users\\Serafeim\\Desktop\\AISolve\\SingleDof";
 
 		// Number of analyses
