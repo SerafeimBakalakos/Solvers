@@ -43,25 +43,59 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
-		private const bool runOnCluster = false;
-		private const string workDirectory = runOnCluster ?
-			"M:\\Serafeim\\results\\CantileverDynamicLinear"
-			: "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
-		private const string pythonProjectDirectory = runOnCluster ?
-			"C:\\Users\\cluster\\Desktop\\Serafeim\\code\\Python\\cs2py_ml_surrogates"
-			: "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates";
-		private const string pythonInterpreter = pythonProjectDirectory + "\\venv\\Scripts\\python.exe";
-		private const string trainScriptCaeFffnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
-		private const string trainScriptPodFffnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\train.py";
-		private const string predictScriptCaeFfnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
-		private const string predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
+		private static int machineID = 0; // 0 = Serafeim's local machine, 1 = cluster (Serafeim folders on 204), 2 = cluster (Atzarakis folders on 207)
+		private static string workDirectory;
+		private static string pythonProjectDirectory;
+		private static string pythonInterpreter;
+		private static string trainScriptCaeFffnn;
+		private static string trainScriptPodFffnn;
+		private static string predictScriptCaeFfnn;
+		private static string predictScriptPodFfnn;
+
+		static CantileverDynamicAnalysis()
+		{
+			if (machineID == 0) // Serafeim's local machine
+			{
+				workDirectory = "C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear";
+				pythonProjectDirectory = "C:\\Coding\\Dev\\Python\\cs2py_ml_surrogates";
+				pythonInterpreter = pythonProjectDirectory + "\\venv\\Scripts\\python.exe";
+				trainScriptCaeFffnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
+				trainScriptPodFffnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\train.py";
+				predictScriptCaeFfnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
+				predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
+			}
+			else if (machineID == 1) // cluster (Serafeim folders on 204)
+			{
+				workDirectory = "M:\\Serafeim\\results\\CantileverDynamicLinear";
+				pythonProjectDirectory = "C:\\Users\\cluster\\Desktop\\Serafeim\\code\\Python\\cs2py_ml_surrogates";
+				pythonInterpreter = pythonProjectDirectory + "\\venv\\Scripts\\python.exe";
+				trainScriptCaeFffnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
+				trainScriptPodFffnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\train.py";
+				predictScriptCaeFfnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
+				predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
+			}
+			else if (machineID == 2) // cluster(Atzarakis folders on 207)
+			{
+				workDirectory = "M:\\shared\\Serafeim_Atzarakis\\results\\CantileverDynamicLinear";
+				pythonProjectDirectory = "C:\\Users\\cluster\\constantinos\\dl-project\\dl-experiments";
+				pythonInterpreter = pythonProjectDirectory + "\\.venv\\Scripts\\python.exe";
+				trainScriptCaeFffnn = null;
+				trainScriptPodFffnn = null;
+				predictScriptCaeFfnn = pythonProjectDirectory + "";
+				predictScriptPodFfnn = null;
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}
+		}
 
 		// Number of analyses
 		private const int numAnalysesForTraining = 1000; // originally 450 (x60 = 27000)
 		private const int numAnalysesForValidation = 500; // e.g. train / validation / test set = 60% / 20% / 20%
 		private const int numAnalysesForTesting = 1000; // originally 350
 		private const int numAnalysesTotal = numAnalysesForTraining + numAnalysesForTesting; // originally 800 (x60 = 48000)
-		private const int numTimeSteps = 60; // originally 60
+		private const int numTimeSteps = 200; // originally 60
 		private const double timeStepSize = 0.05;
 
 		// Model: geometry
@@ -85,7 +119,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		// Model: loads
 		private const double externalLoadCyclicFrequency = 15; // sin(omega*t + phi). Originally omega=15 
 		private const double externalLoadPhaseDiff = Math.PI / 2; // sin(omega*t + phi). Originally phi=pi/2 
-		private const CantileverDynamicModel.LoadType externalLoadType = CantileverDynamicModel.LoadType.Ramp; // Originally LoadType.Harmonic
+		private const CantileverDynamicModel.LoadType externalLoadType = CantileverDynamicModel.LoadType.Harmonic; // Originally LoadType.Harmonic
 
 		// Solver: general
 		private const double pcgTol = 1E-6;
