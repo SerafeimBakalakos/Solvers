@@ -126,7 +126,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			int numParams = parameters.Length;
 			float[] inputPy = ArrayTypeUtilities.ConvertToFloat(parameters);
 			NormalizationOfParameters.Normalize(inputPy);
-						
+
 			float[,] outputArraysPy = null;
 			watch.Stop();
 			durations.DataArraysPreparation += watch.ElapsedMilliseconds;
@@ -178,7 +178,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 					var prediction = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(singleOutputVector));
 					initialGuessesForFullHistory[t] = prediction;
 				}
-				
+
 				watch.Stop();
 				durations.DataArraysPreparation += watch.ElapsedMilliseconds;
 
@@ -203,11 +203,14 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 
 		public void Train(SolutionDatabaseDynamic solutionDb)
 		{
+
 			var watch = new Stopwatch();
 			var durations = new PythonCallDurations();
 
 			this.solutionDb = solutionDb;
 			numTimeSteps = solutionDb.CountTimeSteps();
+
+			return; // For now training is done manually
 
 			// Determine IO files
 			watch.Restart();
@@ -372,9 +375,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				TrainSolutionVectorsPath = tempFilePrefix + "_train_solution_vectors" + arrayExtension;
 				//TestModelParamsPath = "";
 				//TestSolutionVectorsPath = "";
-				//ModelEncoderPath = $"{workDirectory}\\model_encoder_{modelID}.keras";
-				ModelDecoderPath = $"{workDirectory}\\model_decoder_{modelID}.pt";
-				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.pt";
+				ModelDecoderPath = $"{workDirectory}\\cae.pt";
+				ModelFfnnPath = $"{workDirectory}\\ffnn.pt";
 			}
 
 			public bool Float64 { get; set; } = false;
@@ -405,8 +407,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			{
 				ModelParamsPath = tempFilePrefix + "_model_params" + arrayExtension;
 				SolutionVectorPath = tempFilePrefix + "_solution_vector" + arrayExtension;
-				ModelDecoderPath = $"{workDirectory}\\model_decoder_{modelID}.pt";
-				ModelFfnnPath = $"{workDirectory}\\model_ffnn_{modelID}.pt";
+				ModelDecoderPath = $"{workDirectory}\\cae.pt";
+				ModelFfnnPath = $"{workDirectory}\\ffnn.pt";
 			}
 
 			public bool Float64 { get; set; } = false;

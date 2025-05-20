@@ -18,7 +18,9 @@ namespace MGroup.Solvers.MachineLearning.Tests
 	{
 		public static void Main(string[] args)
 		{
-			CantileverDynamicAnalysis.RunAllAnalysesAndSaveSolutions();
+			CantileverDynamicAnalysis.RunStochasticAnalysisFullHistory();
+
+			//CantileverDynamicAnalysis.RunAllAnalysesAndSaveSolutions();
 			//CantileverDynamicAnalysis.RunAllAnalysesAndSaveModelParamsAndPodCoeffs();
 			//CantileverDynamicAnalysis.CalcSurrogateError();
 			//CantileverDynamicAnalysis.RunStochasticAnalysis();

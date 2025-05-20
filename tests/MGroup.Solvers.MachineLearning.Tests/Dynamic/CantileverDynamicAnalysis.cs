@@ -81,7 +81,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				pythonInterpreter = pythonProjectDirectory + "\\.venv\\Scripts\\python.exe";
 				trainScriptCaeFffnn = null;
 				trainScriptPodFffnn = null;
-				predictScriptCaeFfnn = pythonProjectDirectory + "";
+				predictScriptCaeFfnn = "C:\\Users\\cluster\\constantinos\\dl-project\\dl-experiments\\dynamic\\predict.py";
 				predictScriptPodFfnn = null;
 			}
 			else
@@ -91,9 +91,9 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		}
 
 		// Number of analyses
-		private const int numAnalysesForTraining = 1000; // originally 450 (x60 = 27000)
+		private const int numAnalysesForTraining = 4; // originally 450 (x60 = 27000)
 		private const int numAnalysesForValidation = 500; // e.g. train / validation / test set = 60% / 20% / 20%
-		private const int numAnalysesForTesting = 1000; // originally 350
+		private const int numAnalysesForTesting = 2; // originally 350
 		private const int numAnalysesTotal = numAnalysesForTraining + numAnalysesForTesting; // originally 800 (x60 = 48000)
 		private const int numTimeSteps = 200; // originally 60
 		private const double timeStepSize = 0.05;
@@ -108,8 +108,8 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double beamSectionWidth = 1.0;
 
 		// Model: material
-		private const double elasticityModulusMean = 200E6;
-		private const double elasticityModulusStdDev = 10E6;
+		private const double elasticityModulusMean = 22E6;
+		private const double elasticityModulusStdDev = 1.1E6;
 		private const string elasticityFieldType = "KL"; // Valid inputs: "KL"=Karhunen-Loeve, "WN"=white noise, "HG"=homogeneous
 		private const int numKarhunenLoeveTerms = 6; // Originally 6.
 		private const double correlationLength = 2 * beamLength; // originally 0.5 * beamLength
@@ -132,7 +132,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const bool useAlwaysInitialPreconditioner = false;
 
 		// Surrogate
-		private const string surrogateType = "PodFfnn"; // Options: "CaeFfnn", "PodFfnn", "None"
+		private const string surrogateType = "CaeFfnnFullHistory"; // Options: "CaeFfnn", "PodFfnn", "CaeFfnnFullHistory", "None"
 		private const bool useSolutionDifferenceFromPreviousStep = false;
 		private const bool useBinaryIOFiles = true;
 		private const bool batchTimeHistoryPredictions = true;
@@ -262,6 +262,52 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			var analysis = new CantileverDynamicAnalysis();
 			StochasticAnalysisRunner runner = analysis.PrepareStochasticAnalysis(numAnalysesTotal, numAnalysesForTraining);
 			runner.RunAll();
+		}
+
+		public static void RunStochasticAnalysisFullHistory()
+		{
+			bool enforceSerafeimsMachine = true;
+			bool testPythonScriptOnce = false;
+
+			if (enforceSerafeimsMachine)
+			{
+				// These are only for development purposes. Comment them out in production
+				string baseDir = @"C:\\Users\\Serafeim\\Desktop\\AISolve\\CantileverDynamicLinear\Atzarakis_surrogate";
+				workDirectory = baseDir + "\\data";
+				//pythonProjectDirectory = baseDir + "\\python";
+				//pythonInterpreter = baseDir + "\\python\\python.exe";
+				//predictScriptCaeFfnn = baseDir + "\\src\\predict.py";
+				predictScriptCaeFfnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict_atzarakis.py";
+			}
+
+			if (testPythonScriptOnce)
+			{
+				useDirectSolverInstead = true;
+				var rng = new RepeatableRandom(rngSeedForTrainSet);
+				var stochasticAnalysis = new CantileverDynamicAnalysis();
+				stochasticAnalysis.InitializeModel(rng);
+				stochasticAnalysis.InitializeSolver();
+				var trainDB = RunAndSaveAnalyses(stochasticAnalysis, 5);
+
+				int numModelParams = numKarhunenLoeveTerms;
+				CaeFfnnArchitecture architecture = DescribeCaeFfnnSurrogate(numElements, numModelParams);
+
+				var surrogate = new CaeFfnnFullHistorySurrogateDynamicPythonTF(architecture, workDirectory, 44);
+				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptCaeFffnn, predictScriptCaeFfnn);
+
+				var sampleInput = new double[numModelParams];
+				for (int i = 0; i < numModelParams; i++)
+				{
+					sampleInput[i] = 1E-5;
+				}
+
+				surrogate.Train(trainDB);
+				surrogate.Predict(0, sampleInput);
+			}
+			else
+			{
+				RunStochasticAnalysis();
+			}
 		}
 
 		public static void RunAllAnalysesAndSaveSolutions()
@@ -752,6 +798,24 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
 				surrogate.FfnnIOData = new SurrogateIODatabase();
 				surrogate.WriteFfnnIoToDirectoryForMatlab = workDirectory;
+				SolutionPredictionStrategy = surrogate;
+			}
+			else if (surrogateType == "CaeFfnnFullHistory")
+			{
+				CaeFfnnArchitecture architecture = DescribeCaeFfnnSurrogate(numElements, exampleModel.NumModelParameters);
+				bool timestepAsModelParam = numTimeSteps > 1;
+				var surrogate = new CaeFfnnFullHistorySurrogateDynamicPythonTF(architecture, workDirectory, pythonModelID: 43);
+				//surrogate.float64 = false;
+				surrogate.NormalizationOfParameters = ChooseNormalization(normalizationForModelParams);
+				surrogate.NormalizationOfSolutions = ChooseNormalization(normalizationForSolutions);
+				surrogate.TensorFlowSeed = rngSeedForTrainSet;
+				surrogate.Splitter.MinTestSetPercentage = 0.0; // Set it to something that encompasses all timesteps of the affected parameter realizations
+				surrogate.Splitter.MinValidationSetPercentage = 0.0; // This stays 0
+				surrogate.SetPythonCodePaths(pythonInterpreter, trainScriptCaeFffnn, predictScriptCaeFfnn);
+				surrogate.UseBinaryIOFilesForArrays = useBinaryIOFiles;
+				surrogate.WriteTrainReportToConsole = printAnalysisMessagesToConsole;
+				surrogate.WritePredictReportsToConsole = printSurrogatePredictionMessagesToConsole;
+				surrogate.ReadMLNetworksFromFilesWithoutTraining = readMLNetworksFromFileWithoutTraining;
 				SolutionPredictionStrategy = surrogate;
 			}
 			else
