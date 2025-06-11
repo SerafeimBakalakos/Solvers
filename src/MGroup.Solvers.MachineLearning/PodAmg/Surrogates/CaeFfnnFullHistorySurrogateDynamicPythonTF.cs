@@ -173,7 +173,7 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				initialGuessesForFullHistory.Clear();
 				for (int t = 0; t < numTimeSteps; t++)
 				{
-					float[] singleOutputVector = GetRow(outputArraysPy, t);
+					float[] singleOutputVector = GetCol(outputArraysPy, t);
 					NormalizationOfSolutions.Denormalize(singleOutputVector);
 					var prediction = Vector.CreateFromArray(ArrayTypeUtilities.ConvertToDouble(singleOutputVector));
 					initialGuessesForFullHistory[t] = prediction;
@@ -354,6 +354,17 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			return result;
 		}
 
+		private float[] GetCol(float[,] array2D, int colIdx)
+		{
+			int numRows = array2D.GetLength(0);
+			var result = new float[numRows];
+			for (int i = 0; i < numRows; i++)
+			{
+				result[i] = array2D[i, colIdx];
+			}
+			return result;
+		}
+
 		private void SetRow(float[,] array2D, int rowIdx, float[] rowValues)
 		{
 			int numCols = array2D.GetLength(1);
@@ -375,8 +386,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 				TrainSolutionVectorsPath = tempFilePrefix + "_train_solution_vectors" + arrayExtension;
 				//TestModelParamsPath = "";
 				//TestSolutionVectorsPath = "";
-				ModelDecoderPath = $"{workDirectory}\\cae.pt";
-				ModelFfnnPath = $"{workDirectory}\\ffnn.pt";
+				ModelDecoderPath = $"{workDirectory}\\cae.ckpt";
+				ModelFfnnPath = $"{workDirectory}\\ffnn.ckpt";
 			}
 
 			public bool Float64 { get; set; } = false;
@@ -407,8 +418,8 @@ namespace MGroup.Solvers.MachineLearning.PodAmg.Surrogates
 			{
 				ModelParamsPath = tempFilePrefix + "_model_params" + arrayExtension;
 				SolutionVectorPath = tempFilePrefix + "_solution_vector" + arrayExtension;
-				ModelDecoderPath = $"{workDirectory}\\cae.pt";
-				ModelFfnnPath = $"{workDirectory}\\ffnn.pt";
+				ModelDecoderPath = $"{workDirectory}\\cae.ckpt";
+				ModelFfnnPath = $"{workDirectory}\\ffnn.ckpt";
 			}
 
 			public bool Float64 { get; set; } = false;

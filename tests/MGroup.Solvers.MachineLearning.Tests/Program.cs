@@ -18,6 +18,7 @@ namespace MGroup.Solvers.MachineLearning.Tests
 	{
 		public static void Main(string[] args)
 		{
+
 			CantileverDynamicAnalysis.RunStochasticAnalysisFullHistory();
 
 			//CantileverDynamicAnalysis.RunAllAnalysesAndSaveSolutions();
@@ -30,6 +31,7 @@ namespace MGroup.Solvers.MachineLearning.Tests
 			//CantileverStaticAnalysis.RunStochasticAnalysis();
 
 			//SingleDofAnalysis.RunAllAnalysesAndSaveModelParamsAndTimeHistory();
+			//SampleCantilever.BuildLinearSystem();
 		}
 
 		private static void TrySerialization()

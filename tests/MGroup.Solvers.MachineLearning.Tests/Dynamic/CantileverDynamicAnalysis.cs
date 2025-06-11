@@ -43,7 +43,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 	public class CantileverDynamicAnalysis : IAutoStochasticAnalysis
 	{
 		// Paths
-		private static int machineID = 0; // 0 = Serafeim's local machine, 1 = cluster (Serafeim folders on 204), 2 = cluster (Atzarakis folders on 207)
+		private static int machineID = 1; // 0 = Serafeim's local machine, 1 = cluster (Serafeim folders on 204), 2 = cluster (Atzarakis folders on 207)
 		private static string workDirectory;
 		private static string pythonProjectDirectory;
 		private static string pythonInterpreter;
@@ -66,13 +66,13 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 			}
 			else if (machineID == 1) // cluster (Serafeim folders on 204)
 			{
-				workDirectory = "M:\\Serafeim\\results\\CantileverDynamicLinear";
-				pythonProjectDirectory = "C:\\Users\\cluster\\Desktop\\Serafeim\\code\\Python\\cs2py_ml_surrogates";
-				pythonInterpreter = pythonProjectDirectory + "\\venv\\Scripts\\python.exe";
-				trainScriptCaeFffnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\train.py";
-				trainScriptPodFffnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\train.py";
-				predictScriptCaeFfnn = pythonProjectDirectory + "\\src\\cae_ffnn_dynamic_t_as_param\\predict.py";
-				predictScriptPodFfnn = pythonProjectDirectory + "\\src\\pod_ffnn_dynamic_t_as_param\\predict.py";
+				workDirectory = "M:\\shared\\Serafeim_Atzarakis\\results\\CantileverDynamicLinear";
+				pythonProjectDirectory = "C:\\Users\\cluster\\PycharmProjects\\dl-experiments";
+				pythonInterpreter = pythonProjectDirectory + "\\.venv\\Scripts\\python.exe";
+				trainScriptCaeFffnn = null;
+				trainScriptPodFffnn = null;
+				predictScriptCaeFfnn = pythonProjectDirectory + "\\dynamic\\predict.py";
+				predictScriptPodFfnn = null;
 			}
 			else if (machineID == 2) // cluster(Atzarakis folders on 207)
 			{
@@ -81,7 +81,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 				pythonInterpreter = pythonProjectDirectory + "\\.venv\\Scripts\\python.exe";
 				trainScriptCaeFffnn = null;
 				trainScriptPodFffnn = null;
-				predictScriptCaeFfnn = "C:\\Users\\cluster\\constantinos\\dl-project\\dl-experiments\\dynamic\\predict.py";
+				predictScriptCaeFfnn = pythonProjectDirectory + "\\dynamic\\predict.py";
 				predictScriptPodFfnn = null;
 			}
 			else
@@ -91,12 +91,12 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		}
 
 		// Number of analyses
-		private const int numAnalysesForTraining = 4; // originally 450 (x60 = 27000)
-		private const int numAnalysesForValidation = 500; // e.g. train / validation / test set = 60% / 20% / 20%
-		private const int numAnalysesForTesting = 2; // originally 350
+		private const int numAnalysesForTraining = 2; // originally 450 (x60 = 27000)
+		private const int numAnalysesForValidation = 150; // e.g. train / validation / test set = 60% / 20% / 20%
+		private const int numAnalysesForTesting = 150; // originally 350
 		private const int numAnalysesTotal = numAnalysesForTraining + numAnalysesForTesting; // originally 800 (x60 = 48000)
 		private const int numTimeSteps = 200; // originally 60
-		private const double timeStepSize = 0.05;
+		private const double timeStepSize = 0.01; // originally 0.05
 
 		// Model: geometry
 		//private static readonly int[] numElements = { 35, 140 }; //10080 dofs
@@ -111,13 +111,13 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 		private const double elasticityModulusMean = 22E6;
 		private const double elasticityModulusStdDev = 1.1E6;
 		private const string elasticityFieldType = "KL"; // Valid inputs: "KL"=Karhunen-Loeve, "WN"=white noise, "HG"=homogeneous
-		private const int numKarhunenLoeveTerms = 6; // Originally 6.
+		private const int numKarhunenLoeveTerms = 1; // Originally 6.
 		private const double correlationLength = 2 * beamLength; // originally 0.5 * beamLength
 		private const bool nodalLoadIsConcentrated = true;
-		private const double materialDensity = 0.01;
+		private const double materialDensity = 0.05;
 
 		// Model: loads
-		private const double externalLoadCyclicFrequency = 15; // sin(omega*t + phi). Originally omega=15 
+		private const double externalLoadCyclicFrequency = 5; // sin(omega*t + phi). Originally omega=15 
 		private const double externalLoadPhaseDiff = Math.PI / 2; // sin(omega*t + phi). Originally phi=pi/2 
 		private const CantileverDynamicModel.LoadType externalLoadType = CantileverDynamicModel.LoadType.Harmonic; // Originally LoadType.Harmonic
 
@@ -266,7 +266,7 @@ namespace MGroup.Solvers.MachineLearning.Tests.Dynamic
 
 		public static void RunStochasticAnalysisFullHistory()
 		{
-			bool enforceSerafeimsMachine = true;
+			bool enforceSerafeimsMachine = false;
 			bool testPythonScriptOnce = false;
 
 			if (enforceSerafeimsMachine)
