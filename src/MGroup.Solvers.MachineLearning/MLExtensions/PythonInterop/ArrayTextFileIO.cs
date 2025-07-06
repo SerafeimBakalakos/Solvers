@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MachineLearning.MLExtensions
+namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 {
 	using System;
 	using System.Collections.Generic;
@@ -21,11 +21,11 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		{
 			using (var reader = new StreamReader(file))
 			{
-				string[] allWords = reader.ReadLine().Split(separator1D, StringSplitOptions.RemoveEmptyEntries);
+				var allWords = reader.ReadLine().Split(separator1D, StringSplitOptions.RemoveEmptyEntries);
 				if (length > 0) CheckDimensions(length, allWords.Length);
 
 				var result = new float[allWords.Length];
-				for (int i = 0; i < allWords.Length; i++)
+				for (var i = 0; i < allWords.Length; i++)
 				{
 					result[i] = float.Parse(allWords[i]);
 				}
@@ -37,11 +37,11 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 		{
 			using (var reader = new StreamReader(file))
 			{
-				string[] allWords = reader.ReadLine().Split(separator1D, StringSplitOptions.RemoveEmptyEntries);
+				var allWords = reader.ReadLine().Split(separator1D, StringSplitOptions.RemoveEmptyEntries);
 				if (length > 0) CheckDimensions(length, allWords.Length);
 
 				var result = new double[allWords.Length];
-				for (int i = 0; i < allWords.Length; i++)
+				for (var i = 0; i < allWords.Length; i++)
 				{
 					result[i] = double.Parse(allWords[i]);
 				}
@@ -68,7 +68,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 				using (var writer = new StreamWriter(f))
 				{
 					writer.Write(array[0]);
-					for (int i = 1; i < array.Length; i++)
+					for (var i = 1; i < array.Length; i++)
 					{
 						writer.Write(separator1D);
 						writer.Write(array[i].ToString("G"));
@@ -84,7 +84,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 				using (var writer = new StreamWriter(f))
 				{
 					writer.Write(array[0]);
-					for (int i = 1; i < array.Length; i++)
+					for (var i = 1; i < array.Length; i++)
 					{
 						writer.Write(separator1D);
 						writer.Write(array[i].ToString("G"));
@@ -95,16 +95,16 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		public void WriteArray2DFloat64(double[,] array, string file)
 		{
-			int m = array.GetLength(0);
-			int n = array.GetLength(1);
+			var m = array.GetLength(0);
+			var n = array.GetLength(1);
 			using (var f = File.Open(file, FileMode.OpenOrCreate))
 			{
 				using (var writer = new StreamWriter(f))
 				{
-					for (int i = 0; i < m; i++)
+					for (var i = 0; i < m; i++)
 					{
 						writer.Write(array[i, 0]);
-						for (int j = 1; j < n; j++)
+						for (var j = 1; j < n; j++)
 						{
 							writer.Write(separator1D);
 							writer.Write(array[i, j].ToString("G"));
@@ -121,16 +121,16 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		public void WriteArray2DFloat32(float[,] array, string file)
 		{
-			int m = array.GetLength(0);
-			int n = array.GetLength(1);
+			var m = array.GetLength(0);
+			var n = array.GetLength(1);
 			using (var f = File.Open(file, FileMode.OpenOrCreate))
 			{
 				using (var writer = new StreamWriter(f))
 				{
-					for (int i = 0; i < m; i++)
+					for (var i = 0; i < m; i++)
 					{
 						writer.Write(array[i, 0]);
-						for (int j = 1; j < n; j++)
+						for (var j = 1; j < n; j++)
 						{
 							writer.Write(separator1D);
 							writer.Write(array[i, j].ToString("G"));
@@ -159,7 +159,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private static void CheckDimensions((int dim0, int dim1) expected, (int dim0, int dim1) computed)
 		{
-			if ((expected.dim0 != computed.dim0) || (expected.dim1 != computed.dim1))
+			if (expected.dim0 != computed.dim0 || expected.dim1 != computed.dim1)
 			{
 				throw new ArgumentException(
 					$"Invalid dimensions. Expected ({expected.dim0} x {expected.dim1})," +

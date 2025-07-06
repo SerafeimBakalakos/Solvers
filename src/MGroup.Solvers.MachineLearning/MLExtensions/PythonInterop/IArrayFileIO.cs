@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MachineLearning.MLExtensions
+namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 {
 	using System;
 	using System.Collections.Generic;

@@ -1,30 +1,31 @@
-namespace MGroup.Solvers.MachineLearning.MLExtensions
+namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 {
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Text;
+
 	using NumSharp;
 
 	public class ArrayBinaryFileIO : IArrayFileIO
 	{
 		public float[] ReadArray1DFloat32(string file, int length = -1)
 		{
-			float[] arr = np.Load<float[]>(file);
+			var arr = np.Load<float[]>(file);
 			if (length > 0) CheckDimensions(length, arr.Length);
 			return arr;
 		}
 
 		public double[] ReadArray1DFloat64(string file, int length = -1)
 		{
-			double[] arr = np.Load<double[]>(file);
+			var arr = np.Load<double[]>(file);
 			if (length > 0) CheckDimensions(length, arr.Length);
 			return arr;
 		}
 
 		public float[,] ReadArray2DFloat32(string file, (int dim0, int dim1)? shape = null)
 		{
-			float[,] arr = np.Load<float[,]>(file);
+			var arr = np.Load<float[,]>(file);
 			if (shape != null)
 			{
 				CheckDimensions(shape.Value, (arr.GetLength(0), arr.GetLength(1)));
@@ -34,7 +35,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		public double[,] ReadArray2DFloat64(string file, (int dim0, int dim1)? shape = null)
 		{
-			double[,] arr = np.Load<double[,]>(file);
+			var arr = np.Load<double[,]>(file);
 			if (shape != null)
 			{
 				CheckDimensions(shape.Value, (arr.GetLength(0), arr.GetLength(1)));
@@ -44,7 +45,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		public float[,,] ReadArray3DFloat32(string file, (int dim0, int dim1, int dim3)? shape = null)
 		{
-			float[,,] arr = np.Load<float[,,]>(file);
+			var arr = np.Load<float[,,]>(file);
 			if (shape != null)
 			{
 				CheckDimensions(shape.Value, (arr.GetLength(0), arr.GetLength(1), arr.GetLength(2)));
@@ -54,7 +55,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		public double[,,] ReadArray3DFloat64(string file, (int dim0, int dim1, int dim3)? shape = null)
 		{
-			double[,,] arr = np.Load<double[,,]>(file);
+			var arr = np.Load<double[,,]>(file);
 			if (shape != null)
 			{
 				CheckDimensions(shape.Value, (arr.GetLength(0), arr.GetLength(1), arr.GetLength(2)));
@@ -102,7 +103,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private static void CheckDimensions((int dim0, int dim1) expected, (int dim0, int dim1) computed)
 		{
-			if ((expected.dim0 != computed.dim0) || (expected.dim1 != computed.dim1))
+			if (expected.dim0 != computed.dim0 || expected.dim1 != computed.dim1)
 			{
 				throw new ArgumentException(
 					$"Invalid dimensions. Expected ({expected.dim0} x {expected.dim1})," +
@@ -112,7 +113,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions
 
 		private static void CheckDimensions((int dim0, int dim1, int dim2) expected, (int dim0, int dim1, int dim2) computed)
 		{
-			if ((expected.dim0 != computed.dim0) || (expected.dim1 != computed.dim1) || (expected.dim2 != computed.dim2))
+			if (expected.dim0 != computed.dim0 || expected.dim1 != computed.dim1 || expected.dim2 != computed.dim2)
 			{
 				throw new ArgumentException(
 					$"Invalid dimensions. Expected ({expected.dim0} x {expected.dim1} x {expected.dim2})," +
