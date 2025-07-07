@@ -17,37 +17,61 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 		private readonly int timeoutMilliseconds;
 		private readonly string inputsSerializedTemplate;
 		private readonly string inputsArraysTemplate;
-		private readonly IReadOnlyList<string> inputsSerializedNames = new List<string>();
-
+		private readonly string outputsArraysTemplate;
+		private readonly IReadOnlyList<string> inputsSerializedOrdered;
+		private readonly ISet<string> inputsSerializedNames;
+		private readonly ISet<string> inputsArraysNames;
+		private readonly ISet<string> outputsArraysNames;
 
 		private Dictionary<string, string> inputsSerializedValues = new Dictionary<string, string>();
 		private Dictionary<string, double[]> inputsArraysValuesFloat64 = new Dictionary<string, double[]>();
 		private Dictionary<string, double[]> outputsArraysValuesFloat64 = new Dictionary<string, double[]>();
 
 		internal PythonCall(string workDirectory, string pythonInterpreterPath, string pythonScriptPath,
-			bool cleanupIOFiles, int timeoutMilliseconds, string inputsSerializedTemplate, string inputsArraysTemplate)
+			bool cleanupIOFiles, int timeoutMilliseconds,
+			ISet<string> inputsSerializedNames, IReadOnlyList<string> inputsSerializedOrdered, string inputsSerializedTemplate,
+			ISet<string> inputsArraysNames, string inputsArraysTemplate,
+			ISet<string> outputsArraysNames, string outputsArraysTemplate)
 		{
 			this.workDirectory = workDirectory;
 			this.pythonInterpreterPath = pythonInterpreterPath;
 			this.pythonScriptPath = pythonScriptPath;
 			this.cleanupIOFiles = cleanupIOFiles;
 			this.timeoutMilliseconds = timeoutMilliseconds;
+
+			this.inputsSerializedNames = inputsSerializedNames;
 			this.inputsSerializedTemplate = inputsSerializedTemplate;
+			this.inputsSerializedOrdered = inputsSerializedOrdered;
+			this.inputsArraysNames = inputsArraysNames;
 			this.inputsArraysTemplate = inputsArraysTemplate;
+			this.outputsArraysNames = outputsArraysNames;
+			this.outputsArraysTemplate = outputsArraysTemplate;
 		}
 
 		public void PassSmallInput(string name, string value)
 		{
+			if (!inputsSerializedNames.Contains(name))
+			{
+				throw new ArgumentException($"No input with the name {name} has been defined");
+			}
 			inputsSerializedValues[name] = value;
 		}
 
 		public void PassArrayInput(string name, double[] array)
 		{
+			if (!inputsArraysNames.Contains(name))
+			{
+				throw new ArgumentException($"No input array with the name {name} has been defined");
+			}
 			inputsArraysValuesFloat64[name] = array;
 		}
 
 		public double[] GetArrayOutput(string name)
 		{
+			if (!outputsArraysNames.Contains(name))
+			{
+				throw new ArgumentException($"No output array with the name {name} has been defined");
+			}
 			return outputsArraysValuesFloat64[name];
 		}
 
@@ -58,10 +82,11 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 			var watch = new Stopwatch();
 			watch.Restart();
 			LastCallDurations = new PythonCallDurations();
+			DeleteStoredOutputValues();
 
 			DirectoryInfo tempDirectory = null;
 			var paths = new PythonCallPaths(workDirectory);
-			string processArgs = $"{pythonScriptPath} {paths.InputsSerialized} {paths.InputsArrays} {paths.OutputsSerialized} {paths.OutputsSerialized} {paths.LogPerformance} {paths.LogErrors}";
+			string processArgs = $"{pythonScriptPath} {paths.InputsSerialized} {paths.InputsArrays} {paths.OutputsSerialized} {paths.OutputsArrays} {paths.LogPerformance} {paths.LogErrors}";
 			watch.Stop();
 			LastCallDurations.PythonSetupWork += watch.ElapsedMilliseconds;
 
@@ -72,6 +97,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 				tempDirectory = Directory.CreateDirectory(paths.TempSubdirectoryFullPath);
 				WriteInputsSerializedToFiles(paths);
 				WriteInputsArraysToFiles(paths);
+				WriteOuputFiles(paths);
 				WriteLogFiles(paths);
 				watch.Stop();
 				LastCallDurations.CommunicationWork += watch.ElapsedMilliseconds;
@@ -92,7 +118,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 			finally
 			{
 				// Cleanup
-				DeleteInputs();
+				DeleteStoredInputValues();
 				if (cleanupIOFiles)
 				{
 					if (tempDirectory != null)
@@ -109,7 +135,7 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 			var serializedInputs = new object[numInputs];
 			for (int i = 0; i < numInputs; i++)
 			{
-				serializedInputs[i] = inputsSerializedValues[inputsSerializedNames[i]];
+				serializedInputs[i] = inputsSerializedValues[inputsSerializedOrdered[i]];
 			}
 
 			string fileContent = string.Format(inputsSerializedTemplate, serializedInputs);
@@ -129,7 +155,22 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 
 			// Write the file that contains the paths
 			string fileContent = string.Format(inputsArraysTemplate, paths.TempSubdirectoryNameOnly);
-			using (StreamWriter writer = File.CreateText(paths.InputsSerialized))
+			using (StreamWriter writer = File.CreateText(paths.InputsArrays))
+			{
+				writer.Write(fileContent);
+			}
+		}
+
+		private void WriteOuputFiles(PythonCallPaths paths)
+		{
+			using (StreamWriter writer = File.CreateText(paths.OutputsSerialized))
+			{
+				writer.Write(' '); // placeholder
+			}
+
+			// Write the file that contains the paths
+			string fileContent = string.Format(outputsArraysTemplate, paths.TempSubdirectoryNameOnly);
+			using (StreamWriter writer = File.CreateText(paths.OutputsArrays))
 			{
 				writer.Write(fileContent);
 			}
@@ -145,7 +186,12 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 
 		private void ReadOutputFiles(PythonCallPaths paths)
 		{
-
+			// Read the arrays from separate paths
+			foreach (string name in outputsArraysNames)
+			{
+				string path = paths.MakePathForArray(name);
+				outputsArraysValuesFloat64[name] = np.Load<double[]>(path);
+			}
 		}
 
 		private (long pythonCommunicationWork, long pythonSetupWork) ReadPythonPerformance(PythonCallPaths paths)
@@ -153,10 +199,15 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 			return (0, 0);
 		}
 
-		private void DeleteInputs()
+		private void DeleteStoredInputValues()
 		{
 			inputsSerializedValues.Clear();
 			inputsArraysValuesFloat64.Clear();
+		}
+
+		private void DeleteStoredOutputValues()
+		{
+			outputsArraysValuesFloat64.Clear();
 		}
 
 		private void RunSystemProcess(string processArgs, string pathLogErrors)

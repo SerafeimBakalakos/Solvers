@@ -6,16 +6,19 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 {
 	public class PythonCallPaths
 	{
+		private static Random rng = new Random();
+
 		public PythonCallPaths(string workDirectory)
 		{
 			var date = DateTime.Now;
 			string pattern = "yyyy-MM-dd-hh-mm";
-			Guid guid = Guid.NewGuid();
+			//Guid guid = Guid.NewGuid();
+			string guid = rng.Next().ToString("x");
 			TempSubdirectoryNameOnly = $"_temp_{date.ToString(pattern)}_{guid}";
 			TempSubdirectoryFullPath = $"{workDirectory}\\{TempSubdirectoryNameOnly}";
 			InputsArrays = TempSubdirectoryFullPath + "\\inputs_arrays.json";
 			InputsSerialized = TempSubdirectoryFullPath + "\\inputs_serialized.json";
-			OutputsArrays = TempSubdirectoryFullPath + "\\outputs_arrays.son";
+			OutputsArrays = TempSubdirectoryFullPath + "\\outputs_arrays.json";
 			OutputsSerialized = TempSubdirectoryFullPath + "\\outputs_serialized.json";
 			LogPerformance = TempSubdirectoryFullPath + "\\log_performance.json";
 			LogErrors = TempSubdirectoryFullPath + "\\log_errors.json";

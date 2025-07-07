@@ -8,17 +8,22 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
     public class PythonCallBuilder
     {
 		private readonly string workDirectory;
+		private readonly string workDirectoryForPython;
 		private readonly string pythonInterpreter;
 		private readonly string pythonScript;
 
-		private StringBuilder inputsSerializedTemplate = new StringBuilder('{');
-		private StringBuilder inputsArraysTemplate = new StringBuilder('{');
-		private List<string> inputsSerializedNames = new List<string>();
-		private Dictionary<string, string> inputsArraysPaths = new Dictionary<string, string>();
+		private List<string> inputsSerializedOrdered = new List<string>();
+		private HashSet<string> inputsSerializedNames = new HashSet<string>();
+		private HashSet<string> inputsArraysNames = new HashSet<string>();
+		private HashSet<string> outputsArraysNames = new HashSet<string>();
+		private StringBuilder inputsSerializedTemplate = new StringBuilder();
+		private StringBuilder inputsArraysTemplate = new StringBuilder();
+		private StringBuilder outputsArraysTemplate = new StringBuilder();
 
 		public PythonCallBuilder(string workDirectory, string pythonInterpreterPath, string pythonScriptPath)
 		{
-			this.workDirectory = workDirectory.TrimEnd('\\'); ;
+			this.workDirectory = workDirectory.TrimEnd('\\');
+			this.workDirectoryForPython = workDirectory.Replace("\\", "/");
 			this.pythonInterpreter = pythonInterpreterPath;
 			this.pythonScript = pythonScriptPath;
 		}
@@ -41,17 +46,24 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 				//TODO: Perhaps also do this immediately before writing to filesystem. See TOCTOU bugs.
 				throw new DirectoryNotFoundException(workDirectory);
 			}
-			inputsSerializedTemplate.Append('}');
-			inputsArraysTemplate.Append('}');
+			inputsSerializedTemplate.Append("}}");
+			inputsArraysTemplate.Append("}}");
+			outputsArraysTemplate.Append("}}");
 			return new PythonCall(workDirectory, pythonInterpreter, pythonScript, CleanupIOFiles, TimeoutMilliseconds,
-				inputsSerializedTemplate.ToString(), inputsArraysTemplate.ToString());
+				inputsSerializedNames, inputsSerializedOrdered, inputsSerializedTemplate.ToString(), 
+				inputsArraysNames, inputsArraysTemplate.ToString(), outputsArraysNames, outputsArraysTemplate.ToString());
 		}
 
 		public void DefineSmallInput(string name)
 		{
-			int inputIdx = inputsSerializedNames.Count;
+			int inputIdx = inputsSerializedOrdered.Count;
 			inputsSerializedNames.Add(name);
-			if (inputsSerializedTemplate.Length != 0)
+			inputsSerializedOrdered.Add(name);
+			if (inputsSerializedTemplate.Length == 0)
+			{
+				inputsSerializedTemplate.Append("{{");
+			}
+			else
 			{
 				inputsSerializedTemplate.Append(',');
 			}
@@ -66,14 +78,36 @@ namespace MGroup.Solvers.MachineLearning.MLExtensions.PythonInterop
 		//TODO: Also specify array dimensions and type, but make them optional
 		public void DefineArrayInput(string name)
 		{
-			if (inputsArraysTemplate.Length != 0)
+			inputsArraysNames.Add(name);
+			if (inputsArraysTemplate.Length == 0)
+			{
+				inputsArraysTemplate.Append("{{");
+			}
+			else
 			{
 				inputsArraysTemplate.Append(',');
 			}
 			// Example: {...,"MyArray":"C:\\Users\\JohnDoe\\Desktop\\Project1\\{0}\\MyArray.npy",...}
 			// where {0} will be replaced (when the call is executed) with time_guid, e.g. 2025-11-29-1221_bbab4f04-bf62-4026-af85-c97ede0adb6f
-			string path = workDirectory + "\\{0}\\" + name + ".npy";
+			string path = workDirectoryForPython + "/{0}/" + name + ".npy";
 			inputsArraysTemplate.Append($"\"{name}\":\"{path}\"");
+		}
+
+		public void DefineArrayOutput(string name)
+		{
+			outputsArraysNames.Add(name);
+			if (outputsArraysTemplate.Length == 0)
+			{
+				outputsArraysTemplate.Append("{{");
+			}
+			else
+			{
+				outputsArraysTemplate.Append(',');
+			}
+			// Example: {...,"MyArray":"C:\\Users\\JohnDoe\\Desktop\\Project1\\{0}\\MyArray.npy",...}
+			// where {0} will be replaced (when the call is executed) with time_guid, e.g. 2025-11-29-1221_bbab4f04-bf62-4026-af85-c97ede0adb6f
+			string path = workDirectoryForPython + "/{0}/" + name + ".npy";
+			outputsArraysTemplate.Append($"\"{name}\":\"{path}\"");
 		}
 	}
 }
