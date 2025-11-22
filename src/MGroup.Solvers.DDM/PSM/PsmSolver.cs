@@ -362,31 +362,26 @@ namespace MGroup.Solvers.DDM.Psm
 				}
 			});
 
+			// Factorize Kii matrices of substructures
 			//TODO: This should be done together with the extraction. However SuiteSparse already uses multiple threads and should
 			//		not be parallelized at subdomain level too. Instead environment.DoPerNode should be able to run tasks serially by reading a flag.
+			Action<int> factorizeKii = subdomainID =>
+			{
+				if (isFirstAnalysis || !reanalysis.SubdomainSubmatrices
+				|| reanalysis.ModifiedSubdomains.IsMatrixModified(subdomainID))
+				{
+					//Console.WriteLine($"Invert Kii for subdomain {subdomainID}");
+					subdomainMatricesPsm[subdomainID].InvertKii();
+				}
+			};
+
 			if (directSolverIsParallel)
 			{
-				environment.DoPerNodeSerially(subdomainID =>
-				{
-					if (isFirstAnalysis || !reanalysis.SubdomainSubmatrices
-					|| reanalysis.ModifiedSubdomains.IsMatrixModified(subdomainID))
-					{
-						//Console.WriteLine($"Invert Kii for subdomain {subdomainID}");
-						subdomainMatricesPsm[subdomainID].InvertKii();
-					}
-				});
+				environment.DoPerNodeSerially(factorizeKii);
 			}
 			else
 			{
-				environment.DoPerNode(subdomainID =>
-				{
-					if (isFirstAnalysis || !reanalysis.SubdomainSubmatrices
-					|| reanalysis.ModifiedSubdomains.IsMatrixModified(subdomainID))
-					{
-						//Console.WriteLine($"Invert Kii for subdomain {subdomainID}");
-						subdomainMatricesPsm[subdomainID].InvertKii();
-					}
-				});
+				environment.DoPerNode(factorizeKii);
 			}
 
 			watch.Stop();

@@ -115,33 +115,27 @@ namespace MGroup.Solvers.DDM.PFetiDP
 				}
 			});
 
+			// Factorize Krr matrices of substructures
 			//TODO: This should be done together with the extraction. However SuiteSparse already uses multiple threads and should
 			//		not be parallelized at subdomain level too. Instead environment.DoPerNode should be able to run tasks serially by reading a flag.
+			Action<int> factorizeKrr = subdomainID =>
+			{
+				if (isFirstAnalysis || !reanalysis.SubdomainSubmatrices
+					|| reanalysis.ModifiedSubdomains.IsMatrixModified(subdomainID))
+				{
+					//Console.WriteLine($"Invert Krr for subdomain {subdomainID}");
+					subdomainMatricesFetiDP[subdomainID].InvertKrr();
+					subdomainMatricesFetiDP[subdomainID].CalcSchurComplementOfRemainderDofs();
+				}
+			};
+
 			if (directSolverIsParallel)
 			{
-				environment.DoPerNodeSerially(subdomainID =>
-				{
-					if (isFirstAnalysis || !reanalysis.SubdomainSubmatrices
-						|| reanalysis.ModifiedSubdomains.IsMatrixModified(subdomainID))
-					{
-						//Console.WriteLine($"Invert Krr for subdomain {subdomainID}");
-						subdomainMatricesFetiDP[subdomainID].InvertKrr();
-						subdomainMatricesFetiDP[subdomainID].CalcSchurComplementOfRemainderDofs();
-					}
-				});
+				environment.DoPerNodeSerially(factorizeKrr);
 			}
 			else
 			{
-				environment.DoPerNode(subdomainID =>
-				{
-					if (isFirstAnalysis || !reanalysis.SubdomainSubmatrices
-						|| reanalysis.ModifiedSubdomains.IsMatrixModified(subdomainID))
-					{
-						//Console.WriteLine($"Invert Krr for subdomain {subdomainID}");
-						subdomainMatricesFetiDP[subdomainID].InvertKrr();
-						subdomainMatricesFetiDP[subdomainID].CalcSchurComplementOfRemainderDofs();
-					}
-				});
+				environment.DoPerNode(factorizeKrr);
 			}
 
 			// Setup optimizations if coarse dofs are the same as in previous analysis
