@@ -33,7 +33,7 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 		public bool IsEmpty => DofOrderingBoundary == null;
 
 		public int NumFreeDofs { get; private set; }
-		
+
 		public void ReorderInternalDofs(DofPermutation permutation)
 		{
 			if (permutation.IsBetter)
