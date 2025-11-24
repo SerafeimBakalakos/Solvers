@@ -15,6 +15,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 
 		(int[] elementDofIndices, int[] substructureDofIndices) MapDofsElementToSubstructure(ISuperElement superElement);
 
+		void PrepareDofMaps();
+
 		void Reorder(IReorderingAlgorithm reorderingAlgorithm);
 	}
 }

@@ -12,7 +12,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.DofOrdering
 	/// <summary>
 	/// Deals with the free (unconstrained) dofs of a subdomain.
 	/// </summary>
-	public class SubdomainFreeDofOrderingGeneral_v2 : ISubstructureDofOrdering
+	public class SubdomainFreeDofOrderingGeneral_v2 //: ISubstructureDofOrdering
 	{
 		private readonly DefaultSubstructure substructure;
 		private readonly ActiveDofs allDofs;
