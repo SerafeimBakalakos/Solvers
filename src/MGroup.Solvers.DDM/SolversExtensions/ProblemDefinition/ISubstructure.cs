@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
+namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 {
 	using System;
 	using System.Collections.Generic;
@@ -10,6 +10,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
 	{
 		IEnumerable<ISuperElement> EnumerateSuperElements();
 
-		IntDofTable GetDofs();
+		IntDofTable OrderDofs();
 	}
 }

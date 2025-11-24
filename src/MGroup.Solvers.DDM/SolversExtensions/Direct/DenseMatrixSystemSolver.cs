@@ -6,7 +6,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 	using System.Text;
 	using System.Threading.Tasks;
 
-	using MGroup.Solvers.DDM.SolversExtensions.LinearSystem;
+	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	public class DenseMatrixSystemSolver
 	{

@@ -1,4 +1,4 @@
-namespace MGroup.SolverExtensions.DofOrdering
+namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.DofOrdering
 {
 	using System.Collections.Generic;
 	using System.Linq;
@@ -6,9 +6,8 @@ namespace MGroup.SolverExtensions.DofOrdering
 	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.SolverExtensions.LinearSystem;
 	using MGroup.Solvers;
-	using MGroup.Solvers.DDM.SolversExtensions.LinearSystem;
+	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	/// <summary>
 	/// Deals with the free (unconstrained) dofs of a subdomain.
@@ -21,9 +20,9 @@ namespace MGroup.SolverExtensions.DofOrdering
 		public SubdomainFreeDofOrderingGeneral_v2(DefaultSubstructure subdstructure, int numFreeDofs, IntDofTable subdomainFreeDofs, 
 			ActiveDofs allDofs)
 		{
-			this.substructure = subdstructure;
-			this.NumDofs = numFreeDofs;
-			this.Dofs = subdomainFreeDofs;
+			substructure = subdstructure;
+			NumDofs = numFreeDofs;
+			Dofs = subdomainFreeDofs;
 			this.allDofs = allDofs;
 		}
 
@@ -35,22 +34,22 @@ namespace MGroup.SolverExtensions.DofOrdering
 		{
 			var element = ((DefaultElement)superElement).ElementEntity;
 
-			IReadOnlyList<INode> elementNodes = element.DofEnumerator.GetNodesForMatrixAssembly(element);
-			IReadOnlyList<IReadOnlyList<IDofType>> elementDofs = element.DofEnumerator.GetDofTypesForMatrixAssembly(element);
+			var elementNodes = element.DofEnumerator.GetNodesForMatrixAssembly(element);
+			var elementDofs = element.DofEnumerator.GetDofTypesForMatrixAssembly(element);
 
 			// Count the dof superset (free and constrained) to allocate enough memory and avoid resizing
-			int allElementDofs = 0;
-			for (int i = 0; i < elementNodes.Count; ++i) allElementDofs += elementDofs[i].Count;
+			var allElementDofs = 0;
+			for (var i = 0; i < elementNodes.Count; ++i) allElementDofs += elementDofs[i].Count;
 			var elementDofIndices = new List<int>(allElementDofs);
 			var subdomainDofIndices = new List<int>(allElementDofs);
 
-			int elementDofIdx = 0;
-			for (int nodeIdx = 0; nodeIdx < elementNodes.Count; ++nodeIdx)
+			var elementDofIdx = 0;
+			for (var nodeIdx = 0; nodeIdx < elementNodes.Count; ++nodeIdx)
 			{
-				for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
+				for (var dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
 				{
-					int dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
-					bool isFree = Dofs.TryGetValue(elementNodes[nodeIdx].ID, dofID, out int subdomainDofIdx);
+					var dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
+					var isFree = Dofs.TryGetValue(elementNodes[nodeIdx].ID, dofID, out var subdomainDofIdx);
 					if (isFree)
 					{
 						elementDofIndices.Add(elementDofIdx);

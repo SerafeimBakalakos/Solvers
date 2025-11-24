@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
+namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 {
 	using System;
 	using System.Collections.Generic;
@@ -9,7 +9,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers;
 
-	public class DefaultElement : ISuperElement
+	public class DefaultElement //: ISuperElement
 	{
 		private readonly ActiveDofs allDofs;
 

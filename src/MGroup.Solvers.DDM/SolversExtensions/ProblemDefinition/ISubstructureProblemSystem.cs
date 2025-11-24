@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
+namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,7 +8,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.SolverExtensions.DofOrdering;
 
 	public interface ISubstructureProblemSystem
 	{

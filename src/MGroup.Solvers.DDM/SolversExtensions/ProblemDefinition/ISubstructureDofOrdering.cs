@@ -1,11 +1,10 @@
-namespace MGroup.SolverExtensions.DofOrdering
+namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Text;
 
 	using MGroup.LinearAlgebra.Reordering;
-	using MGroup.SolverExtensions.LinearSystem;
 	using MGroup.Solvers;
 
 	public interface ISubstructureDofOrdering

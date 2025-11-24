@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
+namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 {
 	using System;
 	using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
 
 	using TriangleNet.Topology;
 
-	public class DefaultSubstructure : ISubstructure
+	public class DefaultSubstructure //: ISubstructure
 	{
 		private readonly ActiveDofs activeDofs;
 
@@ -25,7 +25,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.LinearSystem
 
 		public ISubdomain Subdomain { get; }
 
-		public IEnumerable<ISuperElement> EnumerateSuperElements()
+		public IEnumerable<DefaultElement> EnumerateSuperElements()
 		{
 			foreach (IElementType element in Subdomain.EnumerateElements())
 			{
