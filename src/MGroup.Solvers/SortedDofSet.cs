@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -6,18 +6,17 @@ using System.Text;
 
 namespace MGroup.Solvers
 {
-	public class DofSet
+	public class SortedDofSet
 	{
-		//TODO: Perhaps I should use HashSets and order them, when I actually need to number the dofs. 
 		private SortedDictionary<int, SortedSet<int>> data = new SortedDictionary<int, SortedSet<int>>();
 
-		public DofSet()
+		public SortedDofSet()
 		{
 		}
 
-		public static DofSet Deserialize(int[] serializedData)
+		public static SortedDofSet Deserialize(int[] serializedData)
 		{
-			var dofSet = new DofSet();
+			var dofSet = new SortedDofSet();
 			int i = 0;
 			while (i < serializedData.Length)
 			{
@@ -92,17 +91,17 @@ namespace MGroup.Solvers
 		public IEnumerable<int> GetDofsOfNode(int nodeID) => data[nodeID];
 
 		/// <summary>
-		/// Returns a <see cref="DofSet"/> that only contains the dofs this instance has in common with 
+		/// Returns a <see cref="SortedDofSet"/> that only contains the dofs this instance has in common with 
 		/// <paramref name="other"/>. This intersection excludes nodes that are not common or do not have common dofs in both 
 		/// this instance and <paramref name="other"/>. This instance will be unusable afterwards.
 		/// </summary>
 		/// <param name="other"></param>
-		public DofSet IntersectionWith(DofSet other)
+		public SortedDofSet IntersectionWith(SortedDofSet other)
 		{
 			//TODO: Lookups (log(n)) in other.data can be avoided by working with the enumerators of this.data and other.data
 			//TODO: Nodes that are not in common or do not have common dofs will be left with empty sets of dofs (int). 
 			//		Perhaps they should be cleaned up.
-			var result = new DofSet();
+			var result = new SortedDofSet();
 			result.data = this.data;
 			this.data = null;
 			foreach (var nodeDofsPair in result.data)

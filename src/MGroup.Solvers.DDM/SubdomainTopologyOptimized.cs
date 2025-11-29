@@ -13,7 +13,7 @@ namespace MGroup.Solvers.DDM
 		{
 			environment.DoPerNode(subdomainID =>
 			{
-				Dictionary<int, DofSet> commonDofs = FindLocalSubdomainDofsAtCommonNodes(subdomainID);
+				Dictionary<int, SortedDofSet> commonDofs = FindLocalSubdomainDofsAtCommonNodes(subdomainID);
 				commonDofsBetweenSubdomains[subdomainID] = commonDofs;
 			});
 		}
@@ -24,7 +24,7 @@ namespace MGroup.Solvers.DDM
 			{
 				if (isModifiedSubdomain(subdomainID))
 				{
-					Dictionary<int, DofSet> commonDofs = FindLocalSubdomainDofsAtCommonNodes(subdomainID);
+					Dictionary<int, SortedDofSet> commonDofs = FindLocalSubdomainDofsAtCommonNodes(subdomainID);
 					commonDofsBetweenSubdomains[subdomainID] = commonDofs;
 				}
 				else

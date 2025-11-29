@@ -348,7 +348,7 @@ namespace MGroup.Solvers
 			else return wholeRow.TryGetValue(col, out value);
 		}
 
-		public static (int numDofs, IntDofTable dofOrdering) OrderDofs(DofSet dofSet, Func<int, INode> getNodeFromID)
+		public static (int numDofs, IntDofTable dofOrdering) OrderDofs(SortedDofSet dofSet, Func<int, INode> getNodeFromID)
 		{
 			var dofTable = new IntDofTable();
 			int numDofs = 0;

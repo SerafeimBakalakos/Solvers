@@ -24,8 +24,8 @@ namespace MGroup.Solvers.DDM
 		/// First key: local subdomain. Second key: neighbor subdomain. Value: dofs at common nodes between these 2 subdomains.
 		/// Again there is duplication between the 2 subdomains of each pair.
 		/// </summary>
-		protected readonly ConcurrentDictionary<int, Dictionary<int, DofSet>> commonDofsBetweenSubdomains
-			= new ConcurrentDictionary<int, Dictionary<int, DofSet>>();
+		protected readonly ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> commonDofsBetweenSubdomains
+			= new ConcurrentDictionary<int, Dictionary<int, SortedDofSet>>();
 
 		/// <summary>
 		/// The common nodes for two neighbors s0, s1 will be found and stored twice: once for s0 and once for s1.
@@ -54,7 +54,7 @@ namespace MGroup.Solvers.DDM
 			// Find all dofs of each subdomain at the common nodes.
 			environment.DoPerNode(subdomainID =>
 			{
-				Dictionary<int, DofSet> commonDofs = FindLocalSubdomainDofsAtCommonNodes(subdomainID);
+				Dictionary<int, SortedDofSet> commonDofs = FindLocalSubdomainDofsAtCommonNodes(subdomainID);
 				commonDofsBetweenSubdomains[subdomainID] = commonDofs;
 			});
 
@@ -65,7 +65,7 @@ namespace MGroup.Solvers.DDM
 				transferData.sendValues = new ConcurrentDictionary<int, int[]>();
 				foreach (int neighborID in GetNeighborsOfSubdomain(subdomainID))
 				{
-					DofSet commonDofs = commonDofsBetweenSubdomains[subdomainID][neighborID];
+					SortedDofSet commonDofs = commonDofsBetweenSubdomains[subdomainID][neighborID];
 
 					//TODOMPI: Serialization & deserialization should be done by the environment, if necessary.
 					transferData.sendValues[neighborID] = commonDofs.Serialize();
@@ -84,7 +84,7 @@ namespace MGroup.Solvers.DDM
 				AllToAllNodeData<int> transferData = transferDataPerSubdomain[subdomainID];
 				foreach (int neighborID in GetNeighborsOfSubdomain(subdomainID))
 				{
-					DofSet receivedDofs = DofSet.Deserialize(transferData.recvValues[neighborID]);
+					SortedDofSet receivedDofs = SortedDofSet.Deserialize(transferData.recvValues[neighborID]);
 					commonDofsBetweenSubdomains[subdomainID][neighborID] =
 						commonDofsBetweenSubdomains[subdomainID][neighborID].IntersectionWith(receivedDofs);
 				}
@@ -126,7 +126,7 @@ namespace MGroup.Solvers.DDM
 		//TODOMPI: this is not very safe. It is easy to mix up the two subdomains, which will lead to NullReferenceException if
 		//      they belong to different clusters/MPI processes. Perhaps this info should be given together with neighborsPerSubdomain
 		//      to avoid such cases. Or ISubdomain could contain both of these data.
-		public DofSet GetCommonDofsOfSubdomains(int localSubdomainID, int neighborSubdomainID)
+		public SortedDofSet GetCommonDofsOfSubdomains(int localSubdomainID, int neighborSubdomainID)
 			=> commonDofsBetweenSubdomains[localSubdomainID][neighborSubdomainID];
 
 		//TODOMPI: this is not very safe. It is easy to mix up the two subdomains, which will lead to NullReferenceException if
@@ -183,13 +183,13 @@ namespace MGroup.Solvers.DDM
 			FindCommonDofsBetweenSubdomains();
 		}
 
-		protected Dictionary<int, DofSet> FindLocalSubdomainDofsAtCommonNodes(int subdomainID)
+		protected Dictionary<int, SortedDofSet> FindLocalSubdomainDofsAtCommonNodes(int subdomainID)
 		{
-			var commonDofsOfSubdomain = new Dictionary<int, DofSet>();
+			var commonDofsOfSubdomain = new Dictionary<int, SortedDofSet>();
 			IntDofTable freeDofs = getSubdomainFreeDofs(subdomainID).FreeDofs;
 			foreach (int neighborID in GetNeighborsOfSubdomain(subdomainID))
 			{
-				var dofSet = new DofSet();
+				var dofSet = new SortedDofSet();
 				foreach (int nodeID in GetCommonNodesOfSubdomains(subdomainID, neighborID))
 				{
 					dofSet.AddDofs(nodeID, freeDofs.GetColumnsOfRow(nodeID));
@@ -206,7 +206,7 @@ namespace MGroup.Solvers.DDM
 			var allCommonDofIndices = new Dictionary<int, int[]>();
 			foreach (int neighborID in GetNeighborsOfSubdomain(subdomainID))
 			{
-				DofSet commonDofs = GetCommonDofsOfSubdomains(subdomainID, neighborID);
+				SortedDofSet commonDofs = GetCommonDofsOfSubdomains(subdomainID, neighborID);
 				var commonDofIndices = new List<int>(commonDofs.Count());
 				foreach ((int nodeID, int dofID) in commonDofs.EnumerateOrderedNodesDofs())
 				{
