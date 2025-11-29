@@ -10,8 +10,10 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public interface ISubstructureSolver
+	public interface ISubstructureSystemSolver
 	{
+		bool CanOverwriteSystemMatrices { get; set; }
+
 		ISubstructureDofOrdering DofOrdering { get; set; }
 
 		IMatrix Matrix { get; set; }
