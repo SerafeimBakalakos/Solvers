@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.DofOrdering
+namespace MGroup.Solvers.DDM.SolversExtensions.DofOrdering
 {
 	using System.Collections.Generic;
 	using System.Linq;
@@ -8,16 +8,17 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.DofOrdering
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM;
 
 	/// <summary>
 	/// Deals with the free (unconstrained) dofs of a subdomain.
 	/// </summary>
 	public class SubdomainFreeDofOrderingGeneral_v2 //: ISubstructureDofOrdering
 	{
-		private readonly DefaultSubstructure substructure;
+		private readonly DefaultSubstructure_temp substructure;
 		private readonly ActiveDofs allDofs;
 
-		public SubdomainFreeDofOrderingGeneral_v2(DefaultSubstructure subdstructure, int numFreeDofs, IntDofTable subdomainFreeDofs, 
+		public SubdomainFreeDofOrderingGeneral_v2(DefaultSubstructure_temp subdstructure, int numFreeDofs, IntDofTable subdomainFreeDofs, 
 			ActiveDofs allDofs)
 		{
 			substructure = subdstructure;
@@ -32,7 +33,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.DofOrdering
 
 		public (int[] elementDofIndices, int[] substructureDofIndices) MapDofsElementToSubstructure(ISuperElement superElement)
 		{
-			var element = ((DefaultElement)superElement).ElementEntity;
+			var element = ((DefaultElement_temp)superElement).ElementEntity;
 
 			var elementNodes = element.DofEnumerator.GetNodesForMatrixAssembly(element);
 			var elementDofs = element.DofEnumerator.GetDofTypesForMatrixAssembly(element);

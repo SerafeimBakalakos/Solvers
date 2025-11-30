@@ -8,6 +8,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Matrices.Builders;
+	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	public class CsrMatrixAssembler_v2 : ISubstructureMatrixAssembler<Matrix>

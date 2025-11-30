@@ -1,4 +1,6 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
+using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+
+namespace MGroup.Solvers.DDM.SolversExtensions.DofOrdering
 {
 	using System;
 	using System.Collections.Generic;

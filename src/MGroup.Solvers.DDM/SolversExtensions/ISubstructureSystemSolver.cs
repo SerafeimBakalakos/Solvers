@@ -8,25 +8,20 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	public interface ISubstructureSystemSolver
 	{
 		bool CanOverwriteSystemMatrices { get; set; }
 
-		ISubstructureDofOrdering DofOrdering { get; set; }
+		ISubstructureProblem Problem { get; }
 
-		IMatrix Matrix { get; set; }
-
-		IVector Rhs { get; set; }
-
-		IVector Solution { get; set; }
-
-		ISubstructure Substructure { get; set; }
+		ISubstructure Substructure { get; }
 
 		void PrepareDofs();
 
-		void PrepareLinearSystem();
+		void BuildSystemMatrix();
 
 		void SolveLinearSystem();
 	}

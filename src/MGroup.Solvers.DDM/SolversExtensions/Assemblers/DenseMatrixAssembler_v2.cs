@@ -9,6 +9,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using System.Xml.Linq;
 
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	public class DenseMatrixAssembler_v2 : ISubstructureMatrixAssembler<Matrix>

@@ -3,14 +3,29 @@ namespace MGroup.Solvers.DDM.DiscretizationExtensions
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using MGroup.Constitutive.Structural;
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 
 	//TODO: Make these work for distributed implementations of Model. So far they assume that if an entity exists, it is in memory.
-	public static class ModelExtensions	
+	public static class ModelExtensions
 	{
+		public static ActiveDofs GetActiveDofs_temp(this IModel model)
+		{
+			var activeDofs = new ActiveDofs();
+			activeDofs.AddDof(StructuralDof.TranslationX);
+			activeDofs.AddDof(StructuralDof.TranslationY);
+			activeDofs.AddDof(StructuralDof.TranslationZ);
+			activeDofs.AddDof(StructuralDof.RotationX);
+			activeDofs.AddDof(StructuralDof.RotationY);
+			activeDofs.AddDof(StructuralDof.RotationZ);
+			//ActiveDofs.AddDof(ThermalDof.Temperature);
+
+			return activeDofs;
+		}
+
 		public static INodalDirichletBoundaryCondition<IDofType>[] FindDirichletBCsOfNode(this IModel model, INode node)
 		{
 			int s = node.Subdomains.First();

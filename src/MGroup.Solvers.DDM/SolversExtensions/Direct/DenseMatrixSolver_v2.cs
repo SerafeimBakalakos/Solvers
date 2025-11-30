@@ -11,13 +11,14 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution;
 	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
+	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.Logging;
 
 	public class DenseMatrixSolver_v2 : ISubstructureSystemSolver
 	{
 		private readonly bool isMatrixPositiveDefinite;
 		private readonly DenseMatrixAssembler_v2 matrixAssembler = new DenseMatrixAssembler_v2();
-		private readonly DenseVectorAssembler vectorAssembler = new DenseVectorAssembler();
 
 		private Matrix inverse;
 
@@ -27,50 +28,45 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 		{
 			this.Substructure = substructure;
 			this.isMatrixPositiveDefinite = isMatrixPositiveDefinite;
+			var dofOrdering = new GlobalSubstructureDofOrdering(substructure, null);
+			Problem = new GlobalSubstructureProblem(substructure, dofOrdering);
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISubstructureDofOrdering DofOrdering { get; set; }
+		public ISolverLogger Logger { get; } = new SolverLogger(typeof(DenseMatrixSolver_v2).Name);
 
-		public ISolverLogger Logger { get; }
+		public ISubstructureProblem Problem { get; }
 
-		public IMatrix Matrix { get; set; }
-
-		public IVector Rhs { get; set; }
-
-		public IVector Solution { get; set; }
-
-		public ISubstructure Substructure { get; set; }
+		public ISubstructure Substructure { get; }
 
 		public void PrepareDofs()
 		{
-			DofOrdering.PrepareDofMaps();
+			Problem.OrderDofs();
 		}
 
-		public void PrepareLinearSystem()
+		public void BuildSystemMatrix()
 		{
-			Matrix = matrixAssembler.BuildSubstructureMatrix(Substructure, DofOrdering);
-			Rhs = vectorAssembler.BuildSubstructureVector(Substructure, DofOrdering);
+			Problem.SystemMatrix = matrixAssembler.BuildSubstructureMatrix(Substructure, Problem.DofOrdering);
 		}
 
 		public void SolveLinearSystem()
 		{
 			var watch = new Stopwatch();
-			if (Solution == null)
+			if (Problem.SystemSolution == null)
 			{
-				Solution = Rhs.CreateZeroVectorWithSameFormat();
+				Problem.SystemSolution = Problem.SystemRhs.CreateZeroVectorWithSameFormat();
 			}
 			else
 			{
-				Solution.Clear();
+				Problem.SystemSolution.Clear();
 			}
 
 			// Factorization
 			if (inverse == null)
 			{
 				watch.Start();
-				var systemMatrix = (Matrix)Matrix;
+				var systemMatrix = (Matrix)(Problem.SystemMatrix);
 				if (isMatrixPositiveDefinite)
 				{
 					inverse = systemMatrix.FactorCholesky(CanOverwriteSystemMatrices).Invert(true);
@@ -87,7 +83,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 			// Substitutions
 			watch.Start();
-			inverse.MultiplyIntoResult(Rhs, Solution);
+			inverse.MultiplyIntoResult(Problem.SystemRhs, Problem.SystemSolution);
 			watch.Stop();
 			Logger.LogTaskDuration("Back/forward substitutions", watch.ElapsedMilliseconds);
 			Logger.IncrementAnalysisStep();

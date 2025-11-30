@@ -9,17 +9,19 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 	using MGroup.LinearAlgebra.Implementations;
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.LinearAlgebra.Triangulation;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution;
 	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
+	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DofOrdering.Reordering;
 
 	public class CholeskyCscSolver_v2 : ISubstructureSystemSolver, IDisposable
 	{
 		private readonly IImplementationProvider laImplementation;
 		private readonly SymmetricCscMatrixAssembler_v2 matrixAssembler = new SymmetricCscMatrixAssembler_v2();
-		private readonly DenseVectorAssembler vectorAssembler = new DenseVectorAssembler();
 
 		private ICholeskySymmetricCsc factorization;
 
@@ -27,6 +29,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 		{
 			this.Substructure = substructure;
 			this.laImplementation = laImplementation;
+			var dofOrdering = new GlobalSubstructureDofOrdering(substructure, new AmdSymmetricOrdering(laImplementation));
+			Problem = new GlobalSubstructureProblem(substructure, dofOrdering);
 		}
 
 		~CholeskyCscSolver_v2()
@@ -42,44 +46,37 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISubstructureDofOrdering DofOrdering { get; set; }
-
 		public ISolverLogger Logger { get; }
 
-		public IMatrix Matrix { get; set; }
+		public ISubstructureProblem Problem { get; }
 
-		public IVector Rhs { get; set; }
-
-		public IVector Solution { get; set; }
-
-		public ISubstructure Substructure { get; set; }
+		public ISubstructure Substructure { get; }
 
 		public void PrepareDofs()
 		{
-			DofOrdering.PrepareDofMaps();
+			Problem.OrderDofs();
 		}
 
-		public void PrepareLinearSystem()
+		public void BuildSystemMatrix()
 		{
-			Matrix = matrixAssembler.BuildSubstructureMatrix(Substructure, DofOrdering);
-			Rhs = vectorAssembler.BuildSubstructureVector(Substructure, DofOrdering);
+			Problem.SystemMatrix = matrixAssembler.BuildSubstructureMatrix(Substructure, Problem.DofOrdering);
 		}
 
 		public void SolveLinearSystem()
 		{
 			var watch = new Stopwatch();
-			if (Solution == null)
+			if (Problem.SystemSolution == null)
 			{
-				Solution = Rhs.CreateZeroVectorWithSameFormat();
+				Problem.SystemSolution = Problem.SystemRhs.CreateZeroVectorWithSameFormat();
 			}
 			else
 			{
-				Solution.Clear();
+				Problem.SystemSolution.Clear();
 			}
 
-			var systemMatrix = (SymmetricCscMatrix)Matrix;
-			var systemRhs = (Vector)Rhs;
-			var systemSolution = (Vector)Solution;
+			var systemMatrix = (SymmetricCscMatrix)(Problem.SystemMatrix);
+			var systemRhs = (Vector)(Problem.SystemRhs);
+			var systemSolution = (Vector)(Problem.SystemSolution);
 
 			// Factorization
 			if (factorization == null)

@@ -16,6 +16,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Solution;
 	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
+	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	public class PcgSolver_v2 : ISubstructureSystemSolver
@@ -23,60 +24,54 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 		private readonly PcgAlgorithm pcgAlgorithm;
 		private readonly bool matrixPatternWillNotBeModified = false;
 		private readonly CsrMatrixAssembler_v2 matrixAssembler = new CsrMatrixAssembler_v2();
-		private readonly DenseVectorAssembler vectorAssembler = new DenseVectorAssembler();
 
 		private readonly IPreconditioner preconditioner;
 		private bool mustUpdatePreconditioner = true;
 
-		public PcgSolver_v2(PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
+		public PcgSolver_v2(ISubstructure substructure, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
 		{
+			Substructure = substructure;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
+			var dofOrdering = new GlobalSubstructureDofOrdering(substructure, null);
+			Problem = new GlobalSubstructureProblem(substructure, dofOrdering);
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISubstructureDofOrdering DofOrdering { get; set; }
-
 		public ISolverLogger Logger { get; }
 
-		public IMatrix Matrix { get; set; }
+		public ISubstructureProblem Problem { get; }
 
-		public IVector Rhs { get; set; }
-
-		public IVector Solution { get; set; }
-
-		public ISubstructure Substructure { get; set; }
+		public ISubstructure Substructure { get; }
 
 		public void PrepareDofs()
 		{
-			DofOrdering.PrepareDofMaps();
+			Problem.OrderDofs();
 		}
 
-		public void PrepareLinearSystem()
+		public void BuildSystemMatrix()
 		{
-			var watch = new Stopwatch();
-			Matrix = matrixAssembler.BuildSubstructureMatrix(Substructure, DofOrdering);
-			Rhs = vectorAssembler.BuildSubstructureVector(Substructure, DofOrdering);
+			Problem.SystemMatrix = matrixAssembler.BuildSubstructureMatrix(Substructure, Problem.DofOrdering);
 		}
 
 		public void SolveLinearSystem()
 		{
 			var watch = new Stopwatch();
-			if (Solution == null)
+			if (Problem.SystemSolution == null)
 			{
-				Solution = Rhs.CreateZeroVectorWithSameFormat();
+				Problem.SystemSolution = Problem.SystemRhs.CreateZeroVectorWithSameFormat();
 			}
 			else
 			{
-				Solution.Clear();
+				Problem.SystemSolution.Clear();
 			}
 
 			// Preconditioning
 			if (mustUpdatePreconditioner)
 			{
 				watch.Start();
-				preconditioner.UpdateMatrix(Matrix, !matrixPatternWillNotBeModified);
+				preconditioner.UpdateMatrix(Problem.SystemMatrix, !matrixPatternWillNotBeModified);
 				mustUpdatePreconditioner = false;
 				watch.Stop();
 				Logger.LogTaskDuration("Calculating preconditioner", watch.ElapsedMilliseconds);
@@ -85,7 +80,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 
 			// Iterative algorithm
 			watch.Start();
-			IterativeStatistics stats = pcgAlgorithm.Solve(Matrix, preconditioner, Rhs, Solution, true); //TODO: This way, we don't know that x0=0, which will result in an extra b-A*0
+			IterativeStatistics stats = pcgAlgorithm.Solve(Problem.SystemMatrix, preconditioner, Problem.SystemRhs, Problem.SystemSolution, true); //TODO: This way, we don't know that x0=0, which will result in an extra b-A*0
 			if (!stats.HasConverged)
 			{
 				throw new IterativeSolverNotConvergedException(typeof(PcgSolver_v2).Name

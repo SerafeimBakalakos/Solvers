@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 
 using MGroup.LinearAlgebra.Matrices;
 using MGroup.LinearAlgebra.Vectors;
+using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 namespace MGroup.Solvers.DDM.PSM_v2.InterfaceProblem
 {
-	public class PsmInterfaceProblemSystem : ISubstructureProblemSystem
+	public class PsmInterfaceProblemSystem //: ISubstructureProblem
 	{
 		public ISubstructureDofOrdering DofOrdering { get; set; }
 

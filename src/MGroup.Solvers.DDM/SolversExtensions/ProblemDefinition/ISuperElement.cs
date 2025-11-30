@@ -10,6 +10,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 
 	public interface ISuperElement
 	{
+		int ID { get; }
+
 		IntDofTable GetDofs();
 
 		IMatrix BuildMatrix();
