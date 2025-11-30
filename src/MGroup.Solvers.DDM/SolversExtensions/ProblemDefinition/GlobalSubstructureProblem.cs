@@ -11,15 +11,11 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Dofs;
-	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 
 	public class GlobalSubstructureProblem : ISubstructureProblem
 	{
-		private IModel model;
-		private GlobalSubstructureVectorAssembler_v2 vectorAssembler;
-
 		public GlobalSubstructureProblem(ISubstructure substructure, ISubstructureDofOrdering dofOrdering)
 		{
 			Substructure = substructure;
@@ -28,15 +24,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 
 		public ISubstructureDofOrdering DofOrdering { get; }
 
-		public IModel Model
-		{
-			get => model;
-			set
-			{
-				model = value;
-				vectorAssembler = new GlobalSubstructureVectorAssembler_v2(model.GetActiveDofs_temp());
-			}
-		}
+		public IModel_v2 Model { get; set; }
 
 		public ISubstructure Substructure { get; }
 
@@ -49,7 +37,12 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 		public void AddToSubstructureVector(IEnumerable<INodalModelQuantity<IDofType>> nodalModelQuantities, IVector vector)
 		{
 			Vector substructureVector = CheckCompatibleVector(vector);
-			vectorAssembler.AddToSubstructureVector(nodalModelQuantities, substructureVector, DofOrdering);
+			foreach (INodalModelQuantity<IDofType> nodalQuantity in nodalModelQuantities)
+			{
+				int dofID = Model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
+				int dofIdx = DofOrdering.Dofs[nodalQuantity.Node.ID, dofID];
+				substructureVector[dofIdx] += nodalQuantity.Amount;
+			}
 		}
 
 		public void OrderDofs()

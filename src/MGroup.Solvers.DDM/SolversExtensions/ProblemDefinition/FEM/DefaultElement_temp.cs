@@ -4,22 +4,23 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 	using System.Collections.Generic;
 	using System.Text;
 
-	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Dofs;
-	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers;
 
 	public class DefaultElement_temp : ISuperElement
 	{
 		private readonly ActiveDofs allDofs;
+		private readonly IElementMatrixProvider elementMatrixProvider;
 
-		public DefaultElement_temp(IElementType femElement, ActiveDofs allDofs)
+		public DefaultElement_temp(IElementType femElement, ActiveDofs allDofs, IElementMatrixProvider elementMatrixProvider)
 		{
 			ElementEntity = femElement;
 			this.allDofs = allDofs;
+			this.elementMatrixProvider = elementMatrixProvider;
 		}
 
 		public IElementType ElementEntity { get; }
@@ -28,7 +29,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 
 		public IMatrix BuildMatrix()
 		{
-			return ((IStructuralElementType)ElementEntity).StiffnessMatrix();
+			return elementMatrixProvider.Matrix(ElementEntity);
 		}
 
 		public IVector BuildRhsVector() => throw new NotImplementedException();

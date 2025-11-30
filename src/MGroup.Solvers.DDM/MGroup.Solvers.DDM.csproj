@@ -21,10 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MGroup.FEM.Structural" Version="0.2.0-unstable.150" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\MGroup.Solvers\MGroup.Solvers.csproj" />
   </ItemGroup>
 

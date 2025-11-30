@@ -6,18 +6,17 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 	using System.Text;
 	using System.Threading.Tasks;
 
-	using MGroup.Constitutive.Structural.BoundaryConditions;
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
-	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	public class SimpleAnalysis_temp
 	{
-		private readonly IModel model;
+		private readonly IModel_v2 model;
 		private readonly ISubstructureSystemSolver solver;
 
-		public SimpleAnalysis_temp(IModel model, ISubstructureSystemSolver solver)
+		public SimpleAnalysis_temp(IModel_v2 model, ISubstructureSystemSolver solver)
 		{
 			this.model = model;
 			this.solver = solver;
@@ -35,11 +34,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 
 		private void BuildRhs()
 		{
-			ISubdomain subdomain = model.GetSubdomain(0);
-			IEnumerable<NodalLoad> loads = model.EnumerateBoundaryConditions(subdomain.ID)
-				.SelectMany(bcSet => bcSet.EnumerateNodalBoundaryConditions(subdomain.EnumerateElements()))
-				.OfType<NodalLoad>();
-			solver.Problem.AddToSubstructureVector(loads, solver.Problem.SystemRhs);
+			IEnumerable<INodalNeumannBoundaryCondition<IDofType>> neumannBCs = model.FindNeumannBCsOfSubdomain(0);
+			solver.Problem.AddToSubstructureVector(neumannBCs, solver.Problem.SystemRhs);
 		}
 	}
 }

@@ -7,6 +7,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using System.Threading.Tasks;
 
 	using MGroup.Constitutive.Structural;
+	using MGroup.Constitutive.Structural.Providers;
 	using MGroup.Environments;
 	using MGroup.LinearAlgebra.Distributed.Overlapping;
 	using MGroup.LinearAlgebra.Implementations;
@@ -14,6 +15,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.LinearAlgebra.Iterative;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.MSolve.DataStructures;
+	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.NumericalAnalyzers;
@@ -45,11 +47,13 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			environment.Initialize(nodeTopology);
 
 			// Model
-			IModel model = Plane2DExample.CreateSingleSubdomainModel();
-			model.ConnectDataStructures(); //TODOMPI: this is also done in the analyzer
+			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
+
+			// Problem
+			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			var substructure = new FullDomain_temp(model);
+			var substructure = new FullDomain_temp(model, elementMatrixProvider);
 			var solver = new DenseMatrixSolver_v2(substructure, true);
 
 			// Linear static analysis
@@ -59,7 +63,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			analysis.Run();
 
 			// Check results
-			NodalResults expectedResults = Plane2DExample.GetExpectedNodalValues(model.GetActiveDofs_temp());
+			NodalResults expectedResults = Plane2DExample.GetExpectedNodalValues(model.DofTypes);
 			double tolerance = 1E-7;
 			NodalResults computedResults = ExtractResults(model, solver);
 			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
@@ -76,7 +80,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			//Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
 		}
 
-		private static NodalResults ExtractResults(IModel model, ISubstructureSystemSolver solver)
+		private static NodalResults ExtractResults(IModel_v2 model, ISubstructureSystemSolver solver)
 		{
 			var results = new Table<int, int, double>();
 
@@ -87,8 +91,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			}
 
 			// Constrained dofs
-			ActiveDofs activeDofs = model.GetActiveDofs_temp();
-			var constraints = model.FindDirichletBCsOfSubdomain(0);
+			ActiveDofs activeDofs = model.DofTypes;
+			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = model.FindDirichletBCsOfSubdomain(0);
 			foreach (var constraint in constraints)
 			{
 				results[constraint.Node.ID, activeDofs.GetIdOfDof(constraint.DOF)] = constraint.Amount;
