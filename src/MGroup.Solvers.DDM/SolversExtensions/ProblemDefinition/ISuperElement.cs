@@ -16,6 +16,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 
 		IMatrix BuildMatrix();
 
-		IVector BuildRhsVector();
+		IVector BuildRhsVector_temp();
 	}
 }

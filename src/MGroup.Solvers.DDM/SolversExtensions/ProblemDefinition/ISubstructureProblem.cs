@@ -8,8 +8,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.MSolve.Discretization;
-	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 
 	public interface ISubstructureProblem
@@ -23,8 +21,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 		IVector SystemRhs { get; set; }
 
 		IVector SystemSolution { get; set; }
-
-		void AddToSubstructureVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector);
 
 		void OrderDofs();
 	}

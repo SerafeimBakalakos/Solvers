@@ -24,8 +24,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 
 		public ISubstructureDofOrdering DofOrdering { get; }
 
-		public IModel_v2 Model { get; set; }
-
 		public ISubstructure Substructure { get; }
 
 		public IMatrix SystemMatrix { get; set; }
@@ -33,17 +31,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 		public IVector SystemRhs { get; set; }
 
 		public IVector SystemSolution { get; set; }
-
-		public void AddToSubstructureVector(IEnumerable<INodalModelQuantity<IDofType>> nodalModelQuantities, IVector vector)
-		{
-			Vector substructureVector = CheckCompatibleVector(vector);
-			foreach (INodalModelQuantity<IDofType> nodalQuantity in nodalModelQuantities)
-			{
-				int dofID = Model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
-				int dofIdx = DofOrdering.Dofs[nodalQuantity.Node.ID, dofID];
-				substructureVector[dofIdx] += nodalQuantity.Amount;
-			}
-		}
 
 		public void OrderDofs()
 		{
@@ -53,18 +40,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 			SystemMatrix = null;
 			SystemRhs = Vector.CreateZero(DofOrdering.NumDofs);
 			SystemSolution = Vector.CreateZero(DofOrdering.NumDofs);
-		}
-
-		internal Vector CheckCompatibleVector(IVector vector)
-		{
-			// Casting inside here is usually safe since all global vectors should be created by this object
-			if ((vector is Vector casted) && (vector.Length == DofOrdering.NumDofs))
-			{
-				return casted;
-			}
-
-			throw new NonMatchingFormatException("The provided vector has a different format than the current linear system."
-				+ $" Make sure it was created by this linear system object.");
 		}
 	}
 }

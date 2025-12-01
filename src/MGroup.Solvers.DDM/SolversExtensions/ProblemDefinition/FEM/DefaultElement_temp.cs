@@ -32,7 +32,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 			return elementMatrixProvider.Matrix(ElementEntity);
 		}
 
-		public IVector BuildRhsVector() => throw new NotImplementedException();
+		public IVector BuildRhsVector_temp() => throw new NotImplementedException();
 
 		public IntDofTable GetDofs()
 		{

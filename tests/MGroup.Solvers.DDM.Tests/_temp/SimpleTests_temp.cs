@@ -49,15 +49,16 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			// Model
 			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
 
-			// Problem
+			// Constituive problem
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
 			var substructure = new FullDomain_temp(model, elementMatrixProvider);
 			var solver = new DenseMatrixSolver_v2(substructure, true);
+			var algebraicModel = new GlobalAlgebraicModel_v2(model, solver.Problem);
 
 			// Linear static analysis
-			var analysis = new SimpleAnalysis_temp(model, solver);
+			var analysis = new SimpleAnalysis_temp(model, algebraicModel, solver);
 
 			// Run the analysis
 			analysis.Run();
