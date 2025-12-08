@@ -15,7 +15,7 @@ namespace MGroup.Solvers.DDM.DiscretizationExtensions
 		{
 			int s = node.Subdomains.First();
 			IEnumerable<IElementType> elements = model.EnumerateElements(s);
-			var nodeConstraints = model.EnumerateBoundaryConditions(s)
+			INodalDirichletBoundaryCondition<IDofType>[] nodeConstraints = model.EnumerateBoundaryConditions(s)
 					.Select(x => x.EnumerateNodalBoundaryConditions(elements))
 					.OfType<INodalDirichletBoundaryCondition<IDofType>>()
 					.Where(x => x.Node.ID == node.ID)
@@ -27,7 +27,7 @@ namespace MGroup.Solvers.DDM.DiscretizationExtensions
 			this IModel model, INode node, int subdomainID)
 		{
 			IEnumerable<IElementType> elements = model.EnumerateElements(subdomainID);
-			var nodeConstraints = model.EnumerateBoundaryConditions(subdomainID)
+			INodalDirichletBoundaryCondition<IDofType>[] nodeConstraints = model.EnumerateBoundaryConditions(subdomainID)
 					.Select(x => x.EnumerateNodalBoundaryConditions(elements))
 					.OfType<INodalDirichletBoundaryCondition<IDofType>>()
 					.Where(x => x.Node.ID == node.ID)
@@ -39,7 +39,7 @@ namespace MGroup.Solvers.DDM.DiscretizationExtensions
 			this IModel model, int subdomainID)
 		{
 			IEnumerable<IElementType> elements = model.EnumerateElements(subdomainID);
-			var constraints = model.EnumerateBoundaryConditions(subdomainID)
+			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = model.EnumerateBoundaryConditions(subdomainID)
 				.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements))
 				.OfType<INodalDirichletBoundaryCondition<IDofType>>();
 			return constraints;

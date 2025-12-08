@@ -55,7 +55,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			// Solver
 			var substructure = new FullDomain_temp(model, elementMatrixProvider);
 			var solver = new DenseMatrixSolver_v2(substructure, true);
-			var algebraicModel = new GlobalAlgebraicModel_v2(model, solver.Problem);
+			var algebraicModel = new GlobalAlgebraicModel_v2(model, solver);
 
 			// Linear static analysis
 			var analysis = new SimpleAnalysis_temp(model, algebraicModel, solver);

@@ -8,6 +8,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Dofs;
+	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers;
 
@@ -36,17 +37,17 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 
 		public IntDofTable GetDofs()
 		{
-			var elementNodes = ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
-			var elementDofs = ElementEntity.DofEnumerator.GetDofTypesForMatrixAssembly(ElementEntity);
+			IReadOnlyList<INode> elementNodes = ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
+			IReadOnlyList<IReadOnlyList<IDofType>> elementDofs = ElementEntity.DofEnumerator.GetDofTypesForMatrixAssembly(ElementEntity);
 
 			var result = new IntDofTable();
-			var elementDofIdx = 0;
-			for (var nodeIdx = 0; nodeIdx < elementNodes.Count; ++nodeIdx)
+			int elementDofIdx = 0;
+			for (int nodeIdx = 0; nodeIdx < elementNodes.Count; ++nodeIdx)
 			{
-				var nodeID = elementNodes[nodeIdx].ID;
-				for (var dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
+				int nodeID = elementNodes[nodeIdx].ID;
+				for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
 				{
-					var dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
+					int dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
 					result.TryAdd(nodeID, dofID, elementDofIdx);
 					++elementDofIdx;
 				}

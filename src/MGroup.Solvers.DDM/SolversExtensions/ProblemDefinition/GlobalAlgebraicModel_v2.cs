@@ -14,9 +14,9 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 
 	public class GlobalAlgebraicModel_v2 : IAlgebraicModel_v2
 	{
-		public GlobalAlgebraicModel_v2(IModel_v2 model, ISubstructureProblem linearSystem)
+		public GlobalAlgebraicModel_v2(IModel_v2 model, ISubstructureSystemSolver solver)
 		{
-			LinearSystem = linearSystem;
+			LinearSystem = solver.Problem;
 			Model = model;
 		}
 

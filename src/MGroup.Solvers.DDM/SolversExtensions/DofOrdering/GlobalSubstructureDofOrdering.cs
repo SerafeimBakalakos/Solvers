@@ -31,7 +31,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.DofOrdering
 		/// <returns></returns>
 		public (int[] elementDofIndices, int[] substructureDofIndices) MapDofsElementToSubstructure(ISuperElement superElement)
 		{
-			var isStored = elementToSubstructureDofIndices.TryGetValue(superElement.ID, out var dofIndices);
+			bool isStored = elementToSubstructureDofIndices.TryGetValue(superElement.ID, out (int[] element, int[] substructure) dofIndices);
 			if (!isStored)
 			{
 				dofIndices = MapDofs(superElement);
@@ -54,7 +54,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.DofOrdering
 		public void PrepareDofMaps()
 		{
 			elementToSubstructureDofIndices = new Dictionary<int, (int[], int[])>();
-			foreach (var element in substructure.EnumerateSuperElements())
+			foreach (ISuperElement element in substructure.EnumerateSuperElements())
 			{
 				elementToSubstructureDofIndices[element.ID] = MapDofs(element);
 			}
@@ -62,14 +62,14 @@ namespace MGroup.Solvers.DDM.SolversExtensions.DofOrdering
 
 		private (int[] elementDofIndices, int[] substructureDofIndices) MapDofs(ISuperElement superElement)
 		{
-			var elementDofs = superElement.GetDofs();
-			var numElementDofs = elementDofs.NumEntries; //TODO: Optimize this
+			IntDofTable elementDofs = superElement.GetDofs();
+			int numElementDofs = elementDofs.NumEntries; //TODO: Optimize this
 
 			var elementDofIndices = new List<int>(numElementDofs);
 			var substructureDofIndices = new List<int>(numElementDofs);
-			foreach ((var nodeID, var dofID, var elementDofIdx) in elementDofs)
+			foreach ((int nodeID, int dofID, int elementDofIdx) in elementDofs)
 			{
-				if (Dofs.TryGetValue(nodeID, dofID, out var substructureDofIdx))
+				if (Dofs.TryGetValue(nodeID, dofID, out int substructureDofIdx))
 				{
 					elementDofIndices.Add(elementDofIdx);
 					substructureDofIndices.Add(substructureDofIdx);
@@ -82,15 +82,15 @@ namespace MGroup.Solvers.DDM.SolversExtensions.DofOrdering
 		private void ReorderDofs(IReorderingAlgorithm reorderingAlgorithm)
 		{
 			var pattern = SparsityPatternSymmetric.CreateEmpty(NumDofs);
-			foreach (var element in substructure.EnumerateSuperElements())
+			foreach (ISuperElement element in substructure.EnumerateSuperElements())
 			{
-				(var elementDofIndices, var subdomainDofIndices) = MapDofsElementToSubstructure(element);
+				(int[] elementDofIndices, int[] subdomainDofIndices) = MapDofsElementToSubstructure(element);
 
 				//TODO: ISubdomainFreeDofOrdering could perhaps return whether the subdomainDofIndices are sorted or not.
 				pattern.ConnectIndices(subdomainDofIndices, false);
 			}
 
-			(var permutation, var oldToNew) = reorderingAlgorithm.FindPermutation(pattern);
+			(int[] permutation, bool oldToNew) = reorderingAlgorithm.FindPermutation(pattern);
 			Dofs.Reorder(permutation, oldToNew);
 		}
 	}

@@ -1,4 +1,4 @@
-﻿namespace MGroup.Solvers.DDM.DiscretizationExtensions
+namespace MGroup.Solvers.DDM.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;
@@ -44,15 +44,14 @@
 		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDirichletBCsOfSubdomain(int subdomainID)
 		{
 			IEnumerable<IElementType> elements = model.EnumerateElements(subdomainID);
-			var dirichletBCs = model.EnumerateBoundaryConditions(subdomainID)
+			return model.EnumerateBoundaryConditions(subdomainID)
 				.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements))
 				.OfType<INodalDirichletBoundaryCondition<IDofType>>();
-			return dirichletBCs;
 		}
 
 		public IEnumerable<INodalNeumannBoundaryCondition<IDofType>> FindNeumannBCsOfSubdomain(int subdomainID)
 		{
-			var elements = model.EnumerateElements(subdomainID);
+			IEnumerable<IElementType> elements = model.EnumerateElements(subdomainID);
 			return model.EnumerateBoundaryConditions(subdomainID)
 				.SelectMany(bcSet => bcSet.EnumerateNodalBoundaryConditions(elements))
 				.OfType<INodalNeumannBoundaryCondition<IDofType>>();
