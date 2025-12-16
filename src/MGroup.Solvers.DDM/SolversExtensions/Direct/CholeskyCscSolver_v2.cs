@@ -18,19 +18,19 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 	using MGroup.Solvers.DofOrdering.Reordering;
 
-	public class CholeskyCscSolver_v2 : ISubstructureSystemSolver, IDisposable
+	public class CholeskyCscSolver_v2 : ISubdomainSystemSolver, IDisposable
 	{
 		private readonly IImplementationProvider laImplementation;
 		private readonly SymmetricCscMatrixAssembler_v2 matrixAssembler = new SymmetricCscMatrixAssembler_v2();
 
 		private ICholeskySymmetricCsc factorization;
 
-		public CholeskyCscSolver_v2(ISubstructure substructure, IImplementationProvider laImplementation)
+		public CholeskyCscSolver_v2(ISubdomain_v2 subdomain, IImplementationProvider laImplementation)
 		{
-			this.Substructure = substructure;
+			this.Subdomain = subdomain;
 			this.laImplementation = laImplementation;
-			var dofOrdering = new GlobalSubstructureDofOrdering(substructure, new AmdSymmetricOrdering(laImplementation));
-			Problem = new GlobalSubstructureProblem(substructure, dofOrdering);
+			var dofOrdering = new DefaultSubdomainDofOrdering(subdomain, new AmdSymmetricOrdering(laImplementation));
+			Problem = new SharedMemoryStructureProblem(subdomain, dofOrdering);
 		}
 
 		~CholeskyCscSolver_v2()
@@ -48,9 +48,9 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public ISolverLogger Logger { get; }
 
-		public ISubstructureProblem Problem { get; }
+		public ISubdomainProblem Problem { get; }
 
-		public ISubstructure Substructure { get; }
+		public ISubdomain_v2 Subdomain { get; }
 
 		public void PrepareDofs()
 		{
@@ -59,7 +59,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public void BuildSystemMatrix()
 		{
-			Problem.SystemMatrix = matrixAssembler.BuildSubstructureMatrix(Substructure, Problem.DofOrdering);
+			Problem.SystemMatrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, Problem.DofOrdering);
 		}
 
 		public void SolveLinearSystem()

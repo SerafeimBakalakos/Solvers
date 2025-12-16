@@ -13,8 +13,8 @@ namespace MGroup.Solvers.DDM.DiscretizationExtensions
 
 	public interface IAlgebraicModel_v2
 	{
-		ISubstructureProblem LinearSystem { get; }
+		ISubdomainProblem LinearSystem { get; }
 
-		void AddToSubstructureVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector);
+		void AddToSubdomainVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector);
 	}
 }

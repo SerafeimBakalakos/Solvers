@@ -9,13 +9,13 @@ namespace MGroup.Solvers.DDM.SolversExtensions.DofOrdering
 	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.Solvers;
 
-	public interface ISubstructureDofOrdering
+	public interface ISubdomainDofOrdering_v2
 	{
 		IntDofTable Dofs { get; }
 
 		int NumDofs { get; }
 
-		(int[] elementDofIndices, int[] substructureDofIndices) MapDofsElementToSubstructure(ISuperElement superElement);
+		(int[] elementDofIndices, int[] subdomainDofIndices) MapDofsElementToSubdomain(ISuperElement element);
 
 		void OrderDofs();
 

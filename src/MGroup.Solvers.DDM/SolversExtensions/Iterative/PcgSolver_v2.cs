@@ -19,7 +19,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public class PcgSolver_v2 : ISubstructureSystemSolver
+	public class PcgSolver_v2 : ISubdomainSystemSolver
 	{
 		private readonly PcgAlgorithm pcgAlgorithm;
 		private readonly bool matrixPatternWillNotBeModified = false;
@@ -28,22 +28,22 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 		private readonly IPreconditioner preconditioner;
 		private bool mustUpdatePreconditioner = true;
 
-		public PcgSolver_v2(ISubstructure substructure, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
+		public PcgSolver_v2(ISubdomain_v2 subdomain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
 		{
-			Substructure = substructure;
+			Subdomain = subdomain;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			var dofOrdering = new GlobalSubstructureDofOrdering(substructure, null);
-			Problem = new GlobalSubstructureProblem(substructure, dofOrdering);
+			var dofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
+			Problem = new SharedMemoryStructureProblem(subdomain, dofOrdering);
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
 		public ISolverLogger Logger { get; }
 
-		public ISubstructureProblem Problem { get; }
+		public ISubdomainProblem Problem { get; }
 
-		public ISubstructure Substructure { get; }
+		public ISubdomain_v2 Subdomain { get; }
 
 		public void PrepareDofs()
 		{
@@ -52,7 +52,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 
 		public void BuildSystemMatrix()
 		{
-			Problem.SystemMatrix = matrixAssembler.BuildSubstructureMatrix(Substructure, Problem.DofOrdering);
+			Problem.SystemMatrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, Problem.DofOrdering);
 		}
 
 		public void SolveLinearSystem()

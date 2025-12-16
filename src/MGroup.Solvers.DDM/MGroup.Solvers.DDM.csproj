@@ -24,8 +24,4 @@
     <ProjectReference Include="..\MGroup.Solvers\MGroup.Solvers.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="PSM_v2\InterfaceProblem\" />
-  </ItemGroup>
-
 </Project>

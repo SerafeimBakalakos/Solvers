@@ -10,11 +10,11 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 
-	public interface ISubstructureProblem
+	public interface ISubdomainProblem
 	{
-		ISubstructureDofOrdering DofOrdering { get; }
+		ISubdomainDofOrdering_v2 DofOrdering { get; }
 
-		ISubstructure Substructure { get; }
+		ISubdomain_v2 Subdomain { get; }
 
 		IMatrix SystemMatrix { get; set; }
 

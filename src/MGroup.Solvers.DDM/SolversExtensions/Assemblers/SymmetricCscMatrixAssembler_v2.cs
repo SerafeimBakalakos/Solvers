@@ -13,7 +13,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public class SymmetricCscMatrixAssembler_v2 : ISubstructureMatrixAssembler<SymmetricCscMatrix>
+	public class SymmetricCscMatrixAssembler_v2 : ISubdomainMatrixAssembler<SymmetricCscMatrix>
 	{
 		private readonly bool sortColsOfEachRow;
 
@@ -22,21 +22,21 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 			this.sortColsOfEachRow = sortColsOfEachRow;
 		}
 
-		public IMatrix BuildSubstructureMatrix(ISubstructure substructure, ISubstructureDofOrdering dofOrdering)
+		public IMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			int numDofs = dofOrdering.Dofs.NumEntries;
-			var substructureMatrix = DokSymmetric.CreateEmpty(numDofs);
+			var subdomainMatrix = DokSymmetric.CreateEmpty(numDofs);
 
 			// Process the stiffness of each element
-			foreach (ISuperElement element in substructure.EnumerateSuperElements())
+			foreach (ISuperElement element in subdomain.EnumerateSuperElements())
 			{
 				// TODO: perhaps that could be done and cached during the dof enumeration to avoid iterating over the dofs twice
-				(int[] elementDofIndices, int[] substructureDofIndices) = dofOrdering.MapDofsElementToSubstructure(element);
+				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
 				IMatrix elementMatrix = element.BuildMatrix();
-				substructureMatrix.AddSubmatrixSymmetric(elementMatrix, elementDofIndices, substructureDofIndices);
+				subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, elementDofIndices, subdomainDofIndices);
 			}
 
-			(double[] values, int[] rowIndices, int[] colOffsets) = substructureMatrix.BuildSymmetricCscArrays(sortColsOfEachRow);
+			(double[] values, int[] rowIndices, int[] colOffsets) = subdomainMatrix.BuildSymmetricCscArrays(sortColsOfEachRow);
 			return SymmetricCscMatrix.CreateFromArrays(numDofs, values, rowIndices, colOffsets, false);
 		}
 	}

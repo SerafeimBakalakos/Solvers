@@ -15,30 +15,30 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 	using MGroup.Solvers.Logging;
 
-	public class DenseMatrixSolver_v2 : ISubstructureSystemSolver
+	public class DenseMatrixSolver_v2 : ISubdomainSystemSolver
 	{
 		private readonly bool isMatrixPositiveDefinite;
 		private readonly DenseMatrixAssembler_v2 matrixAssembler = new DenseMatrixAssembler_v2();
 
 		private Matrix inverse;
 
-		//private readonly reordering = new NullReordering(); Why do I need NullReordering? Solvers that do not need to reorder can just not call the ISubstructure.ReorderDofs() method
+		//private readonly reordering = new NullReordering(); Why do I need NullReordering? Solvers that do not need to reorder can just not call the ISubdomain.ReorderDofs() method
 
-		public DenseMatrixSolver_v2(ISubstructure substructure, bool isMatrixPositiveDefinite)
+		public DenseMatrixSolver_v2(ISubdomain_v2 subdomain, bool isMatrixPositiveDefinite)
 		{
-			this.Substructure = substructure;
+			this.Subdomain = subdomain;
 			this.isMatrixPositiveDefinite = isMatrixPositiveDefinite;
-			var dofOrdering = new GlobalSubstructureDofOrdering(substructure, null);
-			Problem = new GlobalSubstructureProblem(substructure, dofOrdering);
+			var dofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
+			Problem = new SharedMemoryStructureProblem(subdomain, dofOrdering);
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
 		public ISolverLogger Logger { get; } = new SolverLogger(typeof(DenseMatrixSolver_v2).Name);
 
-		public ISubstructureProblem Problem { get; }
+		public ISubdomainProblem Problem { get; }
 
-		public ISubstructure Substructure { get; }
+		public ISubdomain_v2 Subdomain { get; }
 
 		public void PrepareDofs()
 		{
@@ -47,7 +47,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public void BuildSystemMatrix()
 		{
-			Problem.SystemMatrix = matrixAssembler.BuildSubstructureMatrix(Substructure, Problem.DofOrdering);
+			Problem.SystemMatrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, Problem.DofOrdering);
 		}
 
 		public void SolveLinearSystem()

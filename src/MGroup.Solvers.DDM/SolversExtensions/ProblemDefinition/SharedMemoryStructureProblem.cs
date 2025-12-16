@@ -14,17 +14,17 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 
-	public class GlobalSubstructureProblem : ISubstructureProblem
+	public class SharedMemoryStructureProblem : ISubdomainProblem
 	{
-		public GlobalSubstructureProblem(ISubstructure substructure, ISubstructureDofOrdering dofOrdering)
+		public SharedMemoryStructureProblem(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
-			Substructure = substructure;
+			Subdomain = subdomain;
 			DofOrdering = dofOrdering;
 		}
 
-		public ISubstructureDofOrdering DofOrdering { get; }
+		public ISubdomainDofOrdering_v2 DofOrdering { get; }
 
-		public ISubstructure Substructure { get; }
+		public ISubdomain_v2 Subdomain { get; }
 
 		public IMatrix SystemMatrix { get; set; }
 

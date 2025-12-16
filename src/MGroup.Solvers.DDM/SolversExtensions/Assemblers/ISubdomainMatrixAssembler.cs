@@ -10,8 +10,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public interface ISubstructureMatrixAssembler<TMatrix> where TMatrix : IMatrix
+	public interface ISubdomainMatrixAssembler<TMatrix> where TMatrix : IMatrix
 	{
-		IMatrix BuildSubstructureMatrix(ISubstructure substructure, ISubstructureDofOrdering substructureDofOrdering);
+		IMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 subdomainDofOrdering);
 	}
 }

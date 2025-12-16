@@ -12,42 +12,42 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public class DenseMatrixAssembler_v2 : ISubstructureMatrixAssembler<Matrix>
+	public class DenseMatrixAssembler_v2 : ISubdomainMatrixAssembler<Matrix>
 	{
-		public IMatrix BuildSubstructureMatrix(ISubstructure substructure, ISubstructureDofOrdering dofOrdering)
+		public IMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			int numDofs = dofOrdering.Dofs.NumEntries;
-			var substructureMatrix = Matrix.CreateZero(numDofs, numDofs);
+			var subdomainMatrix = Matrix.CreateZero(numDofs, numDofs);
 
 			// Process the stiffness of each element
-			foreach (ISuperElement element in substructure.EnumerateSuperElements())
+			foreach (ISuperElement element in subdomain.EnumerateSuperElements())
 			{
 				// TODO: perhaps that could be done and cached during the dof enumeration to avoid iterating over the dofs twice
-				(int[] elementDofIndices, int[] substructureDofIndices) = dofOrdering.MapDofsElementToSubstructure(element);
+				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
 				IMatrix elementMatrix = element.BuildMatrix();
-				AddElementToSubstructureMatrix(substructureMatrix, elementMatrix, elementDofIndices, substructureDofIndices);
+				AddElementToSubdomainMatrix(subdomainMatrix, elementMatrix, elementDofIndices, subdomainDofIndices);
 			}
 
-			return substructureMatrix;
+			return subdomainMatrix;
 		}
 
-		private static void AddElementToSubstructureMatrix(Matrix substructureMatrix, IReadOnlyMatrix elementMatrix,
-			int[] elementIndices, int[] substructureDofIndices)
+		private static void AddElementToSubdomainMatrix(Matrix subdomainMatrix, IReadOnlyMatrix elementMatrix,
+			int[] elementIndices, int[] subdomainDofIndices)
 		{
 			Debug.Assert(elementMatrix.NumRows == elementMatrix.NumColumns);
-			Debug.Assert(substructureDofIndices.Length == elementIndices.Length);
+			Debug.Assert(subdomainDofIndices.Length == elementIndices.Length);
 
 			int numRelevantRows = elementIndices.Length;
 			for (int i = 0; i < numRelevantRows; ++i)
 			{
 				int elementRow = elementIndices[i];
-				int substructureRow = substructureDofIndices[i];
+				int subdomainRow = subdomainDofIndices[i];
 				for (int j = 0; j < numRelevantRows; ++j)
 				{
 					int elementCol = elementIndices[j];
-					int substructureCol = substructureDofIndices[j];
+					int subdomainCol = subdomainDofIndices[j];
 
-					substructureMatrix[substructureRow, substructureCol] += elementMatrix[elementRow, elementCol];
+					subdomainMatrix[subdomainRow, subdomainCol] += elementMatrix[elementRow, elementCol];
 				}
 			}
 		}

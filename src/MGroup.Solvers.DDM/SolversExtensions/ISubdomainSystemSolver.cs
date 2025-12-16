@@ -11,13 +11,13 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public interface ISubstructureSystemSolver
+	public interface ISubdomainSystemSolver
 	{
 		bool CanOverwriteSystemMatrices { get; set; }
 
-		ISubstructureProblem Problem { get; }
+		ISubdomainProblem Problem { get; }
 
-		ISubstructure Substructure { get; }
+		ISubdomain_v2 Subdomain { get; }
 
 		void PrepareDofs();
 

@@ -9,7 +9,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers.DDM.DiscretizationExtensions;
 
-	public class FullDomain_temp : DefaultSubstructure_temp
+	public class FullDomain_temp : DefaultSubdomain_temp
 	{
 		private readonly IModel_v2 model;
 

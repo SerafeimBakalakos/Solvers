@@ -14,12 +14,12 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 	using MGroup.Solvers;
 	using MGroup.Solvers.DDM.DiscretizationExtensions;
 
-	public class DefaultSubstructure_temp : ISubstructure
+	public class DefaultSubdomain_temp : ISubdomain_v2
 	{
 		private readonly IModel_v2 model;
 		private readonly IElementMatrixProvider elementMatrixProvider;
 
-		public DefaultSubstructure_temp(ISubdomain subdomain, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
+		public DefaultSubdomain_temp(ISubdomain subdomain, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
 		{
 			this.model = model;
 			this.elementMatrixProvider = elementMatrixProvider;

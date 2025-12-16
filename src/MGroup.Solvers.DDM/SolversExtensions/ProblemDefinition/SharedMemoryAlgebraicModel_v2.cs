@@ -12,26 +12,26 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.Solvers.DDM.DiscretizationExtensions;
 
-	public class GlobalAlgebraicModel_v2 : IAlgebraicModel_v2
+	public class SharedMemoryAlgebraicModel_v2 : IAlgebraicModel_v2
 	{
-		public GlobalAlgebraicModel_v2(IModel_v2 model, ISubstructureSystemSolver solver)
+		public SharedMemoryAlgebraicModel_v2(IModel_v2 model, ISubdomainSystemSolver solver)
 		{
 			LinearSystem = solver.Problem;
 			Model = model;
 		}
 
-		public ISubstructureProblem LinearSystem { get; }
+		public ISubdomainProblem LinearSystem { get; }
 
 		public IModel_v2 Model { get; }
 
-		public void AddToSubstructureVector(IEnumerable<INodalModelQuantity<IDofType>> nodalModelQuantities, IVector vector)
+		public void AddToSubdomainVector(IEnumerable<INodalModelQuantity<IDofType>> nodalModelQuantities, IVector vector)
 		{
-			Vector substructureVector = CheckCompatibleVector(vector);
+			Vector subdomainVector = CheckCompatibleVector(vector);
 			foreach (INodalModelQuantity<IDofType> nodalQuantity in nodalModelQuantities)
 			{
 				int dofID = Model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
 				int dofIdx = LinearSystem.DofOrdering.Dofs[nodalQuantity.Node.ID, dofID];
-				substructureVector[dofIdx] += nodalQuantity.Amount;
+				subdomainVector[dofIdx] += nodalQuantity.Amount;
 			}
 		}
 

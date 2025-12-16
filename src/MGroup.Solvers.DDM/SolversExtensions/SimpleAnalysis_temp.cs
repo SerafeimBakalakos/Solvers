@@ -15,9 +15,9 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 	{
 		private readonly IModel_v2 model;
 		private readonly IAlgebraicModel_v2 algebraicModel;
-		private readonly ISubstructureSystemSolver solver;
+		private readonly ISubdomainSystemSolver solver;
 
-		public SimpleAnalysis_temp(IModel_v2 model, IAlgebraicModel_v2 algebraicModel, ISubstructureSystemSolver solver)
+		public SimpleAnalysis_temp(IModel_v2 model, IAlgebraicModel_v2 algebraicModel, ISubdomainSystemSolver solver)
 		{
 			this.model = model;
 			this.algebraicModel = algebraicModel;
@@ -36,7 +36,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 		private void BuildRhs()
 		{
 			IEnumerable<INodalNeumannBoundaryCondition<IDofType>> neumannBCs = model.FindNeumannBCsOfSubdomain(0);
-			algebraicModel.AddToSubstructureVector(neumannBCs, solver.Problem.SystemRhs);
+			algebraicModel.AddToSubdomainVector(neumannBCs, solver.Problem.SystemRhs);
 		}
 	}
 }

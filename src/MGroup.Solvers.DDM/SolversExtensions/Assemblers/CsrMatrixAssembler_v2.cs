@@ -11,7 +11,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public class CsrMatrixAssembler_v2 : ISubstructureMatrixAssembler<Matrix>
+	public class CsrMatrixAssembler_v2 : ISubdomainMatrixAssembler<Matrix>
 	{
 		private readonly bool sortColsOfEachRow;
 
@@ -20,21 +20,21 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 			this.sortColsOfEachRow = sortColsOfEachRow;
 		}
 
-		public IMatrix BuildSubstructureMatrix(ISubstructure substructure, ISubstructureDofOrdering dofOrdering)
+		public IMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			int numDofs = dofOrdering.Dofs.NumEntries;
-			var substructureMatrix = DokRowMajor.CreateEmpty(numDofs, numDofs);
+			var subdomainMatrix = DokRowMajor.CreateEmpty(numDofs, numDofs);
 
 			// Process the stiffness of each element
-			foreach (ISuperElement element in substructure.EnumerateSuperElements())
+			foreach (ISuperElement element in subdomain.EnumerateSuperElements())
 			{
 				// TODO: perhaps that could be done and cached during the dof enumeration to avoid iterating over the dofs twice
-				(int[] elementDofIndices, int[] substructureDofIndices) = dofOrdering.MapDofsElementToSubstructure(element);
+				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
 				IMatrix elementMatrix = element.BuildMatrix();
-				substructureMatrix.AddSubmatrixSymmetric(elementMatrix, elementDofIndices, substructureDofIndices);
+				subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, elementDofIndices, subdomainDofIndices);
 			}
 
-			(double[] values, int[] colIndices, int[] rowOffsets) = substructureMatrix.BuildCsrArrays(sortColsOfEachRow);
+			(double[] values, int[] colIndices, int[] rowOffsets) = subdomainMatrix.BuildCsrArrays(sortColsOfEachRow);
 			return CsrMatrix.CreateFromArrays(numDofs, numDofs, values, colIndices, rowOffsets, false);
 		}
 	}

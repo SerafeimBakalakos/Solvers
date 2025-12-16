@@ -6,7 +6,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 
 	using MGroup.Solvers;
 
-	public interface ISubstructure
+	public interface ISubdomain_v2
 	{
 		IEnumerable<ISuperElement> EnumerateSuperElements();
 

@@ -362,7 +362,7 @@ namespace MGroup.Solvers.DDM.Psm
 				}
 			});
 
-			// Factorize Kii matrices of substructures
+			// Factorize Kii matrices of subdomains
 			//TODO: This should be done together with the extraction. However SuiteSparse already uses multiple threads and should
 			//		not be parallelized at subdomain level too. Instead environment.DoPerNode should be able to run tasks serially by reading a flag.
 			Action<int> factorizeKii = subdomainID =>

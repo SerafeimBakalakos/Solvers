@@ -53,9 +53,9 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			var substructure = new FullDomain_temp(model, elementMatrixProvider);
-			var solver = new DenseMatrixSolver_v2(substructure, true);
-			var algebraicModel = new GlobalAlgebraicModel_v2(model, solver);
+			var subdomain = new FullDomain_temp(model, elementMatrixProvider);
+			var solver = new DenseMatrixSolver_v2(subdomain, true);
+			var algebraicModel = new SharedMemoryAlgebraicModel_v2(model, solver);
 
 			// Linear static analysis
 			var analysis = new SimpleAnalysis_temp(model, algebraicModel, solver);
@@ -81,7 +81,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			//Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
 		}
 
-		private static NodalResults ExtractResults(IModel_v2 model, ISubstructureSystemSolver solver)
+		private static NodalResults ExtractResults(IModel_v2 model, ISubdomainSystemSolver solver)
 		{
 			var results = new Table<int, int, double>();
 
