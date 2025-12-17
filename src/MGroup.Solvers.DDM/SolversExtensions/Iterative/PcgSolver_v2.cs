@@ -18,8 +18,10 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 	using MGroup.MSolve.Solution;
 	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
+	using MGroup.Solvers.DDM.SolversExtensions.Direct;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.Logging;
 
 	public class PcgSolver_v2 : ISubdomainSystemSolver
 	{
@@ -45,7 +47,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 
 		public LinearSystem_v2 LinearSystem { get; }
 
-		public ISolverLogger Logger { get; }
+		public ISolverLogger Logger { get; } = new SolverLogger(typeof(PcgSolver_v2).Name);
 
 		public ISubdomain_v2 Subdomain { get; }
 
