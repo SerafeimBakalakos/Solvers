@@ -40,6 +40,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 
 	using Xunit;
 
+	using static MGroup.Solvers.DDM.Tests._temp.SimpleTests_temp;
+
 	public static class SimpleTests_temp
 	{
 		public enum SolverName
@@ -47,27 +49,23 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			DenseMatrixSolver, CholeskyCscSolver, PcgSolver
 		}
 
-		[Theory]
-		[InlineData(SolverName.DenseMatrixSolver)]
-		[InlineData(SolverName.CholeskyCscSolver)]
-		[InlineData(SolverName.PcgSolver)]
-		public static void TestPlane2D(SolverName solverName)
+		[Fact]
+		public static void TestDdmSolvers()
 		{
+			// Environment
 			IComputeEnvironment environment = new SequentialSharedEnvironment();
 			IImplementationProvider laProviderForSolver = new ManagedSequentialImplementationProvider();
-
-			// Environment
 			ComputeNodeTopology nodeTopology = Plane2DExample.CreateNodeTopology();
 			environment.Initialize(nodeTopology);
 
 			// Model
-			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
+			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateMultiSubdomainModel());
 
 			// Constitutive problem
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			ISubdomainSystemSolver solver = CreateSolver(solverName, environment, laProviderForSolver, model, elementMatrixProvider);
+			ISubdomainSystemSolver solver = null;
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -79,22 +77,43 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			// Check results
 			NodalResults expectedResults = Plane2DExample.GetExpectedNodalValues(model.DofTypes);
 			double tolerance = 1E-7;
-			NodalResults computedResults = algebraicModel.ExtractAllResults(solver.LinearSystem.Solution);
-			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
-
-			//Debug.WriteLine($"Num PCG iterations = {solver.PcgStats.NumIterationsRequired}," +
-			//    $" final residual norm ratio = {solver.PcgStats.ResidualNormRatioEstimation}");
-
-			// Check convergence
-			//int precision = 10;
-			//int pcgIterationsExpected = 63;
-			//double pcgResidualNormRatioExpected = 4.859075883397028E-11;
-			//IterativeStatistics stats = solver.InterfaceProblemSolutionStats;
-			//Assert.Equal(pcgIterationsExpected, stats.NumIterationsRequired);
-			//Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
+			environment.DoPerNode(subdomainID =>
+			{
+				NodalResults computedResults = algebraicModel.ExtractAllResults(subdomainID, solver.LinearSystem.Solution);
+				Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
+			});
 		}
 
-		private static ISubdomainSystemSolver CreateSolver(SolverName solverName, IComputeEnvironment environment, IImplementationProvider laProviderForSolver, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
+		[Theory]
+		[InlineData(SolverName.DenseMatrixSolver)]
+		[InlineData(SolverName.CholeskyCscSolver)]
+		[InlineData(SolverName.PcgSolver)]
+		public static void TestMonolithicSolvers(SolverName solverName)
+		{
+			// Model
+			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
+
+			// Constitutive problem
+			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
+
+			// Solver
+			ISubdomainSystemSolver solver = CreateMonolithicSolver(solverName, model, elementMatrixProvider);
+			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
+
+			// Linear static analysis
+			var analysis = new SimpleAnalysis_temp(model, algebraicModel, solver);
+
+			// Run the analysis
+			analysis.Run();
+
+			// Check results
+			NodalResults expectedResults = Plane2DExample.GetExpectedNodalValues(model.DofTypes);
+			double tolerance = 1E-7;
+			NodalResults computedResults = algebraicModel.ExtractAllResults(0, solver.LinearSystem.Solution);
+			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
+		}
+
+		private static ISubdomainSystemSolver CreateMonolithicSolver(SolverName solverName, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
 		{
 			if (solverName == SolverName.DenseMatrixSolver)
 			{
@@ -103,6 +122,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			}
 			else if (solverName == SolverName.CholeskyCscSolver)
 			{
+				IImplementationProvider laProviderForSolver = new ManagedSequentialImplementationProvider();
 				var subdomain = new FullDomain_temp(model, elementMatrixProvider);
 				return new CholeskyCscSolver_v2(subdomain, laProviderForSolver);
 			}

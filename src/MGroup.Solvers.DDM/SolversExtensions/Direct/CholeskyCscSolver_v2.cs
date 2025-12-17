@@ -58,7 +58,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new SharedMemoryAlgebraicModel_v2(physicalModel, DofOrdering);
+			return new MonolithicAlgebraicModel_v2(physicalModel, DofOrdering);
 		}
 
 		public void PrepareDofs()

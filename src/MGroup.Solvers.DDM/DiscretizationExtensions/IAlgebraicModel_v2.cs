@@ -14,8 +14,8 @@ namespace MGroup.Solvers.DDM.DiscretizationExtensions
 
 	public interface IAlgebraicModel_v2
 	{
-		void AddToSubdomainVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector);
+		void AddToGlobalVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector);
 
-		NodalResults ExtractAllResults(IVector solutionFreeDofs);
+		NodalResults ExtractAllResults(int subdomainID, IVector solutionFreeDofs);
 	}
 }

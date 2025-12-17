@@ -19,30 +19,29 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Results;
 
-	public class SharedMemoryAlgebraicModel_v2 : IAlgebraicModel_v2
+	public class MonolithicAlgebraicModel_v2 : IAlgebraicModel_v2
 	{
 		private readonly ISubdomainDofOrdering_v2 dofOrdering;
+		private readonly IModel_v2 model;
 
-		public SharedMemoryAlgebraicModel_v2(IModel_v2 model, ISubdomainDofOrdering_v2 dofOrdering)
+		public MonolithicAlgebraicModel_v2(IModel_v2 model, ISubdomainDofOrdering_v2 dofOrdering)
 		{
-			Model = model;
+			this.model = model;
 			this.dofOrdering = dofOrdering;
 		}
 
-		public IModel_v2 Model { get; }
-
-		public void AddToSubdomainVector(IEnumerable<INodalModelQuantity<IDofType>> nodalModelQuantities, IVector vector)
+		public void AddToGlobalVector(IEnumerable<INodalModelQuantity<IDofType>> nodalModelQuantities, IVector vector)
 		{
 			Vector subdomainVector = CheckCompatibleVector(vector);
 			foreach (INodalModelQuantity<IDofType> nodalQuantity in nodalModelQuantities)
 			{
-				int dofID = Model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
+				int dofID = model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
 				int dofIdx = dofOrdering.Dofs[nodalQuantity.Node.ID, dofID];
 				subdomainVector[dofIdx] += nodalQuantity.Amount;
 			}
 		}
 
-		public NodalResults ExtractAllResults(IVector solutionFreeDofs)
+		public NodalResults ExtractAllResults(int subdomainID, IVector solutionFreeDofs)
 		{
 			CheckCompatibleVector(solutionFreeDofs);
 			var results = new Table<int, int, double>();
@@ -54,8 +53,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 			}
 
 			// Constrained dofs
-			ActiveDofs activeDofs = Model.DofTypes;
-			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = Model.FindDirichletBCsOfSubdomain(0);
+			ActiveDofs activeDofs = model.DofTypes;
+			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = model.FindDirichletBCsOfSubdomain(subdomainID);
 			foreach (var constraint in constraints)
 			{
 				results[constraint.Node.ID, activeDofs.GetIdOfDof(constraint.DOF)] = constraint.Amount;
