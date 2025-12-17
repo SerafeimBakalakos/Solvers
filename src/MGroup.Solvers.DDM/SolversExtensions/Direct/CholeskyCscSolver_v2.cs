@@ -13,10 +13,12 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 	using MGroup.LinearAlgebra.Triangulation;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution;
+	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 	using MGroup.Solvers.DofOrdering.Reordering;
+	using MGroup.Solvers.Logging;
 
 	public class CholeskyCscSolver_v2 : ISubdomainSystemSolver, IDisposable
 	{
@@ -29,8 +31,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 		{
 			this.Subdomain = subdomain;
 			this.laImplementation = laImplementation;
-			var dofOrdering = new DefaultSubdomainDofOrdering(subdomain, new AmdSymmetricOrdering(laImplementation));
-			Problem = new SharedMemoryStructureProblem(subdomain, dofOrdering);
+			DofOrdering = new DefaultSubdomainDofOrdering(subdomain, new AmdSymmetricOrdering(laImplementation));
+			LinearSystem = new LinearSystem_v2();
 		}
 
 		~CholeskyCscSolver_v2()
@@ -46,37 +48,46 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISolverLogger Logger { get; }
+		public ISubdomainDofOrdering_v2 DofOrdering { get; }
 
-		public ISubdomainProblem Problem { get; }
+		public LinearSystem_v2 LinearSystem { get; }
+
+		public ISolverLogger Logger { get; } = new SolverLogger(nameof(CholeskyCscSolver_v2));
 
 		public ISubdomain_v2 Subdomain { get; }
 
+		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
+		{
+			return new SharedMemoryAlgebraicModel_v2(physicalModel, DofOrdering);
+		}
+
 		public void PrepareDofs()
 		{
-			Problem.OrderDofs();
+			DofOrdering.OrderDofs();
+			DofOrdering.PrepareDofMaps();
+			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
 		}
 
 		public void BuildSystemMatrix()
 		{
-			Problem.SystemMatrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, Problem.DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, DofOrdering);
 		}
 
 		public void SolveLinearSystem()
 		{
 			var watch = new Stopwatch();
-			if (Problem.SystemSolution == null)
+			if (LinearSystem.Solution == null)
 			{
-				Problem.SystemSolution = Problem.SystemRhs.CreateZeroVectorWithSameFormat();
+				LinearSystem.Solution = LinearSystem.RhsVector.CreateZeroVectorWithSameFormat();
 			}
 			else
 			{
-				Problem.SystemSolution.Clear();
+				LinearSystem.Solution.Clear();
 			}
 
-			var systemMatrix = (SymmetricCscMatrix)(Problem.SystemMatrix);
-			var systemRhs = (Vector)(Problem.SystemRhs);
-			var systemSolution = (Vector)(Problem.SystemSolution);
+			var systemMatrix = (SymmetricCscMatrix)(LinearSystem.Matrix);
+			var systemRhs = (Vector)(LinearSystem.RhsVector);
+			var systemSolution = (Vector)(LinearSystem.Solution);
 
 			// Factorization
 			if (factorization == null)

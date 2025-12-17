@@ -14,7 +14,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 
 	public class DenseMatrixAssembler_v2 : ISubdomainMatrixAssembler<Matrix>
 	{
-		public IMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
+		public Matrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			int numDofs = dofOrdering.Dofs.NumEntries;
 			var subdomainMatrix = Matrix.CreateZero(numDofs, numDofs);

@@ -11,7 +11,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public class CsrMatrixAssembler_v2 : ISubdomainMatrixAssembler<Matrix>
+	public class CsrMatrixAssembler_v2 : ISubdomainMatrixAssembler<CsrMatrix>
 	{
 		private readonly bool sortColsOfEachRow;
 
@@ -20,7 +20,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 			this.sortColsOfEachRow = sortColsOfEachRow;
 		}
 
-		public IMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
+		public CsrMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			int numDofs = dofOrdering.Dofs.NumEntries;
 			var subdomainMatrix = DokRowMajor.CreateEmpty(numDofs, numDofs);

@@ -18,5 +18,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 		{
 			this.model = model;
 		}
+
+		public override int GetMultiplicityOfNode(int nodeID) => 1;
 	}
 }

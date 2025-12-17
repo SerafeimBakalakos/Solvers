@@ -36,7 +36,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 		private void BuildRhs()
 		{
 			IEnumerable<INodalNeumannBoundaryCondition<IDofType>> neumannBCs = model.FindNeumannBCsOfSubdomain(0);
-			algebraicModel.AddToSubdomainVector(neumannBCs, solver.Problem.SystemRhs);
+			algebraicModel.AddToSubdomainVector(neumannBCs, solver.LinearSystem.RhsVector);
+			//algebraicModel.AddToSubdomainVector(neumannBCs, solver.Problem.SystemRhs);
 		}
 	}
 }

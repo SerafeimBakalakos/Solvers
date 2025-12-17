@@ -12,6 +12,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 
 	public interface ISubdomainMatrixAssembler<TMatrix> where TMatrix : IMatrix
 	{
-		IMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 subdomainDofOrdering);
+		TMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 subdomainDofOrdering);
 	}
 }

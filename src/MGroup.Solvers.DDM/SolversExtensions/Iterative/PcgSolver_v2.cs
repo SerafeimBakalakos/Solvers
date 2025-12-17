@@ -12,9 +12,11 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 	using MGroup.LinearAlgebra.Iterative.PreconditionedConjugateGradient;
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Solution;
+	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
@@ -33,45 +35,54 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 			Subdomain = subdomain;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			var dofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
-			Problem = new SharedMemoryStructureProblem(subdomain, dofOrdering);
+			DofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
+			LinearSystem = new LinearSystem_v2();
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISolverLogger Logger { get; }
+		public ISubdomainDofOrdering_v2 DofOrdering { get; }
 
-		public ISubdomainProblem Problem { get; }
+		public LinearSystem_v2 LinearSystem { get; }
+
+		public ISolverLogger Logger { get; }
 
 		public ISubdomain_v2 Subdomain { get; }
 
+		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
+		{
+			return new SharedMemoryAlgebraicModel_v2(physicalModel, DofOrdering);
+		}
+
 		public void PrepareDofs()
 		{
-			Problem.OrderDofs();
+			DofOrdering.OrderDofs();
+			DofOrdering.PrepareDofMaps();
+			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
 		}
 
 		public void BuildSystemMatrix()
 		{
-			Problem.SystemMatrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, Problem.DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, DofOrdering);
 		}
 
 		public void SolveLinearSystem()
 		{
 			var watch = new Stopwatch();
-			if (Problem.SystemSolution == null)
+			if (LinearSystem.Solution == null)
 			{
-				Problem.SystemSolution = Problem.SystemRhs.CreateZeroVectorWithSameFormat();
+				LinearSystem.Solution = LinearSystem.RhsVector.CreateZeroVectorWithSameFormat();
 			}
 			else
 			{
-				Problem.SystemSolution.Clear();
+				LinearSystem.Solution.Clear();
 			}
 
 			// Preconditioning
 			if (mustUpdatePreconditioner)
 			{
 				watch.Start();
-				preconditioner.UpdateMatrix(Problem.SystemMatrix, !matrixPatternWillNotBeModified);
+				preconditioner.UpdateMatrix(LinearSystem.Matrix, !matrixPatternWillNotBeModified);
 				mustUpdatePreconditioner = false;
 				watch.Stop();
 				Logger.LogTaskDuration("Calculating preconditioner", watch.ElapsedMilliseconds);
@@ -80,7 +91,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 
 			// Iterative algorithm
 			watch.Start();
-			IterativeStatistics stats = pcgAlgorithm.Solve(Problem.SystemMatrix, preconditioner, Problem.SystemRhs, Problem.SystemSolution, true); //TODO: This way, we don't know that x0=0, which will result in an extra b-A*0
+			IterativeStatistics stats = pcgAlgorithm.Solve(LinearSystem.Matrix, preconditioner, LinearSystem.RhsVector, LinearSystem.Solution, true);
 			if (!stats.HasConverged)
 			{
 				throw new IterativeSolverNotConvergedException(typeof(PcgSolver_v2).Name

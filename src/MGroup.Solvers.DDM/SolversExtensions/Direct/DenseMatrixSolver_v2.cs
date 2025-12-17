@@ -8,8 +8,10 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 	using System.Threading.Tasks;
 
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution;
+	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
@@ -28,45 +30,54 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 		{
 			this.Subdomain = subdomain;
 			this.isMatrixPositiveDefinite = isMatrixPositiveDefinite;
-			var dofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
-			Problem = new SharedMemoryStructureProblem(subdomain, dofOrdering);
+			DofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
+			LinearSystem = new LinearSystem_v2();
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISolverLogger Logger { get; } = new SolverLogger(typeof(DenseMatrixSolver_v2).Name);
+		public ISubdomainDofOrdering_v2 DofOrdering { get; }
 
-		public ISubdomainProblem Problem { get; }
+		public LinearSystem_v2 LinearSystem { get; }
+
+		public ISolverLogger Logger { get; } = new SolverLogger(typeof(DenseMatrixSolver_v2).Name);
 
 		public ISubdomain_v2 Subdomain { get; }
 
+		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
+		{
+			return new SharedMemoryAlgebraicModel_v2(physicalModel, DofOrdering);
+		}
+
 		public void PrepareDofs()
 		{
-			Problem.OrderDofs();
+			DofOrdering.OrderDofs();
+			DofOrdering.PrepareDofMaps();
+			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
 		}
 
 		public void BuildSystemMatrix()
 		{
-			Problem.SystemMatrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, Problem.DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, DofOrdering);
 		}
 
 		public void SolveLinearSystem()
 		{
 			var watch = new Stopwatch();
-			if (Problem.SystemSolution == null)
+			if (LinearSystem.Solution == null)
 			{
-				Problem.SystemSolution = Problem.SystemRhs.CreateZeroVectorWithSameFormat();
+				LinearSystem.Solution = LinearSystem.RhsVector.CreateZeroVectorWithSameFormat();
 			}
 			else
 			{
-				Problem.SystemSolution.Clear();
+				LinearSystem.Solution.Clear();
 			}
 
 			// Factorization
 			if (inverse == null)
 			{
 				watch.Start();
-				var systemMatrix = (Matrix)(Problem.SystemMatrix);
+				var systemMatrix = (Matrix)LinearSystem.Matrix;
 				if (isMatrixPositiveDefinite)
 				{
 					inverse = systemMatrix.FactorCholesky(CanOverwriteSystemMatrices).Invert(true);
@@ -83,7 +94,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 			// Substitutions
 			watch.Start();
-			inverse.MultiplyIntoResult(Problem.SystemRhs, Problem.SystemSolution);
+			inverse.MultiplyIntoResult(LinearSystem.RhsVector, LinearSystem.Solution);
 			watch.Stop();
 			Logger.LogTaskDuration("Back/forward substitutions", watch.ElapsedMilliseconds);
 			Logger.IncrementAnalysisStep();

@@ -8,6 +8,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
@@ -15,9 +16,11 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 	{
 		bool CanOverwriteSystemMatrices { get; set; }
 
-		ISubdomainProblem Problem { get; }
+		LinearSystem_v2 LinearSystem { get; }
 
 		ISubdomain_v2 Subdomain { get; }
+
+		IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel);
 
 		void PrepareDofs();
 

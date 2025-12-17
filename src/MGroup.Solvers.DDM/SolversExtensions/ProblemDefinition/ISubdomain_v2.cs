@@ -10,6 +10,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	{
 		IEnumerable<ISuperElement> EnumerateSuperElements();
 
+		int GetMultiplicityOfNode(int nodeID);
+
 		IntDofTable OrderDofs();
 	}
 }

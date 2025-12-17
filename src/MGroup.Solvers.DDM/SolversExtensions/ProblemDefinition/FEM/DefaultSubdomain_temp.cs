@@ -26,6 +26,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 			Subdomain = subdomain;
 		}
 
+		public Dictionary<int, int> BoundaryDofMultiplicities = new Dictionary<int, int>();
+
 		public ISubdomain Subdomain { get; }
 
 		public IEnumerable<ISuperElement> EnumerateSuperElements()
@@ -34,6 +36,16 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 			{
 				yield return new DefaultElement_temp(element, model.DofTypes, elementMatrixProvider);
 			}
+		}
+
+		public virtual int GetMultiplicityOfNode(int nodeID)
+		{
+			if (BoundaryDofMultiplicities.TryGetValue(nodeID, out int multiplicity))
+			{
+				return multiplicity;
+			}
+
+			return 1;
 		}
 
 		public IntDofTable OrderDofs() => OrderFreeDofs(model, Subdomain.ID);

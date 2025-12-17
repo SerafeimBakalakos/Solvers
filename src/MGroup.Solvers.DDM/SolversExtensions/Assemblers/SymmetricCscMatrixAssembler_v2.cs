@@ -22,7 +22,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 			this.sortColsOfEachRow = sortColsOfEachRow;
 		}
 
-		public IMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
+		public SymmetricCscMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			int numDofs = dofOrdering.Dofs.NumEntries;
 			var subdomainMatrix = DokSymmetric.CreateEmpty(numDofs);

@@ -54,8 +54,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 
 			// Solver
 			var subdomain = new FullDomain_temp(model, elementMatrixProvider);
-			var solver = new DenseMatrixSolver_v2(subdomain, true);
-			var algebraicModel = new SharedMemoryAlgebraicModel_v2(model, solver);
+			using var solver = new CholeskyCscSolver_v2(subdomain, laProviderForSolver);
+			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
 			var analysis = new SimpleAnalysis_temp(model, algebraicModel, solver);
@@ -66,7 +66,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			// Check results
 			NodalResults expectedResults = Plane2DExample.GetExpectedNodalValues(model.DofTypes);
 			double tolerance = 1E-7;
-			NodalResults computedResults = ExtractResults(model, solver);
+			NodalResults computedResults = algebraicModel.ExtractAllResults(solver.LinearSystem.Solution);
 			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
 
 			//Debug.WriteLine($"Num PCG iterations = {solver.PcgStats.NumIterationsRequired}," +
@@ -79,27 +79,6 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			//IterativeStatistics stats = solver.InterfaceProblemSolutionStats;
 			//Assert.Equal(pcgIterationsExpected, stats.NumIterationsRequired);
 			//Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
-		}
-
-		private static NodalResults ExtractResults(IModel_v2 model, ISubdomainSystemSolver solver)
-		{
-			var results = new Table<int, int, double>();
-
-			// Free dofs
-			foreach ((int node, int dof, int freeDofIdx) in solver.Problem.DofOrdering.Dofs)
-			{
-				results[node, dof] = solver.Problem.SystemSolution[freeDofIdx];
-			}
-
-			// Constrained dofs
-			ActiveDofs activeDofs = model.DofTypes;
-			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = model.FindDirichletBCsOfSubdomain(0);
-			foreach (var constraint in constraints)
-			{
-				results[constraint.Node.ID, activeDofs.GetIdOfDof(constraint.DOF)] = constraint.Amount;
-			}
-
-			return new NodalResults(results);
 		}
 	}
 }
