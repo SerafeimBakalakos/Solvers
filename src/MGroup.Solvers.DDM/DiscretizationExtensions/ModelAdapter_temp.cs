@@ -41,20 +41,34 @@ namespace MGroup.Solvers.DDM.DiscretizationExtensions
 
 		public IEnumerable<ISubdomain> EnumerateSubdomains() => model.EnumerateSubdomains();
 
-		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDirichletBCsOfSubdomain(int subdomainID)
+		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> GetDirichletBCs()
 		{
-			IEnumerable<IElementType> elements = model.EnumerateElements(subdomainID);
-			return model.EnumerateBoundaryConditions(subdomainID)
-				.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements))
-				.OfType<INodalDirichletBoundaryCondition<IDofType>>();
+			var allDirichletBCs = new List<INodalDirichletBoundaryCondition<IDofType>>();
+			foreach (ISubdomain subdomain in model.EnumerateSubdomains())
+			{
+				IEnumerable<IElementType> elements = model.EnumerateElements(subdomain.ID);
+				var bcs = model.EnumerateBoundaryConditions(subdomain.ID)
+					.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements))
+					.OfType<INodalDirichletBoundaryCondition<IDofType>>();
+				allDirichletBCs.AddRange(bcs);
+			}
+
+			return allDirichletBCs;
 		}
 
-		public IEnumerable<INodalNeumannBoundaryCondition<IDofType>> FindNeumannBCsOfSubdomain(int subdomainID)
+		public IEnumerable<INodalNeumannBoundaryCondition<IDofType>> GetNeumannBCs()
 		{
-			IEnumerable<IElementType> elements = model.EnumerateElements(subdomainID);
-			return model.EnumerateBoundaryConditions(subdomainID)
-				.SelectMany(bcSet => bcSet.EnumerateNodalBoundaryConditions(elements))
-				.OfType<INodalNeumannBoundaryCondition<IDofType>>();
+			var allNeumanBCs = new List<INodalNeumannBoundaryCondition<IDofType>>();
+			foreach (ISubdomain subdomain in model.EnumerateSubdomains())
+			{
+				IEnumerable<IElementType> elements = model.EnumerateElements(subdomain.ID);
+				var bcs = model.EnumerateBoundaryConditions(subdomain.ID)
+					.SelectMany(bcSet => bcSet.EnumerateNodalBoundaryConditions(elements))
+					.OfType<INodalNeumannBoundaryCondition<IDofType>>();
+				allNeumanBCs.AddRange(bcs);
+			}
+
+			return allNeumanBCs;
 		}
 
 		public INode GetNode(int nodeID) => model.GetNode(nodeID);

@@ -1,4 +1,4 @@
-﻿namespace MGroup.Solvers.DDM.DiscretizationExtensions
+namespace MGroup.Solvers.DDM.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;
@@ -14,8 +14,8 @@
 	{
 		ActiveDofs DofTypes { get; }
 
-		IEnumerable<INodalNeumannBoundaryCondition<IDofType>> FindNeumannBCsOfSubdomain(int subdomainID);
+		IEnumerable<INodalNeumannBoundaryCondition<IDofType>> GetNeumannBCs();
 
-		IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDirichletBCsOfSubdomain(int subdomainID);
+		IEnumerable<INodalDirichletBoundaryCondition<IDofType>> GetDirichletBCs();
 	}
 }
