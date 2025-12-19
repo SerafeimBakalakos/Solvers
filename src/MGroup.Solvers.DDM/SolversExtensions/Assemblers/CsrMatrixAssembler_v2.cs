@@ -11,7 +11,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public class CsrMatrixAssembler_v2 : ISubdomainMatrixAssembler<CsrMatrix>
+	public class CsrMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<CsrMatrix>
 	{
 		private readonly bool sortColsOfEachRow;
 
@@ -36,6 +36,10 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 
 			(double[] values, int[] colIndices, int[] rowOffsets) = subdomainMatrix.BuildCsrArrays(sortColsOfEachRow);
 			return CsrMatrix.CreateFromArrays(numDofs, numDofs, values, colIndices, rowOffsets, false);
+		}
+
+		public void HandleDofOrderingWasModified()
+		{
 		}
 	}
 }

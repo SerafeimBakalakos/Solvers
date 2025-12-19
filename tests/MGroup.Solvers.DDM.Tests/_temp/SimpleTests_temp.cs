@@ -50,7 +50,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 		}
 
 		[Fact]
-		public static void TestDdmSolvers()
+		public static void TestPsmSolver()
 		{
 			// Environment
 			IComputeEnvironment environment = new SequentialSharedEnvironment();
@@ -65,7 +65,9 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			ISubdomainSystemSolver solver = null;
+			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			var solverFactory = new PsmSolver_v2<SymmetricCscMatrix>.Factory(environment, laProviderForSolver, new PsmSubdomainMatrixManagerSymmetricCsc_v2.Factory());
+			ISubdomainSystemSolver solver = solverFactory.BuildSolver(domain);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -97,7 +99,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			ISubdomainSystemSolver solver = CreateMonolithicSolver(solverName, model, elementMatrixProvider);
+			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			ISubdomainSystemSolver solver = CreateMonolithicSolver(solverName, domain);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -113,27 +116,24 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
 		}
 
-		private static ISubdomainSystemSolver CreateMonolithicSolver(SolverName solverName, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
+		private static ISubdomainSystemSolver CreateMonolithicSolver(SolverName solverName, ISubdomain_v2 domain)
 		{
 			if (solverName == SolverName.DenseMatrixSolver)
 			{
-				var subdomain = new FullDomain_temp(model, elementMatrixProvider);
-				return new DenseMatrixSolver_v2(subdomain, true);
+				return new DenseMatrixSolver_v2(domain, true);
 			}
 			else if (solverName == SolverName.CholeskyCscSolver)
 			{
 				IImplementationProvider laProviderForSolver = new ManagedSequentialImplementationProvider();
-				var subdomain = new FullDomain_temp(model, elementMatrixProvider);
-				return new CholeskyCscSolver_v2(subdomain, laProviderForSolver);
+				return new CholeskyCscSolver_v2(domain, laProviderForSolver);
 			}
 			else if (solverName == SolverName.PcgSolver)
 			{
-				var subdomain = new FullDomain_temp(model, elementMatrixProvider);
 				var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
 				pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 				pcgAlgorithmFactory.ResidualTolerance = 1E-10;
 				var preconditioner = new JacobiPreconditioner();
-				return new PcgSolver_v2(subdomain, pcgAlgorithmFactory.Build(), preconditioner);
+				return new PcgSolver_v2(domain, pcgAlgorithmFactory.Build(), preconditioner);
 			}
 			else
 			{

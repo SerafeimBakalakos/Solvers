@@ -32,12 +32,12 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 		private readonly IPreconditioner preconditioner;
 		private bool mustUpdatePreconditioner = true;
 
-		public PcgSolver_v2(ISubdomain_v2 subdomain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
+		public PcgSolver_v2(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
 		{
-			Subdomain = subdomain;
+			Domain = domain;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			DofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
+			DofOrdering = new DefaultSubdomainDofOrdering(domain, null);
 			LinearSystem = new LinearSystem_v2();
 		}
 
@@ -49,7 +49,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 
 		public ISolverLogger Logger { get; } = new SolverLogger(typeof(PcgSolver_v2).Name);
 
-		public ISubdomain_v2 Subdomain { get; }
+		public ISubdomain_v2 Domain { get; }
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
@@ -65,7 +65,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofOrdering);
 		}
 
 		public void SolveLinearSystem()

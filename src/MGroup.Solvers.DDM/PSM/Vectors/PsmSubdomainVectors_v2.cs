@@ -12,15 +12,14 @@ namespace MGroup.Solvers.DDM.PSM.Vectors
 	{
 		private readonly IPsmSubdomainMatrixManager_v2 matrixManagerPsm;
 		private readonly PsmSubdomainDofs_v2 subdomainDofs;
-		private readonly LinearSystem_v2 linearSystem;
+		private readonly ISubdomainLinearSystem_v2 subLinearSystem;
 
 		private Vector vectorFb;
 		private Vector vectorFi;
 
-		public PsmSubdomainVectors_v2(LinearSystem_v2 linearSystem, PsmSubdomainDofs_v2 subdomainDofs, 
-			IPsmSubdomainMatrixManager_v2 matrixManagerPsm)
+		public PsmSubdomainVectors_v2(ISubdomainLinearSystem_v2 subLinearSystem, PsmSubdomainDofs_v2 subdomainDofs, IPsmSubdomainMatrixManager_v2 matrixManagerPsm)
 		{
-			this.linearSystem = linearSystem;
+			this.subLinearSystem = subLinearSystem;
 			this.subdomainDofs = subdomainDofs;
 			this.matrixManagerPsm = matrixManagerPsm;
 		}
@@ -46,7 +45,7 @@ namespace MGroup.Solvers.DDM.PSM.Vectors
 		{
 			int[] internalDofs = subdomainDofs.DofsInternalToFree;
 			int[] boundaryDofs = subdomainDofs.DofsBoundaryToFree;
-			Vector ff = (Vector)linearSystem.RhsVector;
+			Vector ff = subLinearSystem.RhsVector;
 
 			this.vectorFi = ff.GetSubvector(internalDofs);
 			this.vectorFb = ff.GetSubvector(boundaryDofs);
@@ -75,7 +74,7 @@ namespace MGroup.Solvers.DDM.PSM.Vectors
 
 		public void CalcStoreSubdomainFreeSolution(Vector subdomainBoundarySolution)
 		{
-			linearSystem.Solution = CalcSubdomainFreeSolution(subdomainBoundarySolution);
+			subLinearSystem.Solution = CalcSubdomainFreeSolution(subdomainBoundarySolution);
 		}
 	}
 }

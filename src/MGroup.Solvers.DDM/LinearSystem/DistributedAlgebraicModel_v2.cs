@@ -26,10 +26,10 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly LinearSystem_v2 linearSystem;
-		private readonly Dictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings;
+		private readonly IReadOnlyDictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings;
 		private readonly IModel_v2 model;
 
-		public DistributedAlgebraicModel_v2(IComputeEnvironment environment, IModel_v2 model, LinearSystem_v2 linearSystem, Dictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings)
+		public DistributedAlgebraicModel_v2(IComputeEnvironment environment, IModel_v2 model, LinearSystem_v2 linearSystem, IReadOnlyDictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings)
 		{
 			this.environment = environment;
 			this.model = model;

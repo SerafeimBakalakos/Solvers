@@ -12,7 +12,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public class DenseMatrixAssembler_v2 : ISubdomainMatrixAssembler<Matrix>
+	public class DenseMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<Matrix>
 	{
 		public Matrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
@@ -29,6 +29,10 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 			}
 
 			return subdomainMatrix;
+		}
+
+		public void HandleDofOrderingWasModified()
+		{
 		}
 
 		private static void AddElementToSubdomainMatrix(Matrix subdomainMatrix, IReadOnlyMatrix elementMatrix,

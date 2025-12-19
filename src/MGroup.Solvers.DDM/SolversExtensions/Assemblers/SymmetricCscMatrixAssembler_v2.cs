@@ -13,7 +13,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
-	public class SymmetricCscMatrixAssembler_v2 : ISubdomainMatrixAssembler<SymmetricCscMatrix>
+	public class SymmetricCscMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<SymmetricCscMatrix>
 	{
 		private readonly bool sortColsOfEachRow;
 
@@ -38,6 +38,10 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 
 			(double[] values, int[] rowIndices, int[] colOffsets) = subdomainMatrix.BuildSymmetricCscArrays(sortColsOfEachRow);
 			return SymmetricCscMatrix.CreateFromArrays(numDofs, values, rowIndices, colOffsets, false);
+		}
+
+		public void HandleDofOrderingWasModified()
+		{
 		}
 	}
 }

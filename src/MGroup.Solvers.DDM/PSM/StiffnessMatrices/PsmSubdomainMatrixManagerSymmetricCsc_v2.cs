@@ -7,10 +7,10 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 	using MGroup.LinearAlgebra.SchurComplements.SubmatrixExtractors;
 	using MGroup.LinearAlgebra.Triangulation;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.DDM.Commons;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.PSM.Dofs;
+	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
 	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	public class PsmSubdomainMatrixManagerSymmetricCsc_v2 : IPsmSubdomainMatrixManager_v2
@@ -18,7 +18,7 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 		private readonly IImplementationProvider provider;
 		private readonly AmdSymmetricOrdering reordering;
 		private readonly PsmSubdomainDofs_v2 subdomainDofs;
-		private readonly LinearSystem_v2 linearSystem;
+		private readonly SubdomainLinearSystem_v2<SymmetricCscMatrix> subLinearSystem;
 		private readonly SubmatrixExtractorCsrCscSym submatrixExtractor = new SubmatrixExtractorCsrCscSym();
 
 		private CsrMatrix Kbb;
@@ -27,10 +27,10 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 		private ICholeskySymmetricCsc inverseKii;
 
 		public PsmSubdomainMatrixManagerSymmetricCsc_v2(IImplementationProvider provider,
-			LinearSystem_v2 linearSystem, PsmSubdomainDofs_v2 subdomainDofs)
+			SubdomainLinearSystem_v2<SymmetricCscMatrix> subLinearSystem, PsmSubdomainDofs_v2 subdomainDofs)
 		{
 			this.provider = provider;
-			this.linearSystem = linearSystem;
+			this.subLinearSystem = subLinearSystem;
 			this.subdomainDofs = subdomainDofs;
 			this.reordering = new AmdSymmetricOrdering(provider);
 		}
@@ -64,7 +64,7 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 			int[] boundaryDofs = subdomainDofs.DofsBoundaryToFree;
 			int[] internalDofs = subdomainDofs.DofsInternalToFree;
 
-			SymmetricCscMatrix Kff = (SymmetricCscMatrix)linearSystem.Matrix;
+			SymmetricCscMatrix Kff = subLinearSystem.Matrix;
 			submatrixExtractor.ExtractSubmatrices(Kff, boundaryDofs, internalDofs);
 			Kbb = submatrixExtractor.Submatrix00;
 			Kbi = submatrixExtractor.Submatrix01;
@@ -100,7 +100,7 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 		public void ReorderInternalDofs()
 		{
 			int[] internalDofs = subdomainDofs.DofsInternalToFree;
-			SymmetricCscMatrix Kff = (SymmetricCscMatrix)linearSystem.Matrix;
+			SymmetricCscMatrix Kff = subLinearSystem.Matrix;
 			(int[] rowIndicesKii, int[] colOffsetsKii) = submatrixExtractor.ExtractSparsityPattern(Kff, internalDofs);
 			(int[] permutation, bool oldToNew) = reordering.FindPermutation(
 				internalDofs.Length, rowIndicesKii, colOffsetsKii);
@@ -110,10 +110,11 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 
 		public class Factory : IPsmSubdomainMatrixManagerFactory_v2<SymmetricCscMatrix>
 		{
-			public ISubdomainMatrixAssembler<SymmetricCscMatrix> CreateAssembler() => new SymmetricCscMatrixAssembler(true);
+			public ISubdomainMatrixAssembler_v2<SymmetricCscMatrix> CreateAssembler() => new SymmetricCscMatrixAssembler_v2(true);
 
-			public IPsmSubdomainMatrixManager_v2 CreateMatrixManager(IImplementationProvider provider, LinearSystem_v2 linearSystem, PsmSubdomainDofs_v2 subdomainDofs)
-				=> new PsmSubdomainMatrixManagerSymmetricCsc_v2(provider, linearSystem, subdomainDofs);
+			public IPsmSubdomainMatrixManager_v2 CreateMatrixManager(
+				IImplementationProvider provider, SubdomainLinearSystem_v2<SymmetricCscMatrix> subLinearSystem, PsmSubdomainDofs_v2 subdomainDofs)
+				=> new PsmSubdomainMatrixManagerSymmetricCsc_v2(provider, subLinearSystem, subdomainDofs);
 		}
 	}
 }

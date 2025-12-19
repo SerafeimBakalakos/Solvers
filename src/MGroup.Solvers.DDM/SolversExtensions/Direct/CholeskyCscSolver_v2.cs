@@ -27,11 +27,16 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		private ICholeskySymmetricCsc factorization;
 
-		public CholeskyCscSolver_v2(ISubdomain_v2 subdomain, IImplementationProvider laImplementation)
+		public CholeskyCscSolver_v2(ISubdomain_v2 domain, IImplementationProvider laImplementation, IReorderingAlgorithm reorderingAlgorithm = null)
 		{
-			this.Subdomain = subdomain;
+			this.Domain = domain;
 			this.laImplementation = laImplementation;
-			DofOrdering = new DefaultSubdomainDofOrdering(subdomain, new AmdSymmetricOrdering(laImplementation));
+			if (reorderingAlgorithm == null)
+			{
+				reorderingAlgorithm = new AmdSymmetricOrdering(laImplementation);
+			}
+
+			DofOrdering = new DefaultSubdomainDofOrdering(domain, reorderingAlgorithm);
 			LinearSystem = new LinearSystem_v2();
 		}
 
@@ -54,7 +59,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public ISolverLogger Logger { get; } = new SolverLogger(nameof(CholeskyCscSolver_v2));
 
-		public ISubdomain_v2 Subdomain { get; }
+		public ISubdomain_v2 Domain { get; }
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
@@ -70,7 +75,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofOrdering);
 		}
 
 		public void SolveLinearSystem()

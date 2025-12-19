@@ -2,17 +2,16 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 {
 	using MGroup.LinearAlgebra.Implementations;
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.PSM.Dofs;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
 
 	public interface IPsmSubdomainMatrixManagerFactory_v2<TMatrix>
 		where TMatrix : class, IMatrix
 	{
-		ISubdomainMatrixAssembler<TMatrix> CreateAssembler();
+		ISubdomainMatrixAssembler_v2<TMatrix> CreateAssembler();
 
 		IPsmSubdomainMatrixManager_v2 CreateMatrixManager(
-			IImplementationProvider provider, LinearSystem_v2 linearSystem, PsmSubdomainDofs_v2 subdomainDofs);
+			IImplementationProvider provider, SubdomainLinearSystem_v2<TMatrix> subLinearSystem, PsmSubdomainDofs_v2 subdomainDofs);
 	}
 }

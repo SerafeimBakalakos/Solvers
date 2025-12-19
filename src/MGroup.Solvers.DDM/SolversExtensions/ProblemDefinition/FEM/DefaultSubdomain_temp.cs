@@ -17,28 +17,29 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 	public class DefaultSubdomain_temp : ISubdomain_v2
 	{
 		private readonly IModel_v2 model;
+		private readonly ISubdomain physicalSubdomain;
 		private readonly IElementMatrixProvider elementMatrixProvider;
 
 		public DefaultSubdomain_temp(ISubdomain subdomain, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
 		{
 			this.model = model;
 			this.elementMatrixProvider = elementMatrixProvider;
-			Subdomain = subdomain;
+			physicalSubdomain = subdomain;
 		}
 
 		public Dictionary<int, int> BoundaryDofMultiplicities = new Dictionary<int, int>();
 
-		public ISubdomain Subdomain { get; }
+		public virtual IEnumerable<INode> EnumerateNodes_temp() => physicalSubdomain.EnumerateNodes();
 
 		public IEnumerable<ISuperElement> EnumerateSuperElements()
 		{
-			foreach (IElementType element in Subdomain.EnumerateElements())
+			foreach (IElementType element in physicalSubdomain.EnumerateElements())
 			{
 				yield return new DefaultElement_temp(element, model.DofTypes, elementMatrixProvider);
 			}
 		}
 
-		public virtual int GetMultiplicityOfNode(int nodeID)
+		public virtual int GetMultiplicityOfNode_temp(int nodeID)
 		{
 			if (BoundaryDofMultiplicities.TryGetValue(nodeID, out int multiplicity))
 			{
@@ -48,7 +49,12 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 			return 1;
 		}
 
-		public IntDofTable OrderDofs() => OrderFreeDofs(model, Subdomain.ID);
+		public virtual ISubdomain_v2 GetSubdomain_temp(int subdomainID)
+		{
+			throw new Exception("Bottom level. This subdomain cannot be further divided");
+		}
+
+		public IntDofTable OrderDofs() => OrderFreeDofs(model, physicalSubdomain.ID);
 
 		protected static IntDofTable OrderFreeDofs(IModel_v2 model, int subdomainID)
 		{

@@ -4,13 +4,18 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	using System.Collections.Generic;
 	using System.Text;
 
+	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers;
 
 	public interface ISubdomain_v2
 	{
+		IEnumerable<INode> EnumerateNodes_temp();
+
 		IEnumerable<ISuperElement> EnumerateSuperElements();
 
-		int GetMultiplicityOfNode(int nodeID);
+		int GetMultiplicityOfNode_temp(int nodeID);
+
+		ISubdomain_v2 GetSubdomain_temp(int subdomainID);
 
 		IntDofTable OrderDofs();
 	}

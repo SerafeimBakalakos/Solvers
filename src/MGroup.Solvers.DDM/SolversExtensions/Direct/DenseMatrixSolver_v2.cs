@@ -26,11 +26,11 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		//private readonly reordering = new NullReordering(); Why do I need NullReordering? Solvers that do not need to reorder can just not call the ISubdomain.ReorderDofs() method
 
-		public DenseMatrixSolver_v2(ISubdomain_v2 subdomain, bool isMatrixPositiveDefinite)
+		public DenseMatrixSolver_v2(ISubdomain_v2 domain, bool isMatrixPositiveDefinite)
 		{
-			this.Subdomain = subdomain;
+			this.Domain = domain;
 			this.isMatrixPositiveDefinite = isMatrixPositiveDefinite;
-			DofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
+			DofOrdering = new DefaultSubdomainDofOrdering(domain, null);
 			LinearSystem = new LinearSystem_v2();
 		}
 
@@ -42,7 +42,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public ISolverLogger Logger { get; } = new SolverLogger(typeof(DenseMatrixSolver_v2).Name);
 
-		public ISubdomain_v2 Subdomain { get; }
+		public ISubdomain_v2 Domain { get; }
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
@@ -58,7 +58,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Subdomain, DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofOrdering);
 		}
 
 		public void SolveLinearSystem()

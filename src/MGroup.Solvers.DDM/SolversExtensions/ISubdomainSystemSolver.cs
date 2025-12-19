@@ -18,7 +18,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 
 		LinearSystem_v2 LinearSystem { get; }
 
-		ISubdomain_v2 Subdomain { get; }
+		ISubdomain_v2 Domain { get; }
 
 		IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel);
 
