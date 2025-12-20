@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.Direct
+namespace MGroup.Solvers.Direct
 {
 	using System;
 	using System.Collections.Generic;
@@ -11,13 +11,13 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Assemblers;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.LinearSystem;
 
-	public class DenseMatrixSolver_v2 : ISubdomainSystemSolver
+	public class DenseMatrixSolver_v2 : ISolver_v2
 	{
 		private readonly bool isMatrixPositiveDefinite;
 		private readonly DenseMatrixAssembler_v2 matrixAssembler = new DenseMatrixAssembler_v2();
@@ -30,7 +30,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 		{
 			this.Domain = domain;
 			this.isMatrixPositiveDefinite = isMatrixPositiveDefinite;
-			DofOrdering = new DefaultSubdomainDofOrdering(domain, null);
+			DofOrdering = new DefaultSubdomainDofOrdering_v2(domain, null);
 			LinearSystem = new LinearSystem_v2();
 		}
 

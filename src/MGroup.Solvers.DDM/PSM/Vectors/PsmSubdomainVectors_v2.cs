@@ -6,7 +6,7 @@ namespace MGroup.Solvers.DDM.PSM.Vectors
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.PSM.Dofs;
 	using MGroup.Solvers.DDM.PSM.StiffnessMatrices;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	public class PsmSubdomainVectors_v2
 	{

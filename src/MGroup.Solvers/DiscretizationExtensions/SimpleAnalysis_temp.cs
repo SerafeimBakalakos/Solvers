@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions
+namespace MGroup.Solvers.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,16 +8,14 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
 
 	public class SimpleAnalysis_temp
 	{
 		private readonly IModel_v2 model;
 		private readonly IAlgebraicModel_v2 algebraicModel;
-		private readonly ISubdomainSystemSolver solver;
+		private readonly ISolver_v2 solver;
 
-		public SimpleAnalysis_temp(IModel_v2 model, IAlgebraicModel_v2 algebraicModel, ISubdomainSystemSolver solver)
+		public SimpleAnalysis_temp(IModel_v2 model, IAlgebraicModel_v2 algebraicModel, ISolver_v2 solver)
 		{
 			this.model = model;
 			this.algebraicModel = algebraicModel;

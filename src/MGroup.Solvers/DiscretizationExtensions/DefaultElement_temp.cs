@@ -1,4 +1,6 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
+using MGroup.Solvers.DiscretizationExtensions;
+
+namespace MGroup.Solvers.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;

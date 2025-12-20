@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
+namespace MGroup.Solvers.Assemblers
 {
 	using System;
 	using System.Collections.Generic;
@@ -10,8 +10,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Matrices.Builders;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	public class SymmetricCscMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<SymmetricCscMatrix>
 	{

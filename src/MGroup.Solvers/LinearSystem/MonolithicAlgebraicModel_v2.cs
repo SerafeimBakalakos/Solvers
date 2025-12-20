@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
+namespace MGroup.Solvers.LinearSystem
 {
 	using System;
 	using System.Collections.Generic;
@@ -6,7 +6,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	using System.Text;
 	using System.Threading.Tasks;
 
-	using MGroup.LinearAlgebra.Distributed.Overlapping;
 	using MGroup.LinearAlgebra.Exceptions;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.DataStructures;
@@ -14,8 +13,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
+	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Results;
 

@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
+namespace MGroup.Solvers.Assemblers
 {
 	using System;
 	using System.Collections.Generic;
@@ -9,8 +9,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using System.Xml.Linq;
 
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	public class DenseMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<Matrix>
 	{

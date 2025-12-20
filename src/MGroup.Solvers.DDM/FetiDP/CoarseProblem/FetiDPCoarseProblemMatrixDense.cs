@@ -3,11 +3,11 @@ namespace MGroup.Solvers.DDM.FetiDP.CoarseProblem
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.DDM.Commons;
-	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
+	using MGroup.Solvers.Assemblers;
 
 	public class FetiDPCoarseProblemMatrixDense : IFetiDPCoarseProblemGlobalMatrix
 	{
-		private readonly DenseMatrixAssembler assembler = new DenseMatrixAssembler();
+		private readonly DenseMatrixAssembler_temp assembler = new DenseMatrixAssembler_temp();
 		private Matrix inverseSccGlobal;
 
 		public void Clear() { }

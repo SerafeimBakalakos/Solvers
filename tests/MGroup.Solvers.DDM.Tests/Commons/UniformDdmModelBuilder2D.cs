@@ -14,10 +14,10 @@ namespace MGroup.Solvers.DDM.Tests.Commons
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Meshes.Structured;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.FetiDP.Dofs;
 	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DDM.Tests.DiscretizationExtensions;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	public class UniformDdmModelBuilder2D
 	{

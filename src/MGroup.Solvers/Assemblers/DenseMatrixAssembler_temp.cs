@@ -1,12 +1,12 @@
 //TODO: Merge this with the assembler used for element -> subdomain map-reductions.
-namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
+namespace MGroup.Solvers.Assemblers
 {
 	using System.Collections.Generic;
 	using System.Diagnostics;
 
 	using MGroup.LinearAlgebra.Matrices;
 
-	public class DenseMatrixAssembler
+	public class DenseMatrixAssembler_temp
 	{
 		public Matrix BuildGlobalMatrix(int numGlobalDofs,
 			IDictionary<int, int[]> localToGlobalMaps, IDictionary<int, IMatrix> localMatrices)

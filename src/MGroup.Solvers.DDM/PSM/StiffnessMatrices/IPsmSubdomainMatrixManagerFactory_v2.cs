@@ -4,7 +4,7 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.PSM.Dofs;
-	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
+	using MGroup.Solvers.Assemblers;
 
 	public interface IPsmSubdomainMatrixManagerFactory_v2<TMatrix>
 		where TMatrix : class, IMatrix

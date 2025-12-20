@@ -21,7 +21,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	using MGroup.MSolve.Solution.AlgebraicModel;
 	using MGroup.MSolve.Solution.LinearSystem;
 	using MGroup.Solvers.Assemblers;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
+	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Results;
 

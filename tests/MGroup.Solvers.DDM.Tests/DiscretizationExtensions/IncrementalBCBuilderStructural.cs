@@ -6,7 +6,7 @@ namespace MGroup.Solvers.DDM.Tests.DiscretizationExtensions
 	using MGroup.Constitutive.Structural;
 	using MGroup.Constitutive.Structural.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	//TODO: Similar functionality should be provided by the Model class itself.
 	//TODO: Generic version that works independently of constitutive type

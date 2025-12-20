@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
+namespace MGroup.Solvers.Iterative
 {
 	using System;
 	using System.Collections.Generic;
@@ -16,14 +16,14 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Solution;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
-	using MGroup.Solvers.DDM.SolversExtensions.Direct;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Assemblers;
+	using MGroup.Solvers.Direct;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.LinearSystem;
 
-	public class PcgSolver_v2 : ISubdomainSystemSolver
+	public class PcgSolver_v2 : ISolver_v2
 	{
 		private readonly PcgAlgorithm pcgAlgorithm;
 		private readonly bool matrixPatternWillNotBeModified = false;
@@ -37,7 +37,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Iterative
 			Domain = domain;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			DofOrdering = new DefaultSubdomainDofOrdering(domain, null);
+			DofOrdering = new DefaultSubdomainDofOrdering_v2(domain, null);
 			LinearSystem = new LinearSystem_v2();
 		}
 

@@ -14,10 +14,9 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Results;
 
 	using MPI;

@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.Direct
+namespace MGroup.Solvers.Direct
 {
 	using System;
 	using System.Collections.Generic;
@@ -13,14 +13,14 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 	using MGroup.LinearAlgebra.Triangulation;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Assemblers;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.LinearSystem;
 
-	public class CholeskyCscSolver_v2 : ISubdomainSystemSolver, IDisposable
+	public class CholeskyCscSolver_v2 : ISolver_v2, IDisposable
 	{
 		private readonly IImplementationProvider laImplementation;
 		private readonly SymmetricCscMatrixAssembler_v2 matrixAssembler = new SymmetricCscMatrixAssembler_v2();
@@ -36,7 +36,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Direct
 				reorderingAlgorithm = new AmdSymmetricOrdering(laImplementation);
 			}
 
-			DofOrdering = new DefaultSubdomainDofOrdering(domain, reorderingAlgorithm);
+			DofOrdering = new DefaultSubdomainDofOrdering_v2(domain, reorderingAlgorithm);
 			LinearSystem = new LinearSystem_v2();
 		}
 

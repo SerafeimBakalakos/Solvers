@@ -1,5 +1,5 @@
 //TODO: Merge this with the assembler used for element -> subdomain map-reductions.
-namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
+namespace MGroup.Solvers.Assemblers
 {
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -7,7 +7,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Matrices.Builders;
 
-	public class CscMatrixAssembler
+	public class CscMatrixAssembler_temp
 	{
 		private const string name = "CscMatrixAssembler"; // for error messages
 		private readonly bool isSymmetric;
@@ -23,7 +23,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 		/// Sorting the columns of each row in the CSC storage format may increase performance of the factorization and 
 		/// back/forward substitutions. It is recommended to set it to true.
 		/// </param>
-		public CscMatrixAssembler(bool isSymmetric, bool sortColsOfEachRow = true)
+		public CscMatrixAssembler_temp(bool isSymmetric, bool sortColsOfEachRow = true)
 		{
 			this.isSymmetric = isSymmetric;
 			this.sortColsOfEachRow = sortColsOfEachRow;

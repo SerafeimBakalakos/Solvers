@@ -18,7 +18,6 @@ namespace MGroup.Solvers.DDM.Psm
 	using MGroup.MSolve.Solution;
 	using MGroup.MSolve.Solution.LinearSystem;
 	using MGroup.Solvers.Assemblers;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.Output;
 	using MGroup.Solvers.DDM.PSM.Dofs;
@@ -28,17 +27,14 @@ namespace MGroup.Solvers.DDM.Psm
 	using MGroup.Solvers.DDM.PSM.Scaling;
 	using MGroup.Solvers.DDM.PSM.StiffnessMatrices;
 	using MGroup.Solvers.DDM.PSM.Vectors;
-	using MGroup.Solvers.DDM.SolversExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.DofOrdering.Reordering;
+	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
 
 	using TriangleNet.Topology;
 
-	public class PsmSolver_v2<TMatrix> : ISubdomainSystemSolver
+	public class PsmSolver_v2<TMatrix> : ISolver_v2
 		where TMatrix : class, IMatrix
 	{
 		private const bool cacheDistributedVectorBuffers = true;
@@ -91,7 +87,7 @@ namespace MGroup.Solvers.DDM.Psm
 			{
 				ISubdomain_v2 subdomain = domain.GetSubdomain_temp(subdomainID);
 				var subLinearSystem = new SubdomainLinearSystem_v2<TMatrix>(LinearSystem, subdomainID);
-				var dofOrdering = new DefaultSubdomainDofOrdering(subdomain, null);
+				var dofOrdering = new DefaultSubdomainDofOrdering_v2(subdomain, null);
 				ISubdomainMatrixAssembler_v2<TMatrix> matrixAssembler = matrixManagerFactory.CreateAssembler();
 				var psmDofs = new PsmSubdomainDofs_v2(subdomain, dofOrdering, false);
 				IPsmSubdomainMatrixManager_v2 psmMatrices = matrixManagerFactory.CreateMatrixManager(provider, subLinearSystem, psmDofs);

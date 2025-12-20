@@ -3,8 +3,8 @@ namespace MGroup.Solvers.DDM
 	using MGroup.Environments;
 	using MGroup.LinearAlgebra.Distributed.Overlapping;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 
 	public interface ISubdomainTopology_v2

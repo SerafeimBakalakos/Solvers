@@ -3,8 +3,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	using MGroup.LinearAlgebra.Distributed.Overlapping;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
-	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.LinearSystem;
 
 	public class SubdomainLinearSystem_v2<TMatrix> : ISubdomainLinearSystem_v2
 		where TMatrix : class, IMatrix

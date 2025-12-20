@@ -8,8 +8,8 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DDM.Commons;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	public class PsmSubdomainDofs_v2
 	{

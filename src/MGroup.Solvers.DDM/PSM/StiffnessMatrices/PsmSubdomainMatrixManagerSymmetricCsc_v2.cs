@@ -10,8 +10,8 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 	using MGroup.Solvers.DDM.Commons;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.PSM.Dofs;
-	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.Assemblers;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	public class PsmSubdomainMatrixManagerSymmetricCsc_v2 : IPsmSubdomainMatrixManager_v2
 	{

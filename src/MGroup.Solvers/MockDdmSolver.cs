@@ -14,7 +14,7 @@
 //using MGroup.Solvers.Assemblers;
 //using MGroup.Solvers.DofOrdering;
 //using MGroup.Solvers.DofOrdering.Reordering;
-//using MGroup.Solvers.LinearSystem;
+//using MGroup.Solvers.DiscretizationExtensions;
 
 //namespace MGroup.Solvers
 //{

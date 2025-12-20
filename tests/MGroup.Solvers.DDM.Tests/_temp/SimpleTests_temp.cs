@@ -24,16 +24,11 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.MSolve.Solution;
 	using MGroup.NumericalAnalyzers;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.Psm;
 	using MGroup.Solvers.DDM.PSM.InterfaceProblem;
 	using MGroup.Solvers.DDM.PSM.StiffnessMatrices;
-	using MGroup.Solvers.DDM.SolversExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.Direct;
-	using MGroup.Solvers.DDM.SolversExtensions.Iterative;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM;
+	using MGroup.Solvers.Direct;
 	using MGroup.Solvers.DDM.Tests.ExampleModels;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Results;
@@ -41,6 +36,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using Xunit;
 
 	using static MGroup.Solvers.DDM.Tests._temp.SimpleTests_temp;
+	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Iterative;
 
 	public static class SimpleTests_temp
 	{
@@ -113,7 +110,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 
 			// Solver
 			var domain = new FullDomain_temp(model, elementMatrixProvider);
-			ISubdomainSystemSolver solver = CreateMonolithicSolver(solverName, domain);
+			ISolver_v2 solver = CreateMonolithicSolver(solverName, domain);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -129,7 +126,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
 		}
 
-		private static ISubdomainSystemSolver CreateMonolithicSolver(SolverName solverName, ISubdomain_v2 domain)
+		private static ISolver_v2 CreateMonolithicSolver(SolverName solverName, ISubdomain_v2 domain)
 		{
 			if (solverName == SolverName.DenseMatrixSolver)
 			{

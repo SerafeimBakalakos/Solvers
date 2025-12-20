@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.DiscretizationExtensions
+namespace MGroup.Solvers.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;

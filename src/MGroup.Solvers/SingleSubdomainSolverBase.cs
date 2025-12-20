@@ -13,9 +13,9 @@ using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.Solvers.Logging;
 using MGroup.Solvers.DofOrdering;
 using MGroup.MSolve.Discretization.BoundaryConditions;
-using MGroup.Solvers.LinearSystem;
 using MGroup.Solvers.Assemblers;
 using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.Solvers.LinearSystem;
 
 namespace MGroup.Solvers
 {

@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions
+namespace MGroup.Solvers.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,11 +8,11 @@ namespace MGroup.Solvers.DDM.SolversExtensions
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.LinearSystem;
 
-	public interface ISubdomainSystemSolver
+	public interface ISolver_v2
 	{
 		bool CanOverwriteSystemMatrices { get; set; }
 

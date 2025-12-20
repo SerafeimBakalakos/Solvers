@@ -1,18 +1,18 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.DofOrdering
+namespace MGroup.Solvers.DofOrdering
 {
 	using System.Collections.Generic;
 
 	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.Solvers;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
 
-	public class DefaultSubdomainDofOrdering : ISubdomainDofOrdering_v2
+	public class DefaultSubdomainDofOrdering_v2 : ISubdomainDofOrdering_v2
 	{
 		private readonly ISubdomain_v2 subdomain;
 		private readonly IReorderingAlgorithm? reorderingAlgorithm;
 		private Dictionary<int, (int[] element, int[] subdomain)> elementToSubdomainDofIndices = new Dictionary<int, (int[], int[])>();
 
-		public DefaultSubdomainDofOrdering(ISubdomain_v2 subdomain, IReorderingAlgorithm? reorderingAlgorithm)
+		public DefaultSubdomainDofOrdering_v2(ISubdomain_v2 subdomain, IReorderingAlgorithm? reorderingAlgorithm)
 		{
 			this.subdomain = subdomain;
 			this.reorderingAlgorithm = reorderingAlgorithm;

@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
+namespace MGroup.Solvers.Assemblers
 {
 	using System;
 	using System.Collections.Generic;
@@ -7,8 +7,8 @@ namespace MGroup.Solvers.DDM.SolversExtensions.Assemblers
 	using System.Threading.Tasks;
 
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.DDM.SolversExtensions.DofOrdering;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	public interface ISubdomainMatrixAssembler_v2<TMatrix> where TMatrix : IMatrix
 	{

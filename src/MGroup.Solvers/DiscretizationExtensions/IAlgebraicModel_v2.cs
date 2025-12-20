@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.DiscretizationExtensions
+namespace MGroup.Solvers.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;
@@ -9,7 +9,7 @@ namespace MGroup.Solvers.DDM.DiscretizationExtensions
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Dofs;
-	using MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition;
+	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.Results;
 
 	public interface IAlgebraicModel_v2

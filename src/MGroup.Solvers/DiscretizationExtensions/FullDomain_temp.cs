@@ -1,4 +1,6 @@
-namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
+using MGroup.Solvers.DiscretizationExtensions;
+
+namespace MGroup.Solvers.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,7 +10,7 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
-	using MGroup.Solvers.DDM.DiscretizationExtensions;
+	using MGroup.Solvers.DiscretizationExtensions;
 
 	public class FullDomain_temp : DefaultSubdomain_temp
 	{

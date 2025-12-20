@@ -6,11 +6,11 @@ namespace MGroup.Solvers.DDM.FetiDP.CoarseProblem
 	using MGroup.LinearAlgebra.Triangulation;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.DDM.Commons;
-	using MGroup.Solvers.DDM.SolversExtensions.Assemblers;
+	using MGroup.Solvers.Assemblers;
 
 	public class FetiDPCoarseProblemMatrixSymmetricCsc : IFetiDPCoarseProblemGlobalMatrix
 	{
-		private readonly SymmetricCscMatrixAssembler assembler = new SymmetricCscMatrixAssembler(true);
+		private readonly SymmetricCscMatrixAssembler_temp assembler = new SymmetricCscMatrixAssembler_temp(true);
 		private readonly IImplementationProvider provider;
 		private readonly AmdSymmetricOrdering reordering;
 
