@@ -43,20 +43,20 @@ namespace MGroup.Solvers.DDM.PSM.Vectors
 
 		public void ExtractBoundaryInternalRhsVectors(Action<Vector> scaleBoundaryVector)
 		{
-			int[] internalDofs = subdomainDofs.DofsInternalToFree;
-			int[] boundaryDofs = subdomainDofs.DofsBoundaryToFree;
-			Vector ff = subLinearSystem.RhsVector;
+			int[] internalDofs = subdomainDofs.DofsInternalToAll;
+			int[] boundaryDofs = subdomainDofs.DofsBoundaryToAll;
+			Vector f = subLinearSystem.RhsVector;
 
-			this.vectorFi = ff.GetSubvector(internalDofs);
-			this.vectorFb = ff.GetSubvector(boundaryDofs);
+			this.vectorFi = f.GetSubvector(internalDofs);
+			this.vectorFb = f.GetSubvector(boundaryDofs);
 			scaleBoundaryVector(vectorFb);
 		}
 
-		public Vector CalcSubdomainFreeSolution(Vector subdomainBoundarySolution)
+		public Vector CalcSubdomainSolution(Vector subdomainBoundarySolution)
 		{
-			int numFreeDofs = subdomainDofs.NumFreeDofs;
-			int[] boundaryDofs = subdomainDofs.DofsBoundaryToFree;
-			int[] internalDofs = subdomainDofs.DofsInternalToFree;
+			int numAllDofs = subLinearSystem.RhsVector.Length;
+			int[] boundaryDofs = subdomainDofs.DofsBoundaryToAll;
+			int[] internalDofs = subdomainDofs.DofsInternalToAll;
 
 			// ui[s] = inv(Kii[s]) * (fi[s] - Kib[s] * ub[s])
 			Vector ub = subdomainBoundarySolution;
@@ -65,16 +65,16 @@ namespace MGroup.Solvers.DDM.PSM.Vectors
 			Vector ui = matrixManagerPsm.MultiplyInverseKii(temp);
 
 			// Gather ub[s], ui[s] into uf[s]
-			var uf = Vector.CreateZero(numFreeDofs);
-			uf.CopyNonContiguouslyFrom(boundaryDofs, subdomainBoundarySolution);
-			uf.CopyNonContiguouslyFrom(internalDofs, ui);
+			var u = Vector.CreateZero(numAllDofs);
+			u.CopyNonContiguouslyFrom(boundaryDofs, subdomainBoundarySolution);
+			u.CopyNonContiguouslyFrom(internalDofs, ui);
 
-			return uf;
+			return u;
 		}
 
-		public void CalcStoreSubdomainFreeSolution(Vector subdomainBoundarySolution)
+		public void CalcStoreSubdomainSolution(Vector subdomainBoundarySolution)
 		{
-			subLinearSystem.Solution = CalcSubdomainFreeSolution(subdomainBoundarySolution);
+			subLinearSystem.Solution = CalcSubdomainSolution(subdomainBoundarySolution);
 		}
 	}
 }

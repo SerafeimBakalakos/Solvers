@@ -27,8 +27,6 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 			physicalSubdomain = subdomain;
 		}
 
-		public Dictionary<int, int> BoundaryDofMultiplicities = new Dictionary<int, int>();
-
 		public virtual IEnumerable<INode> EnumerateNodes_temp() => physicalSubdomain.EnumerateNodes();
 
 		public IEnumerable<ISuperElement> EnumerateSuperElements()
@@ -41,12 +39,13 @@ namespace MGroup.Solvers.DDM.SolversExtensions.ProblemDefinition.FEM
 
 		public virtual int GetMultiplicityOfNode_temp(int nodeID)
 		{
-			if (BoundaryDofMultiplicities.TryGetValue(nodeID, out int multiplicity))
-			{
-				return multiplicity;
-			}
+			return physicalSubdomain.GetMultiplicityOfNode(nodeID);
+			//if (BoundaryDofMultiplicities.TryGetValue(nodeID, out int multiplicity))
+			//{
+			//	return multiplicity;
+			//}
 
-			return 1;
+			//return 1;
 		}
 
 		public virtual ISubdomain_v2 GetSubdomain_temp(int subdomainID)

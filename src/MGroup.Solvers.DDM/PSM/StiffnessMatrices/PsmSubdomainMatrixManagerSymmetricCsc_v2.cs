@@ -61,11 +61,11 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 		//TODO: Optimize this method. It is too slow.
 		public void ExtractKiiKbbKib()
 		{
-			int[] boundaryDofs = subdomainDofs.DofsBoundaryToFree;
-			int[] internalDofs = subdomainDofs.DofsInternalToFree;
+			int[] boundaryDofs = subdomainDofs.DofsBoundaryToAll;
+			int[] internalDofs = subdomainDofs.DofsInternalToAll;
 
-			SymmetricCscMatrix Kff = subLinearSystem.Matrix;
-			submatrixExtractor.ExtractSubmatrices(Kff, boundaryDofs, internalDofs);
+			SymmetricCscMatrix K = subLinearSystem.Matrix;
+			submatrixExtractor.ExtractSubmatrices(K, boundaryDofs, internalDofs);
 			Kbb = submatrixExtractor.Submatrix00;
 			Kbi = submatrixExtractor.Submatrix01;
 			Kii = submatrixExtractor.Submatrix11;
@@ -99,9 +99,9 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 
 		public void ReorderInternalDofs()
 		{
-			int[] internalDofs = subdomainDofs.DofsInternalToFree;
-			SymmetricCscMatrix Kff = subLinearSystem.Matrix;
-			(int[] rowIndicesKii, int[] colOffsetsKii) = submatrixExtractor.ExtractSparsityPattern(Kff, internalDofs);
+			int[] internalDofs = subdomainDofs.DofsInternalToAll;
+			SymmetricCscMatrix K = subLinearSystem.Matrix;
+			(int[] rowIndicesKii, int[] colOffsetsKii) = submatrixExtractor.ExtractSparsityPattern(K, internalDofs);
 			(int[] permutation, bool oldToNew) = reordering.FindPermutation(
 				internalDofs.Length, rowIndicesKii, colOffsetsKii);
 

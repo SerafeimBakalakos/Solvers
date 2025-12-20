@@ -67,7 +67,12 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			// Solver
 			var domain = new FullDomain_temp(model, elementMatrixProvider);
 			var solverFactory = new PsmSolver_v2<SymmetricCscMatrix>.Factory(environment, laProviderForSolver, new PsmSubdomainMatrixManagerSymmetricCsc_v2.Factory());
-			ISubdomainSystemSolver solver = solverFactory.BuildSolver(domain);
+			solverFactory.InterfaceProblemSolverFactory = new PsmInterfaceProblemSolverFactoryPcg()
+			{
+				MaxIterations = 200,
+				ResidualTolerance = 1E-10
+			};
+			PsmSolver_v2<SymmetricCscMatrix> solver = solverFactory.BuildSolver(domain);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -84,6 +89,14 @@ namespace MGroup.Solvers.DDM.Tests._temp
 				NodalResults computedResults = algebraicModel.ExtractAllResults(subdomainID, solver.LinearSystem.Solution);
 				Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
 			});
+
+			// Check convergence
+			int precision = 10;
+			int pcgIterationsExpected = 63;
+			double pcgResidualNormRatioExpected = 4.859075883397028E-11;
+			IterativeStatistics stats = solver.InterfaceProblemSolutionStats;
+			Assert.Equal(pcgIterationsExpected, stats.NumIterationsRequired);
+			Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
 		}
 
 		[Theory]

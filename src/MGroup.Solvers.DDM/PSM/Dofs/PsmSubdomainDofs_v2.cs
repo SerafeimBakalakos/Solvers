@@ -28,33 +28,31 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 
 		public IntDofTable DofOrderingBoundary { get; private set; }
 
-		public int[] DofsBoundaryToFree { get; private set; }
+		public int[] DofsBoundaryToAll { get; private set; }
 
-		public int[] DofsInternalToFree { get; private set; }
-
-		public int NumFreeDofs { get; private set; }
+		public int[] DofsInternalToAll { get; private set; }
 
 		public void ReorderInternalDofs(DofPermutation permutation)
 		{
 			if (permutation.IsBetter)
 			{
-				DofsInternalToFree = permutation.ReorderKeysOfDofIndicesMap(DofsInternalToFree);
+				DofsInternalToAll = permutation.ReorderKeysOfDofIndicesMap(DofsInternalToAll);
 			}
 		}
 
 		/// <summary>
 		/// Boundary/internal dofs
 		/// </summary>
-		public void SeparateFreeDofsIntoBoundaryAndInternal()
+		public void SeparateDofsIntoBoundaryAndInternal()
 		{
 			//TODOMPI: force sorting per node and dof
 			var boundaryDofOrdering = new IntDofTable();
-			var boundaryToFree = new List<int>();
-			var internalToFree = new HashSet<int>();
+			var boundaryToAll = new List<int>();
+			var internalToAll = new HashSet<int>();
 			int subdomainBoundaryIdx = 0;
 
-			IntDofTable freeDofs = dofOrdering.Dofs;
-			IEnumerable<int> nodes = freeDofs.GetRows();
+			IntDofTable allDofs = dofOrdering.Dofs;
+			IEnumerable<int> nodes = allDofs.GetRows();
 			if (sortDofsWhenPossible)
 			{
 				nodes = nodes.OrderBy(node => node);
@@ -62,7 +60,7 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 
 			foreach (int node in nodes) //TODO: Optimize access: Directly get INode, Dictionary<IDof, int>
 			{
-				IReadOnlyDictionary<int, int> dofsOfNode = freeDofs.GetDataOfRow(node);
+				IReadOnlyDictionary<int, int> dofsOfNode = allDofs.GetDataOfRow(node);
 				if (sortDofsWhenPossible)
 				{
 					var sortedDofsOfNode = new SortedDictionary<int, int>();
@@ -79,21 +77,21 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 					{
 						int dofID = dofTypeIdxPair.Key;
 						boundaryDofOrdering[node, dofID] = subdomainBoundaryIdx++;
-						boundaryToFree.Add(dofTypeIdxPair.Value);
+						boundaryToAll.Add(dofTypeIdxPair.Value);
 					}
 				}
 				else
 				{
 					foreach (var dofTypeIdxPair in dofsOfNode)
 					{
-						internalToFree.Add(dofTypeIdxPair.Value);
+						internalToAll.Add(dofTypeIdxPair.Value);
 					}
 				}
 			}
 
 			this.DofOrderingBoundary = boundaryDofOrdering;
-			this.DofsBoundaryToFree = boundaryToFree.ToArray();
-			this.DofsInternalToFree = internalToFree.ToArray();
+			this.DofsBoundaryToAll = boundaryToAll.ToArray();
+			this.DofsInternalToAll = internalToAll.ToArray();
 		}
 	}
 }

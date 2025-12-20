@@ -64,7 +64,7 @@ namespace MGroup.Solvers.DDM.Psm
 		protected readonly ConcurrentDictionary<int, PsmSubdomainVectors_v2> subdomainVectorsPsm;
 
 		protected int analysisIteration;
-		protected DistributedOverlappingIndexer freeDofIndexer;
+		protected DistributedOverlappingIndexer allDofIndexer;
 		protected DistributedOverlappingIndexer boundaryDofIndexer;
 
 		protected PsmSolver_v2(IComputeEnvironment environment, ISubdomain_v2 domain,
@@ -209,7 +209,7 @@ namespace MGroup.Solvers.DDM.Psm
 
 		public void BuildSystemMatrix()
 		{
-			var globalMatrix = new DistributedOverlappingMatrix<TMatrix>(freeDofIndexer);
+			var globalMatrix = new DistributedOverlappingMatrix<TMatrix>(allDofIndexer);
 			environment.DoPerNode(subdomainID =>
 			{
 				ISubdomain_v2 subdomain = Domain.GetSubdomain_temp(subdomainID);
@@ -223,7 +223,7 @@ namespace MGroup.Solvers.DDM.Psm
 
 		public void PrepareDofs()
 		{
-			// Free dofs
+			// Dofs of original linear system
 			environment.DoPerNode(subdomainID =>
 			{
 				subdomainDofOrderings[subdomainID].OrderDofs();
@@ -234,8 +234,9 @@ namespace MGroup.Solvers.DDM.Psm
 			subdomainTopology.FindCommonNodesBetweenSubdomains();
 			subdomainTopology.FindCommonDofsBetweenSubdomains();
 
-			freeDofIndexer = subdomainTopology.CreateDistributedVectorIndexer(s => subdomainDofOrderings[s].Dofs);
-			LinearSystem.RhsVector = new DistributedOverlappingVector(freeDofIndexer);
+			allDofIndexer = subdomainTopology.CreateDistributedVectorIndexer(s => subdomainDofOrderings[s].Dofs);
+			LinearSystem.RhsVector = new DistributedOverlappingVector(allDofIndexer);
+			LinearSystem.Solution = new DistributedOverlappingVector(allDofIndexer);
 		}
 
 		public void SolveLinearSystem()
@@ -374,7 +375,7 @@ namespace MGroup.Solvers.DDM.Psm
 			bool isFirstAnalysis = analysisIteration == 0;
 			environment.DoPerNode(subdomainID =>
 			{
-				subdomainDofsPsm[subdomainID].SeparateFreeDofsIntoBoundaryAndInternal();
+				subdomainDofsPsm[subdomainID].SeparateDofsIntoBoundaryAndInternal();
 				subdomainMatricesPsm[subdomainID].ReorderInternalDofs();
 			});
 			watch.Stop();
@@ -434,7 +435,7 @@ namespace MGroup.Solvers.DDM.Psm
 			environment.DoPerNode(subdomainID =>
 			{
 				Vector subdomainBoundarySolution = interfaceProblemVectors.InterfaceProblemSolution.LocalVectors[subdomainID];
-				subdomainVectorsPsm[subdomainID].CalcStoreSubdomainFreeSolution(subdomainBoundarySolution);
+				subdomainVectorsPsm[subdomainID].CalcStoreSubdomainSolution(subdomainBoundarySolution);
 			});
 			watch.Stop();
 			Logger.LogTaskDuration("Recover solution at all dofs", watch.ElapsedMilliseconds);

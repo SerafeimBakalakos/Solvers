@@ -39,7 +39,7 @@ namespace MGroup.Solvers.DDM.PSM.Scaling
 					//Debug.WriteLine($"Processing inverse multiplicities of subdomain {subdomainID}");
 					#endregion
 
-					int numBoundaryDofs = getSubdomainDofs(subdomainID).DofsBoundaryToFree.Length;
+					int numBoundaryDofs = getSubdomainDofs(subdomainID).DofsBoundaryToAll.Length;
 
 					var subdomainW = new double[numBoundaryDofs];
 					double[] inverseMultiplicities = boundaryDofIndexer.GetInverseMultiplicities(subdomainID);

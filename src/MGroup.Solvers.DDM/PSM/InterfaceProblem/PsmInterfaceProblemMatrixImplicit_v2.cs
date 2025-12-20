@@ -45,7 +45,7 @@ namespace MGroup.Solvers.DDM.PSM.InterfaceProblem
 		public double[] ExtractDiagonal(int subdomainID) 
 		{
 			// Multiply with the columns of identity matrix and keep the corresponding entries.
-			int numBoundaryDofs = getSubdomainDofs(subdomainID).DofsBoundaryToFree.Length; 
+			int numBoundaryDofs = getSubdomainDofs(subdomainID).DofsBoundaryToAll.Length; 
 			var lhs = Vector.CreateZero(numBoundaryDofs);
 			var rhs = Vector.CreateZero(numBoundaryDofs);
 			var diagonal = new double[numBoundaryDofs];
