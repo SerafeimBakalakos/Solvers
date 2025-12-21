@@ -7,6 +7,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using System.Linq;
 	using System.Text;
 	using System.Threading.Tasks;
+	using System.Xml.Linq;
 
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.BoundaryConditions;
@@ -19,87 +20,48 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	public class DefaultSubdomain_temp : ISubdomain_v2
 	{
 		private readonly IModel_v2 model;
-		private readonly ISubdomain physicalSubdomain;
 		private readonly IElementMatrixProvider elementMatrixProvider;
 
-		public DefaultSubdomain_temp(ISubdomain subdomain, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
+		private SortedSet<INode> nodes = new SortedSet<INode>(
+			Comparer<INode>.Create((n1, n2) => n1.ID.CompareTo(n2.ID)));
+		private SortedSet<IElementType> elements = new SortedSet<IElementType>(
+			Comparer<IElementType>.Create((e1, e2) => e1.ID.CompareTo(e2.ID)));
+
+		public DefaultSubdomain_temp(int id, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
 		{
+			this.ID = id;
 			this.model = model;
 			this.elementMatrixProvider = elementMatrixProvider;
-			physicalSubdomain = subdomain;
 		}
 
-		public virtual IEnumerable<INode> EnumerateNodes_temp() => physicalSubdomain.EnumerateNodes();
+		public int ID { get; }
 
-		public IEnumerable<ISuperElement> EnumerateSuperElements()
+		public void AddElement(IElementType element)
 		{
-			foreach (IElementType element in physicalSubdomain.EnumerateElements())
+			elements.Add(element);
+			foreach (INode node in element.Nodes)
 			{
-				yield return new DefaultElement_temp(element, model.DofTypes, elementMatrixProvider);
+				nodes.Add(node);
 			}
 		}
 
-		public virtual int GetMultiplicityOfNode_temp(int nodeID)
-		{
-			return physicalSubdomain.GetMultiplicityOfNode(nodeID);
-			//if (BoundaryDofMultiplicities.TryGetValue(nodeID, out int multiplicity))
-			//{
-			//	return multiplicity;
-			//}
+		public IEnumerable<INode> EnumerateNodes() => nodes;
 
-			//return 1;
+		public IEnumerable<ISuperElement> EnumerateElements() 
+			=> elements.Select(e => new DefaultElement_temp(e, model.DofTypes, elementMatrixProvider));
+
+		public IntDofTable OrderDofs()
+		{
+			ActiveDofs activeDofs = model.DofTypes;
+			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> dirichletBCs = FindDiricletBCs();
+			return FullDomain_temp.OrderFreeDofs(activeDofs, elements, nodes, dirichletBCs);
 		}
 
-		public virtual ISubdomain_v2 GetSubdomain_temp(int subdomainID)
+		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDiricletBCs()
 		{
-			throw new Exception("Bottom level. This subdomain cannot be further divided");
-		}
-
-		public IntDofTable OrderDofs() => OrderFreeDofs(model, physicalSubdomain.ID);
-
-		protected static IntDofTable OrderFreeDofs(IModel_v2 model, int subdomainID)
-		{
-			var subdomain = model.GetSubdomain(subdomainID);
-			ActiveDofs allDofs = model.DofTypes;
-
-			// Find all dofs
-			var nodalDofTypesDictionary = new Dictionary<int, List<IDofType>>(); //TODO: use Set instead of List or a dedicated structure
-			foreach (IElementType element in subdomain.EnumerateElements())
-			{
-				for (int i = 0; i < element.Nodes.Count; i++)
-				{
-					if (!nodalDofTypesDictionary.ContainsKey(element.Nodes[i].ID))
-					{
-						nodalDofTypesDictionary.Add(element.Nodes[i].ID, new List<IDofType>());
-					}
-
-					nodalDofTypesDictionary[element.Nodes[i].ID].AddRange(element.DofEnumerator.GetDofTypesForDofEnumeration(element)[i]);
-				}
-			}
-
-			// Find constrained dofs
-			var constrainedDofs = new HashDofSet<INode, IDofType>();
-			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> nodalDirichletBCs = model.FindDirichletBCsOfSubdomain(subdomainID);
-			foreach (INodalBoundaryCondition<IDofType> nodalBC in nodalDirichletBCs)
-			{
-				constrainedDofs.AddDof(nodalBC.Node, nodalBC.DOF);
-			}
-
-			// Order free dofs
-			int dofIdx = 0;
-			var freeDofs = new IntDofTable();
-			foreach (INode node in subdomain.EnumerateNodes())
-			{
-				foreach (IDofType dofType in nodalDofTypesDictionary[node.ID].Distinct())
-				{
-					if (constrainedDofs.Contains(node, dofType) == false)
-					{
-						freeDofs[node.ID, allDofs.GetIdOfDof(dofType)] = dofIdx++;
-					}
-				}
-			}
-
-			return freeDofs;
+			return model.EnumerateBoundaryConditions()
+				.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements))
+				.OfType<INodalDirichletBoundaryCondition<IDofType>>();
 		}
 	}
 }

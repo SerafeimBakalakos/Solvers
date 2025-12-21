@@ -8,19 +8,22 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DDM.Commons;
-	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering;
 
 	public class PsmSubdomainDofs_v2
 	{
+		private readonly IPartition_v2 partition;
 		private readonly ISubdomain_v2 subdomain;
 		private readonly ISubdomainDofOrdering_v2 dofOrdering;
 
 		//TODO: This is essential for testing and very useful for debugging, but not production code. Should I remove it?
 		private readonly bool sortDofsWhenPossible;
 
-		public PsmSubdomainDofs_v2(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering, bool sortDofsWhenPossible = false)
+		public PsmSubdomainDofs_v2(IPartition_v2 partition, ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering, bool sortDofsWhenPossible = false)
 		{
+			this.partition = partition;
 			this.subdomain = subdomain;
 			this.dofOrdering = dofOrdering;
 			this.sortDofsWhenPossible = sortDofsWhenPossible;
@@ -71,7 +74,7 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 					dofsOfNode = sortedDofsOfNode;
 				}
 
-				if (subdomain.GetMultiplicityOfNode_temp(node) > 1)
+				if (partition.FindMultiplicityOfNode(node) > 1)
 				{
 					foreach (var dofTypeIdxPair in dofsOfNode)
 					{

@@ -53,7 +53,7 @@ namespace MGroup.Solvers.LinearSystem
 
 			// Constrained dofs
 			ActiveDofs activeDofs = model.DofTypes;
-			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = model.FindDirichletBCsOfSubdomain(subdomainID);
+			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = model.GetDirichletBCs();
 			foreach (var constraint in constraints)
 			{
 				results[constraint.Node.ID, activeDofs.GetIdOfDof(constraint.DOF)] = constraint.Amount;

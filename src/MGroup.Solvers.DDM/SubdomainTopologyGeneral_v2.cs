@@ -15,6 +15,7 @@ namespace MGroup.Solvers.DDM
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DDM.Partitioning;
 
 	/// <remarks>
 	/// In the current design, the subdomain neighbors and their common (boundary) nodes are supposed to remain constant 
@@ -26,7 +27,7 @@ namespace MGroup.Solvers.DDM
 		/// First key: local subdomain. Second key: neighbor subdomain. Value: dofs at common nodes between these 2 subdomains.
 		/// Again there is duplication between the 2 subdomains of each pair.
 		/// </summary>
-		protected readonly ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> commonDofsBetweenSubdomains
+		private readonly ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> commonDofsBetweenSubdomains
 			= new ConcurrentDictionary<int, Dictionary<int, SortedDofSet>>();
 
 		/// <summary>
@@ -35,8 +36,8 @@ namespace MGroup.Solvers.DDM
 		private readonly ConcurrentDictionary<int, Dictionary<int, SortedSet<int>>> commonNodesWithNeighborsPerSubdomain
 			= new ConcurrentDictionary<int, Dictionary<int, SortedSet<int>>>();
 
-		protected IComputeEnvironment environment;
-		private ISubdomain_v2 domain;
+		private IComputeEnvironment environment;
+		private IPartition_v2 partition;
 		private Func<int, ISubdomainDofOrdering_v2> getSubdomainDofs;
 		private Dictionary<int, SortedSet<int>> neighborsPerSubdomain;
 
@@ -97,14 +98,15 @@ namespace MGroup.Solvers.DDM
 		{
 			environment.DoPerNode(subdomainID =>
 			{
-				ISubdomain_v2 subdomain = domain.GetSubdomain_temp(subdomainID);
+				ISubdomain_v2 subdomain = partition.GetSubdomain(subdomainID);
 				var commonNodesOfThisSubdomain = new Dictionary<int, SortedSet<int>>();
-				foreach (INode node in subdomain.EnumerateNodes_temp())
+				foreach (INode node in subdomain.EnumerateNodes())
 				{
-					if (node.Subdomains.Count == 1) continue; // internal node
+					if (partition.FindMultiplicityOfNode(node.ID) == 1) continue; // internal node
 
-					foreach (int otherSubdomainID in node.Subdomains)
+					foreach (ISubdomain_v2 otherSubdomain in partition.EnumerateSubdomainsOfNode(node))
 					{
+						int otherSubdomainID = otherSubdomain.ID;
 						if (otherSubdomainID == subdomainID) continue; // one of all will be the current subdomain
 
 						Debug.Assert(neighborsPerSubdomain[subdomainID].Contains(otherSubdomainID),
@@ -147,10 +149,10 @@ namespace MGroup.Solvers.DDM
 
 		public SortedSet<int> GetNeighborsOfSubdomain(int subdomainID) => neighborsPerSubdomain[subdomainID];
 
-		public void Initialize(IComputeEnvironment environment, ISubdomain_v2 domain, Func<int, ISubdomainDofOrdering_v2> getSubdomainDofs)
+		public void Initialize(IComputeEnvironment environment, IPartition_v2 partition, Func<int, ISubdomainDofOrdering_v2> getSubdomainDofs)
 		{
 			this.environment = environment;
-			this.domain = domain;
+			this.partition = partition;
 			this.getSubdomainDofs = getSubdomainDofs;
 			this.neighborsPerSubdomain = environment.CalcNodeData(subdomainID =>
 			{

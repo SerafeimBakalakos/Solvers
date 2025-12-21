@@ -6,11 +6,14 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers;
 
 	public interface ISuperElement
 	{
 		int ID { get; }
+
+		IEnumerable<INode> GetNodes();
 
 		IntDofTable GetDofs();
 

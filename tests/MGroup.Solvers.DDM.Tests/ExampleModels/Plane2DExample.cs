@@ -101,6 +101,8 @@ namespace MGroup.Solvers.DDM.Tests.ExampleModels
 
 		public static int[] NumSubdomains => new int[] { 4, 4 };
 
+		public static int NumSubdomainsTotal => NumSubdomains[0] * NumSubdomains[1];
+
 		public static int[] NumClusters => new int[] { 2, 2 };
 
 		public static void CheckDistributedIndexer(IComputeEnvironment environment, ComputeNodeTopology nodeTopology,

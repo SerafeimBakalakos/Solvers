@@ -54,7 +54,7 @@ namespace MGroup.Solvers.DofOrdering
 		public void PrepareDofMaps()
 		{
 			elementToSubdomainDofIndices = new Dictionary<int, (int[], int[])>();
-			foreach (ISuperElement element in subdomain.EnumerateSuperElements())
+			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
 				elementToSubdomainDofIndices[element.ID] = MapDofs(element);
 			}
@@ -82,7 +82,7 @@ namespace MGroup.Solvers.DofOrdering
 		private void ReorderDofs(IReorderingAlgorithm reorderingAlgorithm)
 		{
 			var pattern = SparsityPatternSymmetric.CreateEmpty(NumDofs);
-			foreach (ISuperElement element in subdomain.EnumerateSuperElements())
+			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
 				(int[] elementDofIndices, int[] subdomainDofIndices) = MapDofsElementToSubdomain(element);
 

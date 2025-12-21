@@ -20,6 +20,7 @@ namespace MGroup.Solvers.DDM.Psm
 	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.Output;
+	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DDM.PSM.Dofs;
 	using MGroup.Solvers.DDM.PSM.InterfaceProblem;
 	using MGroup.Solvers.DDM.PSM.Preconditioning;
@@ -47,6 +48,7 @@ namespace MGroup.Solvers.DDM.Psm
 		protected readonly IPsmInterfaceProblemVectors interfaceProblemVectors;
 		protected readonly string name;
 		//private readonly ObjectiveConvergenceCriterion<TMatrix> objectiveConvergenceCriterion;
+		private readonly IPartition_v2 partition;
 		protected /*readonly*/ IPsmPreconditioner preconditioner; //TODO: Make this readonly as well.
 		protected readonly IImplementationProvider provider;
 		//protected readonly PsmReanalysisOptions reanalysis;
@@ -63,7 +65,7 @@ namespace MGroup.Solvers.DDM.Psm
 		protected DistributedOverlappingIndexer allDofIndexer;
 		protected DistributedOverlappingIndexer boundaryDofIndexer;
 
-		protected PsmSolver_v2(IComputeEnvironment environment, ISubdomain_v2 domain,
+		protected PsmSolver_v2(IComputeEnvironment environment, ISubdomain_v2 domain, IPartition_v2 partition,
 			IImplementationProvider provider, IPsmSubdomainMatrixManagerFactory_v2<TMatrix> matrixManagerFactory,
 			bool explicitSubdomainMatrices, IPsmPreconditioner preconditioner,
 			IPsmInterfaceProblemSolverFactory interfaceProblemSolverFactory, bool isHomogeneous, DdmLogger logger,
@@ -72,6 +74,7 @@ namespace MGroup.Solvers.DDM.Psm
 			this.name = name;
 			this.environment = environment;
 			Domain = domain;
+			this.partition = partition;
 			this.provider = provider;
 			this.LinearSystem = new LinearSystem_v2();
 			this.preconditioner = preconditioner;
@@ -85,11 +88,11 @@ namespace MGroup.Solvers.DDM.Psm
 			this.subdomainVectorsPsm = new ConcurrentDictionary<int, PsmSubdomainVectors_v2>();
 			environment.DoPerNode(subdomainID =>
 			{
-				ISubdomain_v2 subdomain = domain.GetSubdomain_temp(subdomainID);
+				ISubdomain_v2 subdomain = partition.GetSubdomain(subdomainID);
 				var subLinearSystem = new SubdomainLinearSystem_v2<TMatrix>(LinearSystem, subdomainID);
 				var dofOrdering = new DefaultSubdomainDofOrdering_v2(subdomain, null);
 				ISubdomainMatrixAssembler_v2<TMatrix> matrixAssembler = matrixManagerFactory.CreateAssembler();
-				var psmDofs = new PsmSubdomainDofs_v2(subdomain, dofOrdering, false);
+				var psmDofs = new PsmSubdomainDofs_v2(partition, subdomain, dofOrdering, false);
 				IPsmSubdomainMatrixManager_v2 psmMatrices = matrixManagerFactory.CreateMatrixManager(provider, subLinearSystem, psmDofs);
 				var psmVectors = new PsmSubdomainVectors_v2(subLinearSystem, psmDofs, psmMatrices);
 
@@ -178,7 +181,7 @@ namespace MGroup.Solvers.DDM.Psm
 			else
 			{
 				this.subdomainTopology = new SubdomainTopologyGeneral_v2();
-				this.subdomainTopology.Initialize(environment, Domain, s => subdomainDofOrderings[s]);
+				this.subdomainTopology.Initialize(environment, partition, s => subdomainDofOrderings[s]);
 			}
 
 			analysisIteration = 0;
@@ -200,7 +203,7 @@ namespace MGroup.Solvers.DDM.Psm
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new DistributedAlgebraicModel_v2(environment, physicalModel, LinearSystem, subdomainDofOrderings);
+			return new DistributedAlgebraicModel_v2(environment, physicalModel, partition, LinearSystem, subdomainDofOrderings);
 		}
 
 		public void BuildSystemMatrix()
@@ -208,7 +211,7 @@ namespace MGroup.Solvers.DDM.Psm
 			var globalMatrix = new DistributedOverlappingMatrix<TMatrix>(allDofIndexer);
 			environment.DoPerNode(subdomainID =>
 			{
-				ISubdomain_v2 subdomain = Domain.GetSubdomain_temp(subdomainID);
+				ISubdomain_v2 subdomain = partition.GetSubdomain(subdomainID);
 				ISubdomainDofOrdering_v2 subdomainDofs = subdomainDofOrderings[subdomainID];
 				TMatrix matrix = subdomainMatrixAssemblers[subdomainID].BuildSubdomainMatrix(subdomain, subdomainDofs);
 				globalMatrix.LocalMatrices[subdomainID] = matrix;
@@ -474,11 +477,11 @@ namespace MGroup.Solvers.DDM.Psm
 
 			public bool OptimizedSubdomainTopology { get; set; }
 
-			public virtual PsmSolver_v2<TMatrix> BuildSolver(ISubdomain_v2 domain)
+			public virtual PsmSolver_v2<TMatrix> BuildSolver(ISubdomain_v2 domain, IPartition_v2 partition)
 			{
 				//DdmLogger logger = EnableLogging ? new DdmLogger(environment, "PSM Solver", model.NumSubdomains) : null;
 				DdmLogger logger = null;
-				return new PsmSolver_v2<TMatrix>(environment, domain, laProvider, PsmMatricesFactory,
+				return new PsmSolver_v2<TMatrix>(environment, domain, partition, laProvider, PsmMatricesFactory,
 					ExplicitSubdomainMatrices, Preconditioner, InterfaceProblemSolverFactory, IsHomogeneousProblem,
 					logger, OptimizedSubdomainTopology);
 			}

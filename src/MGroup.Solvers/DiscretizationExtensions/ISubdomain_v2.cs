@@ -9,13 +9,11 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 	public interface ISubdomain_v2
 	{
-		IEnumerable<INode> EnumerateNodes_temp();
+		int ID { get; }
 
-		IEnumerable<ISuperElement> EnumerateSuperElements();
+		IEnumerable<INode> EnumerateNodes();
 
-		int GetMultiplicityOfNode_temp(int nodeID);
-
-		ISubdomain_v2 GetSubdomain_temp(int subdomainID);
+		IEnumerable<ISuperElement> EnumerateElements();
 
 		IntDofTable OrderDofs();
 	}

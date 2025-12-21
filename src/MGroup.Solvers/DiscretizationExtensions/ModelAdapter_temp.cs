@@ -5,6 +5,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using System.Linq;
 	using System.Text;
 	using System.Threading.Tasks;
+	using System.Xml.Linq;
 
 	using MGroup.MSolve.AnalysisWorkflow.Transient;
 	using MGroup.MSolve.Discretization;
@@ -14,9 +15,9 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 	public class ModelAdapter_temp : IModel_v2
 	{
-		private IModel model;
+		private Model model;
 
-		public ModelAdapter_temp(IModel model)
+		public ModelAdapter_temp(Model model)
 		{
 			this.model = model;
 		}
@@ -30,8 +31,11 @@ namespace MGroup.Solvers.DiscretizationExtensions
 			model.ConnectDataStructures();
 			IdentifyUniqueDofTypes();
 		}
+		public IEnumerable<IBoundaryConditionSet<IDofType>> EnumerateBoundaryConditions() => model.BoundaryConditions;
 
 		public IEnumerable<IBoundaryConditionSet<IDofType>> EnumerateBoundaryConditions(int subdomainID) => model.EnumerateBoundaryConditions(subdomainID);
+
+		public IEnumerable<IElementType> EnumerateElements() => model.ElementsDictionary.Values;
 
 		public IEnumerable<IElementType> EnumerateElements(int subdomainID) => model.EnumerateElements(subdomainID);
 
@@ -41,34 +45,22 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public IEnumerable<ISubdomain> EnumerateSubdomains() => model.EnumerateSubdomains();
 
+		public IElementType GetElement(int elementID) => model.ElementsDictionary[elementID];
+
 		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> GetDirichletBCs()
 		{
-			var allDirichletBCs = new List<INodalDirichletBoundaryCondition<IDofType>>();
-			foreach (ISubdomain subdomain in model.EnumerateSubdomains())
-			{
-				IEnumerable<IElementType> elements = model.EnumerateElements(subdomain.ID);
-				var bcs = model.EnumerateBoundaryConditions(subdomain.ID)
-					.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements))
-					.OfType<INodalDirichletBoundaryCondition<IDofType>>();
-				allDirichletBCs.AddRange(bcs);
-			}
-
-			return allDirichletBCs;
+			IEnumerable<IElementType> elements = model.ElementsDictionary.Values;
+			return model.BoundaryConditions
+				.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements))
+				.OfType<INodalDirichletBoundaryCondition<IDofType>>();
 		}
 
 		public IEnumerable<INodalNeumannBoundaryCondition<IDofType>> GetNeumannBCs()
 		{
-			var allNeumanBCs = new List<INodalNeumannBoundaryCondition<IDofType>>();
-			foreach (ISubdomain subdomain in model.EnumerateSubdomains())
-			{
-				IEnumerable<IElementType> elements = model.EnumerateElements(subdomain.ID);
-				var bcs = model.EnumerateBoundaryConditions(subdomain.ID)
-					.SelectMany(bcSet => bcSet.EnumerateNodalBoundaryConditions(elements))
-					.OfType<INodalNeumannBoundaryCondition<IDofType>>();
-				allNeumanBCs.AddRange(bcs);
-			}
-
-			return allNeumanBCs;
+			IEnumerable<IElementType> elements = model.ElementsDictionary.Values;
+			return model.BoundaryConditions
+				.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements))
+				.OfType<INodalNeumannBoundaryCondition<IDofType>>();
 		}
 
 		public INode GetNode(int nodeID) => model.GetNode(nodeID);

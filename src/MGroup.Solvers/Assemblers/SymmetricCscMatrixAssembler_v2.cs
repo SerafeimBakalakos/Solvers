@@ -28,7 +28,7 @@ namespace MGroup.Solvers.Assemblers
 			var subdomainMatrix = DokSymmetric.CreateEmpty(numDofs);
 
 			// Process the stiffness of each element
-			foreach (ISuperElement element in subdomain.EnumerateSuperElements())
+			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
 				// TODO: perhaps that could be done and cached during the dof enumeration to avoid iterating over the dofs twice
 				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);

@@ -30,6 +30,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public int ID => ElementEntity.ID;
 
+
 		public IMatrix BuildMatrix()
 		{
 			return elementMatrixProvider.Matrix(ElementEntity);
@@ -57,5 +58,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 			return result;
 		}
+
+		public IEnumerable<INode> GetNodes() => ElementEntity.Nodes;
 	}
 }

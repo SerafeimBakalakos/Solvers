@@ -5,6 +5,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	using System.Linq;
 	using System.Text;
 	using System.Threading.Tasks;
+	using System.Xml.Linq;
 
 	using MGroup.Environments;
 	using MGroup.LinearAlgebra.Distributed.Overlapping;
@@ -12,8 +13,10 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Discretization;
+	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearSystem;
@@ -27,11 +30,14 @@ namespace MGroup.Solvers.DDM.LinearSystem
 		private readonly LinearSystem_v2 linearSystem;
 		private readonly IReadOnlyDictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings;
 		private readonly IModel_v2 model;
+		private readonly IPartition_v2 partition;
 
-		public DistributedAlgebraicModel_v2(IComputeEnvironment environment, IModel_v2 model, LinearSystem_v2 linearSystem, IReadOnlyDictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings)
+		public DistributedAlgebraicModel_v2(IComputeEnvironment environment, IModel_v2 model, IPartition_v2 partition,
+			LinearSystem_v2 linearSystem, IReadOnlyDictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings)
 		{
 			this.environment = environment;
 			this.model = model;
+			this.partition = partition;
 			this.linearSystem = linearSystem;
 			this.freeDofOrderings = freeDofOrderings;
 		}
@@ -44,16 +50,24 @@ namespace MGroup.Solvers.DDM.LinearSystem
 				IntDofTable subdomainFreeDofs = freeDofOrderings[subdomainID].Dofs;
 				var subdomainVector = distributedVector.LocalVectors[subdomainID];
 
-				foreach (INodalModelQuantity<IDofType> nodalQuantity in nodalLoads)
+				//TODO: This was optimized previously! ProblemStructural and Model provided only the loads that correspond to this subdomain
+				foreach (INodalModelQuantity<IDofType> load in FilterSubdomainData(nodalLoads, subdomainID))
 				{
-					//TODO: This was optimized previously! ProblemStructural and Model provided only the loads that correspond to this subdomain
-					if (nodalQuantity.Node.Subdomains.Contains(subdomainID))
-					{
-						int dofID = model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
-						int dofIdx = subdomainFreeDofs[nodalQuantity.Node.ID, dofID];
-						subdomainVector[dofIdx] += nodalQuantity.Amount;
-					}
+					int dofID = model.DofTypes.GetIdOfDof(load.DOF);
+					int dofIdx = subdomainFreeDofs[load.Node.ID, dofID];
+					subdomainVector[dofIdx] += load.Amount;
 				}
+
+				//foreach (INodalModelQuantity<IDofType> nodalQuantity in nodalLoads)
+				//{
+				//	//TODO: This was optimized previously! ProblemStructural and Model provided only the loads that correspond to this subdomain
+				//	if (partition.DoesSubdomainContainNode(nodalQuantity.Node.ID, subdomainID))
+				//	{
+				//		int dofID = model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
+				//		int dofIdx = subdomainFreeDofs[nodalQuantity.Node.ID, dofID];
+				//		subdomainVector[dofIdx] += nodalQuantity.Amount;
+				//	}
+				//}
 			});
 
 			// Nodal loads at the same boundary dof are the same across all relevant subdomains, 
@@ -75,8 +89,9 @@ namespace MGroup.Solvers.DDM.LinearSystem
 
 			// Constrained dofs
 			ActiveDofs activeDofs = model.DofTypes;
-			var constraints = model.FindDirichletBCsOfSubdomain(subdomainID);
-			foreach (var constraint in constraints)
+			var subdomain = (DefaultSubdomain_temp)partition.GetSubdomain(subdomainID);
+			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = subdomain.FindDiricletBCs();
+			foreach (INodalDirichletBoundaryCondition<IDofType> constraint in constraints)
 			{
 				results[constraint.Node.ID, activeDofs.GetIdOfDof(constraint.DOF)] = constraint.Amount;
 			}
@@ -99,5 +114,9 @@ namespace MGroup.Solvers.DDM.LinearSystem
 				"The provided vector has a different format than the current distributed linear system."
 				+ $" Ensure it was created by this linear system object.");
 		}
+
+		private IEnumerable<Tbc> FilterSubdomainData<Tbc>(IEnumerable<Tbc> nodalBCs, int subdomainID)
+			where Tbc : INodalModelQuantity<IDofType>
+			=> nodalBCs.Where(bc => partition.DoesSubdomainContainNode(bc.Node.ID, subdomainID));
 	}
 }

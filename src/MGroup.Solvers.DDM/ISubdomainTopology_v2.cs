@@ -2,9 +2,7 @@ namespace MGroup.Solvers.DDM
 {
 	using MGroup.Environments;
 	using MGroup.LinearAlgebra.Distributed.Overlapping;
-	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DofOrdering;
 
 	public interface ISubdomainTopology_v2
@@ -19,7 +17,7 @@ namespace MGroup.Solvers.DDM
 
 		SortedSet<int> GetNeighborsOfSubdomain(int subdomainID);
 
-		void Initialize(IComputeEnvironment environment, ISubdomain_v2 domain, Func<int, ISubdomainDofOrdering_v2> getSubdomainFreeDofs);
+		void Initialize(IComputeEnvironment environment, IPartition_v2 partition, Func<int, ISubdomainDofOrdering_v2> getSubdomainFreeDofs);
 
 		//DistributedOverlappingIndexer RecreateDistributedVectorIndexer(Func<int, IntDofTable> getSubdomainDofs,
 		//	DistributedOverlappingIndexer previousIndexer, Func<int, bool> isModifiedSubdomain);
