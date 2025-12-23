@@ -39,6 +39,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.DDM.Partitioning;
+	using MGroup.Solvers.MatrixFree;
 
 	public static class SimpleTests_temp
 	{
@@ -100,6 +101,47 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
 		}
 
+		[Fact]
+		public static void TestMatrixFreeSolver()
+		{
+			// Model
+			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
+
+			// Constitutive problem
+			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
+
+			// Solver
+			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
+			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
+			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
+			pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
+			//IPreconditioner preconditioner = new IdentityPreconditioner();
+			IPreconditioner preconditioner = new PartitionedJacobiPreconditioner();
+			var solver = new MatrixFreeSolver(domain, pcgAlgorithmFactory.Build(), preconditioner);
+			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
+
+			// Linear static analysis
+			var analysis = new SimpleAnalysis_temp(model, algebraicModel, solver);
+
+			// Run the analysis
+			analysis.Run();
+
+			// Check results
+			NodalResults expectedResults = Plane2DExample.GetExpectedNodalValues(model.DofTypes);
+			double tolerance = 1E-7;
+			NodalResults computedResults = algebraicModel.ExtractAllResults(0, solver.LinearSystem.Solution);
+			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
+
+			// Check convergence
+			int precision = 10;
+			int pcgIterationsExpected = 86;
+			double pcgResidualNormRatioExpected = 8.3702031765832112E-11;
+			IterativeStatistics stats = solver.IterativeAlgorithmStats;
+			Assert.Equal(pcgIterationsExpected, stats.NumIterationsRequired);
+			Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
+		}
+
 		[Theory]
 		[InlineData(SolverName.DenseMatrixSolver)]
 		[InlineData(SolverName.CholeskyCscSolver)]
@@ -146,6 +188,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 				var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
 				pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 				pcgAlgorithmFactory.ResidualTolerance = 1E-10;
+				pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
+				//var preconditioner = new IdentityPreconditioner();
 				var preconditioner = new JacobiPreconditioner();
 				return new PcgSolver_v2(domain, pcgAlgorithmFactory.Build(), preconditioner);
 			}

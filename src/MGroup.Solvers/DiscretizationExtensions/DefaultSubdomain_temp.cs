@@ -16,6 +16,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering.Reordering;
 
 	public class DefaultSubdomain_temp : ISubdomain_v2
 	{
@@ -52,9 +53,9 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public IntDofTable OrderDofs()
 		{
-			ActiveDofs activeDofs = model.DofTypes;
+			var freeDofOrderer = new DefaultFreeDofOrderer_v2(model);
 			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> dirichletBCs = FindDiricletBCs();
-			return FullDomain_temp.OrderFreeDofs(activeDofs, elements, nodes, dirichletBCs);
+			return freeDofOrderer.OrderFreeDofs(elements, nodes, dirichletBCs);
 		}
 
 		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDiricletBCs()

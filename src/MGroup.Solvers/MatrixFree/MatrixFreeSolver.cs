@@ -1,38 +1,33 @@
-namespace MGroup.Solvers.Iterative
+namespace MGroup.Solvers.MatrixFree
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Text;
-	using System.Threading.Tasks;
-	using System.Xml.Linq;
 
 	using MGroup.LinearAlgebra.Iterative;
 	using MGroup.LinearAlgebra.Iterative.PreconditionedConjugateGradient;
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
-	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Solution;
-	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.Assemblers;
-	using MGroup.Solvers.Direct;
+	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.LinearSystem;
+	using MGroup.Solvers.Logging;
 
-	public class PcgSolver_v2 : ISolver_v2
+	public class MatrixFreeSolver : ISolver_v2
 	{
 		private readonly bool matrixPatternWillNotBeModified = false;
-		private readonly CsrMatrixAssembler_v2 matrixAssembler = new CsrMatrixAssembler_v2();
 		private readonly PcgAlgorithm pcgAlgorithm;
 		private readonly IPreconditioner preconditioner;
 
 		private bool mustUpdatePreconditioner = true;
 
-		public PcgSolver_v2(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
+		public MatrixFreeSolver(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
 		{
 			Domain = domain;
 			this.pcgAlgorithm = pcgAlgorithm;
@@ -51,6 +46,8 @@ namespace MGroup.Solvers.Iterative
 
 		public ISubdomain_v2 Domain { get; }
 
+		public IterativeStatistics IterativeAlgorithmStats { get; private set; }
+
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
 			return new MonolithicAlgebraicModel_v2(physicalModel, DofOrdering);
@@ -65,10 +62,10 @@ namespace MGroup.Solvers.Iterative
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofOrdering);
+			LinearSystem.Matrix = new PartitionedMatrix(Domain.EnumerateElements().ToList(), DofOrdering);
 		}
 
-		public void SolveLinearSystem()
+		public void SolveLinearSystem() //TODO: This is identical to PcgSolver
 		{
 			var watch = new Stopwatch();
 			if (LinearSystem.Solution == null)
@@ -94,6 +91,7 @@ namespace MGroup.Solvers.Iterative
 			// Iterative algorithm
 			watch.Start();
 			IterativeStatistics stats = pcgAlgorithm.Solve(LinearSystem.Matrix, preconditioner, LinearSystem.RhsVector, LinearSystem.Solution, true);
+			IterativeAlgorithmStats = stats;
 			if (!stats.HasConverged)
 			{
 				throw new IterativeSolverNotConvergedException(typeof(PcgSolver_v2).Name
