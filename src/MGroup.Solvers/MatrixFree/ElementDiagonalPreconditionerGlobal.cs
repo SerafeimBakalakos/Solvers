@@ -13,14 +13,16 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 
-	public class ElementDiagonalPreconditioner : IPreconditioner
+	public class ElementDiagonalPreconditionerGlobal : IPreconditioner
 	{
+		private readonly IDofScaling dofScaling;
 		private ISubdomainDofOrdering_v2 dofOrdering;
 		private IReadOnlyCollection<ISuperElement> elements;
 		private Dictionary<int, DiagonalMatrix> elementInverseDiagonals;
 
-		public ElementDiagonalPreconditioner()
+		public ElementDiagonalPreconditionerGlobal(IDofScaling dofScaling)
 		{
+			this.dofScaling = dofScaling;
 		}
 
 		public IPreconditioner CopyWithInitialSettings() => throw new NotImplementedException();
@@ -30,23 +32,27 @@ namespace MGroup.Solvers.MatrixFree
 			//TODO: This is almost idential to PartitionedMatrix.MultiplyVectorIntoResult
 			var x = (Vector)lhsVector;
 			var y = (Vector)rhsVector;
+			x.Clear();
 			foreach (ISuperElement element in elements)
 			{
 				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
-				Vector xe = x.GetSubvector(subdomainDofIndices);
-				var ye = Vector.CreateZero(subdomainDofIndices.Length);
-				elementInverseDiagonals[element.ID].MultiplyIntoResult(xe, ye);
-				y.AddIntoThisNonContiguouslyFrom(subdomainDofIndices, ye);
+				DiagonalMatrix We = dofScaling.GetScalingMatrix(element.ID);
+				Vector ye = y.GetSubvector(subdomainDofIndices);
+				var xe = Vector.CreateZero(subdomainDofIndices.Length);
+				elementInverseDiagonals[element.ID].MultiplyIntoResult(We*ye, xe);
+				x.AddIntoThisNonContiguouslyFrom(subdomainDofIndices, We*xe);
 			}
 		}
 
 		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified)
 		{
-			if (matrix is PartitionedMatrix partitionedMatrix)
+			if (matrix is PartitionedMatrixGlobal partitionedMatrix)
 			{
-				this.dofOrdering = partitionedMatrix.DofOrdering;
-				this.elements = partitionedMatrix.Elements;
-				this.elementInverseDiagonals = new Dictionary<int, DiagonalMatrix>();
+				dofOrdering = partitionedMatrix.DofOrdering;
+				elements = partitionedMatrix.Elements;
+
+				dofScaling.Calculate(partitionedMatrix);
+				elementInverseDiagonals = new Dictionary<int, DiagonalMatrix>();
 				foreach (ISuperElement element in elements)
 				{
 					IReadOnlyMatrix elementMatrix = partitionedMatrix.ElementMatrices[element.ID];
@@ -57,7 +63,7 @@ namespace MGroup.Solvers.MatrixFree
 			}
 			else
 			{
-				throw new NonMatchingFormatException($"Can only operate on {nameof(PartitionedMatrix)}");
+				throw new NonMatchingFormatException($"Can only operate on {nameof(PartitionedMatrixGlobal)}");
 			}
 		}
 	}

@@ -13,7 +13,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	{
 		int ID { get; }
 
-		IEnumerable<INode> GetNodes();
+		IEnumerable<INode> EnumerateNodes();
 
 		IntDofTable GetDofs();
 

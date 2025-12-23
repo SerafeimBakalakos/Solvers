@@ -19,7 +19,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
 
-	public class MatrixFreeSolver : ISolver_v2
+	public class MatrixFreeSolverGlobal : ISolver_v2
 	{
 		private readonly bool matrixPatternWillNotBeModified = false;
 		private readonly PcgAlgorithm pcgAlgorithm;
@@ -27,7 +27,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		private bool mustUpdatePreconditioner = true;
 
-		public MatrixFreeSolver(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
+		public MatrixFreeSolverGlobal(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
 		{
 			Domain = domain;
 			this.pcgAlgorithm = pcgAlgorithm;
@@ -62,7 +62,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = new PartitionedMatrix(Domain.EnumerateElements().ToList(), DofOrdering);
+			LinearSystem.Matrix = new PartitionedMatrixGlobal(Domain.EnumerateElements().ToList(), DofOrdering);
 		}
 
 		public void SolveLinearSystem() //TODO: This is identical to PcgSolver

@@ -12,13 +12,13 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 
-	public class PartitionedJacobiPreconditioner : IPreconditioner
+	public class PartitionedJacobiPreconditionerGlobal : IPreconditioner
 	{
 		private ISubdomainDofOrdering_v2 dofOrdering;
 		private IReadOnlyCollection<ISuperElement> elements;
 		private DiagonalMatrix inverseDiagonalMatrix;
 
-		public PartitionedJacobiPreconditioner()
+		public PartitionedJacobiPreconditionerGlobal()
 		{
 		}
 
@@ -31,7 +31,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified)
 		{
-			if (matrix is PartitionedMatrix partitionedMatrix)
+			if (matrix is PartitionedMatrixGlobal partitionedMatrix)
 			{
 				this.dofOrdering = partitionedMatrix.DofOrdering;
 				this.elements = partitionedMatrix.Elements;
@@ -46,7 +46,7 @@ namespace MGroup.Solvers.MatrixFree
 			}
 			else
 			{
-				throw new NonMatchingFormatException($"Can only operate on {nameof(PartitionedMatrix)}");
+				throw new NonMatchingFormatException($"Can only operate on {nameof(PartitionedMatrixGlobal)}");
 			}
 		}
 	}

@@ -10,9 +10,9 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 
-	public class PartitionedMatrix : DefaultMatrix
+	public class PartitionedMatrixGlobal : DefaultMatrix
 	{
-		public PartitionedMatrix(IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
+		public PartitionedMatrixGlobal(IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			this.Elements = elements;
 			this.DofOrdering = dofOrdering;
@@ -54,13 +54,13 @@ namespace MGroup.Solvers.MatrixFree
 
 		public override IMatrix CreateZeroMatrixWithSameFormat()
 		{
-			var result = new PartitionedMatrix(Elements, DofOrdering);
+			var result = new PartitionedMatrixGlobal(Elements, DofOrdering);
 			return result;
 		}
 
 		public override bool HasSameFormat(IReadOnlyMatrix otherMatrix)
 		{
-			if (otherMatrix is PartitionedMatrix casted)
+			if (otherMatrix is PartitionedMatrixGlobal casted)
 			{
 				if ((casted.Elements == this.Elements) && (casted.DofOrdering == this.DofOrdering))
 				{

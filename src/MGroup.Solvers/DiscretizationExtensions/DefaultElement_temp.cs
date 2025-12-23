@@ -59,6 +59,6 @@ namespace MGroup.Solvers.DiscretizationExtensions
 			return result;
 		}
 
-		public IEnumerable<INode> GetNodes() => ElementEntity.Nodes;
+		public IEnumerable<INode> EnumerateNodes() => ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
 	}
 }
