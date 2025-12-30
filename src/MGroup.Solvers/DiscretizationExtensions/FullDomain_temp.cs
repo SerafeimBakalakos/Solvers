@@ -19,27 +19,34 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 	public class FullDomain_temp : ISubdomain_v2
 	{
-		private readonly IModel_v2 model;
 		private readonly IElementMatrixProvider elementMatrixProvider;
 
 		public FullDomain_temp(IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
 		{
-			this.model = model;
+			this.Model = model;
 			this.elementMatrixProvider = elementMatrixProvider;
 			this.ID = 0;
 		}
 
 		public int ID { get; }
 
-		public IEnumerable<INode> EnumerateNodes() => model.EnumerateNodes();
+		public IModel_v2 Model { get; }
+
+		public IEnumerable<INode> EnumerateNodes() => Model.EnumerateNodes();
 
 		public IEnumerable<ISuperElement> EnumerateElements()
-			=> model.EnumerateElements().Select(e => new DefaultElement_temp(e, model.DofTypes, elementMatrixProvider));
+			=> Model.EnumerateElements().Select(e => new DefaultElement_temp(e, Model.DofTypes, elementMatrixProvider));
+
+		public ISuperElement GetElement(int id)
+		{
+			IElementType elementType = Model.GetElement(id);
+			return new DefaultElement_temp(elementType, Model.DofTypes, elementMatrixProvider);
+		}
 
 		public IntDofTable OrderDofs()
 		{
-			var freeDofOrderer = new DefaultFreeDofOrderer_v2(model);
-			return freeDofOrderer.OrderFreeDofs(model.EnumerateElements(), model.EnumerateNodes(), model.GetDirichletBCs());
+			var freeDofOrderer = new DefaultFreeDofOrderer_v2(Model);
+			return freeDofOrderer.OrderFreeDofs(Model.EnumerateElements(), Model.EnumerateNodes(), Model.GetDirichletBCs());
 		}
 	}
 }

@@ -2,11 +2,14 @@ namespace MGroup.Solvers.MatrixFree
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Text;
 
 	using MGroup.LinearAlgebra.Implementations;
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.LinearAlgebra.Reduction;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 
@@ -90,25 +93,6 @@ namespace MGroup.Solvers.MatrixFree
 				ElementMatrices[element.ID].MultiplyIntoResult(xe, ye);
 				y.AddIntoThisNonContiguouslyFrom(subdomainDofIndices, ye);
 			}
-		}
-
-		private static bool DictionariesHaveSameKeys<TKey, TValue>(
-			IReadOnlyDictionary<TKey, TValue> dict1, IReadOnlyDictionary<TKey, TValue> dict2)
-		{
-			if (dict1.Count != dict2.Count)
-			{
-				return false;
-			}
-
-			foreach (TKey key in dict1.Keys)
-			{
-				if (!dict2.ContainsKey(key))
-				{
-					return false;
-				}
-			}
-
-			return true;
 		}
 	}
 }

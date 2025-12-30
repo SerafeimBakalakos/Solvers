@@ -18,6 +18,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.LinearAlgebra.Iterative.Termination.Iterations;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.MSolve.DataStructures;
+	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
@@ -25,21 +26,18 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.MSolve.Solution;
 	using MGroup.NumericalAnalyzers;
 	using MGroup.Solvers.DDM.LinearSystem;
+	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DDM.Psm;
 	using MGroup.Solvers.DDM.PSM.InterfaceProblem;
 	using MGroup.Solvers.DDM.PSM.StiffnessMatrices;
-	using MGroup.Solvers.Direct;
 	using MGroup.Solvers.DDM.Tests.ExampleModels;
-	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.Results;
-
-	using Xunit;
-
-	using static MGroup.Solvers.DDM.Tests._temp.SimpleTests_temp;
+	using MGroup.Solvers.Direct;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Iterative;
-	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.MatrixFree;
+	using MGroup.Solvers.Results;
+	using Xunit;
 
 	public static class SimpleTests_temp
 	{
@@ -59,6 +57,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 
 			// Model
 			var model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
+			model.ConnectDataStructures();
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Partition
@@ -106,6 +105,69 @@ namespace MGroup.Solvers.DDM.Tests._temp
 		{
 			// Model
 			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
+			model.ConnectDataStructures();
+
+			// Constitutive problem
+			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
+
+			// Environment
+			IComputeEnvironment environment = new SequentialSharedEnvironment();
+			var nodeTopology = new ComputeNodeTopology();
+			foreach (IElementType element in model.EnumerateElements())
+			{
+				var neighbors = new HashSet<int>();
+				foreach (INode node in element.Nodes)
+				{
+					neighbors.UnionWith(node.ElementsDictionary.Values.Select(e => e.ID));
+				}
+				neighbors.Remove(element.ID);
+
+				nodeTopology.AddNode(element.ID, neighbors.ToArray(), 0);
+			}
+			environment.Initialize(nodeTopology);
+
+			// Solver
+			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
+			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
+			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
+			pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
+			IPreconditioner preconditioner = new IdentityPreconditioner();
+			//IPreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
+			var partition = new DefaultElementPartition(environment, model, domain);
+			//IPreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal(new HomogeneousDofScaling(partition));
+			var solver = new MatrixFreeSolverDistributed(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner);
+			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
+
+			// Linear static analysis
+			var analysis = new SimpleAnalysis_temp(model, algebraicModel, solver);
+
+			// Run the analysis
+			analysis.Run();
+
+			// Check results
+			NodalResults expectedResults = Plane2DExample.GetExpectedNodalValues(model.DofTypes);
+			double tolerance = 1E-7;
+			NodalResults computedResults = algebraicModel.ExtractAllResults(0, solver.LinearSystem.Solution);
+			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
+
+			// Check convergence
+			int precision = 10;
+			int pcgIterationsExpected = 86;
+			double pcgResidualNormRatioExpected = 8.3702031765832112E-11;
+			IterativeStatistics stats = solver.IterativeAlgorithmStats;
+			Assert.True(stats.NumIterationsRequired <= pcgIterationsExpected);
+			Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
+		}
+
+		[Fact]
+		public static void TestMatrixFreeSolverGlobal()
+		{
+			IComputeEnvironment environment = new SequentialSharedEnvironment();
+
+			// Model
+			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
+			model.ConnectDataStructures();
 
 			// Constitutive problem
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
@@ -116,10 +178,10 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
-			//IPreconditioner preconditioner = new IdentityPreconditioner();
+			IPreconditioner preconditioner = new IdentityPreconditioner();
 			//IPreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
-			var partition = new DefaultElementPartition(model, domain);
-			IPreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal(new HomogeneousDofScaling(partition));
+			var partition = new DefaultElementPartition(environment, model, domain);
+			//IPreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal(new HomogeneousDofScaling(partition));
 			var solver = new MatrixFreeSolverGlobal(domain, pcgAlgorithmFactory.Build(), preconditioner);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
@@ -140,7 +202,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			int pcgIterationsExpected = 86;
 			double pcgResidualNormRatioExpected = 8.3702031765832112E-11;
 			IterativeStatistics stats = solver.IterativeAlgorithmStats;
-			Assert.True(pcgIterationsExpected <= stats.NumIterationsRequired);
+			Assert.True(stats.NumIterationsRequired <= pcgIterationsExpected);
 			Assert.Equal(pcgResidualNormRatioExpected, stats.ResidualNormRatioEstimation, precision);
 		}
 
@@ -152,6 +214,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 		{
 			// Model
 			IModel_v2 model = new ModelAdapter_temp(Plane2DExample.CreateSingleSubdomainModel());
+			model.ConnectDataStructures();
 
 			// Constitutive problem
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();

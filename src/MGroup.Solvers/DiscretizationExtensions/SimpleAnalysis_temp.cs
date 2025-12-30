@@ -24,7 +24,6 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public void Run()
 		{
-			model.ConnectDataStructures();
 			solver.PrepareDofs();
 			BuildRhs();
 			solver.BuildSystemMatrix();

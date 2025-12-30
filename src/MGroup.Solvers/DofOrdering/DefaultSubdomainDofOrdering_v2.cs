@@ -1,6 +1,7 @@
 namespace MGroup.Solvers.DofOrdering
 {
 	using System.Collections.Generic;
+	using System.Diagnostics;
 
 	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.Solvers;
@@ -57,6 +58,21 @@ namespace MGroup.Solvers.DofOrdering
 			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
 				elementToSubdomainDofIndices[element.ID] = MapDofs(element);
+			}
+		}
+
+		public void WriteLocalToGlobalMaps_temp()
+		{
+			foreach (int elemID in elementToSubdomainDofIndices.Keys)
+			{
+				(_, int[] localToGlobal) = elementToSubdomainDofIndices[elemID];
+				Debug.Write($"Element {elemID}: local-to-global dofs =");
+				foreach (int index in localToGlobal)
+				{
+					Debug.Write(" ");
+					Debug.Write(index);
+				}
+				Debug.WriteLine("");
 			}
 		}
 

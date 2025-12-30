@@ -70,17 +70,14 @@ namespace MGroup.Solvers.DiscretizationExtensions
 		private void IdentifyUniqueDofTypes()
 		{
 			DofTypes = new ActiveDofs();
-			foreach (ISubdomain subdomain in EnumerateSubdomains())
+			foreach (IElementType element in EnumerateElements())
 			{
-				foreach (IElementType element in subdomain.EnumerateElements())
+				IReadOnlyList<IReadOnlyList<IDofType>> elementDofs = element.DofEnumerator.GetDofTypesForDofEnumeration(element);
+				foreach (IReadOnlyList<IDofType> dofsOfNode in elementDofs)
 				{
-					IReadOnlyList<IReadOnlyList<IDofType>> elementDofs = element.DofEnumerator.GetDofTypesForDofEnumeration(element);
-					foreach (IReadOnlyList<IDofType> dofsOfNode in elementDofs)
+					foreach (IDofType dofType in dofsOfNode)
 					{
-						foreach (IDofType dofType in dofsOfNode)
-						{
-							DofTypes.AddDof(dofType);
-						}
+						DofTypes.AddDof(dofType);
 					}
 				}
 			}
