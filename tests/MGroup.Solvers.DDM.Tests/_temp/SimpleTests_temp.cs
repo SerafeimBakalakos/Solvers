@@ -132,8 +132,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
 			pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
-			IPreconditioner preconditioner = new IdentityPreconditioner();
-			//IPreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
+			//IPreconditioner preconditioner = new IdentityPreconditioner();
+			IPreconditioner preconditioner = new PartitionedJacobiPreconditionerDistributed();
 			var partition = new DefaultElementPartition(environment, model, domain);
 			//IPreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal(new HomogeneousDofScaling(partition));
 			var solver = new MatrixFreeSolverDistributed(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner);
@@ -178,8 +178,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
-			IPreconditioner preconditioner = new IdentityPreconditioner();
-			//IPreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
+			//IPreconditioner preconditioner = new IdentityPreconditioner();
+			IPreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
 			var partition = new DefaultElementPartition(environment, model, domain);
 			//IPreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal(new HomogeneousDofScaling(partition));
 			var solver = new MatrixFreeSolverGlobal(domain, pcgAlgorithmFactory.Build(), preconditioner);
