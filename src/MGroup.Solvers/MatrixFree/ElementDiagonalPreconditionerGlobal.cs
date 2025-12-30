@@ -13,16 +13,15 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 
-	public class ElementDiagonalPreconditionerGlobal : IPreconditioner
+	public class ElementDiagonalPreconditionerGlobal : IMatrixFreePreconditioner
 	{
-		private readonly IDofScaling dofScaling;
+		private IDofScaling dofScaling;
 		private ISubdomainDofOrdering_v2 dofOrdering;
 		private IReadOnlyCollection<ISuperElement> elements;
 		private Dictionary<int, DiagonalMatrix> elementInverseDiagonals;
 
-		public ElementDiagonalPreconditionerGlobal(IDofScaling dofScaling)
+		public ElementDiagonalPreconditionerGlobal()
 		{
-			this.dofScaling = dofScaling;
 		}
 
 		public IPreconditioner CopyWithInitialSettings() => throw new NotImplementedException();
@@ -44,14 +43,15 @@ namespace MGroup.Solvers.MatrixFree
 			}
 		}
 
-		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified)
+		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling)
 		{
-			if (matrix is PartitionedMatrixGlobal partitionedMatrix)
+			if (systemMatrix is PartitionedMatrixGlobal partitionedMatrix)
 			{
-				dofOrdering = partitionedMatrix.DofOrdering;
-				elements = partitionedMatrix.Elements;
+				this.elements = elements;
+				this.dofOrdering = dofOrdering;
+				this.dofScaling = dofScaling;
+				dofScaling.Initialize();
 
-				dofScaling.Calculate(partitionedMatrix);
 				elementInverseDiagonals = new Dictionary<int, DiagonalMatrix>();
 				foreach (ISuperElement element in elements)
 				{
@@ -66,5 +66,7 @@ namespace MGroup.Solvers.MatrixFree
 				throw new NonMatchingFormatException($"Can only operate on {nameof(PartitionedMatrixGlobal)}");
 			}
 		}
+
+		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified) => throw new NotImplementedException();
 	}
 }

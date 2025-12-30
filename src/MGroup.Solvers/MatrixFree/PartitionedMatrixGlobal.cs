@@ -40,7 +40,7 @@ namespace MGroup.Solvers.MatrixFree
 			set => throw new NotImplementedException();
 		}
 
-		public ISubdomainDofOrdering_v2 DofOrdering { get; }
+		private ISubdomainDofOrdering_v2 DofOrdering { get; }
 
 		public IReadOnlyCollection<ISuperElement> Elements { get; }
 

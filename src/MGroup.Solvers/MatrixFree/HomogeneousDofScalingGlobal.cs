@@ -10,30 +10,35 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 
-	public class HomogeneousDofScaling : IDofScaling
+	public class HomogeneousDofScalingGlobal : IDofScaling
 	{
-		private readonly Dictionary<int, DiagonalMatrix> elementScalingMatrices = new Dictionary<int, DiagonalMatrix>();
+		private readonly ISubdomainDofOrdering_v2 dofOrdering;
+		private readonly IReadOnlyCollection<ISuperElement> elements;
 		private readonly IElementPartition partition;
 
-		public HomogeneousDofScaling(IElementPartition partition)
+		private Dictionary<int, DiagonalMatrix> elementScalingMatrices;
+
+		public HomogeneousDofScalingGlobal(IElementPartition partition, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			this.partition = partition;
+			this.dofOrdering = dofOrdering;
+			this.elements = elements;
 		}
 
-		public void Calculate(PartitionedMatrixGlobal partitionedMatrix)
+		public void Initialize()
 		{
-			elementScalingMatrices.Clear();
-			ISubdomainDofOrdering_v2 dofOrdering = partitionedMatrix.DofOrdering;
-			foreach (ISuperElement element in partitionedMatrix.Elements)
+			elementScalingMatrices = new Dictionary<int, DiagonalMatrix>();
+			foreach (ISuperElement element in elements)
 			{
 				// Multiplicities of all element dofs
 				IntDofTable elementDofs = element.GetDofs();
 				var dofMultiplicitiesAll = new int[elementDofs.NumEntries];
 				foreach (INode node in element.EnumerateNodes())
 				{
+					int nodeMultiplicity = partition.FindMultiplicityOfNode(node.ID);
 					foreach (int dofIdx in elementDofs.GetValuesOfRow(node.ID))
 					{
-						dofMultiplicitiesAll[dofIdx] = partition.FindMultiplicityOfNode(node.ID);
+						dofMultiplicitiesAll[dofIdx] = nodeMultiplicity;
 					}
 				}
 
@@ -50,7 +55,7 @@ namespace MGroup.Solvers.MatrixFree
 				var inverseMultiplicities = new double[numActiveDofs];
 				for (int i = 0; i < numActiveDofs; i++)
 				{
-					inverseMultiplicities[i] = 1.0 / dofMultiplicitiesAll[elementDofIndices[i]];
+					inverseMultiplicities[i] = 1.0 / dofMultiplicitiesActive[i];
 				}
 
 				elementScalingMatrices[element.ID] = DiagonalMatrix.CreateFromArray(inverseMultiplicities);

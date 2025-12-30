@@ -12,15 +12,19 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 
-	public class PartitionedJacobiPreconditionerDistributed : IMatrixFreePreconditioner
+	public class ElementDiagonalPreconditionerDistributed : IMatrixFreePreconditioner
 	{
-		private DistributedOverlappingVector inverseDiagonal;
+		private IDofScaling dofScaling;
+		private Dictionary<int, DiagonalMatrix> elementInverseDiagonals;
+		private IComputeEnvironment environment;
+		private DistributedOverlappingIndexer indexer;
 
-		public IPreconditioner CopyWithInitialSettings() => new PartitionedJacobiPreconditionerDistributed();
+		public IPreconditioner CopyWithInitialSettings() => new ElementDiagonalPreconditionerDistributed();
 
 		public void SolveLinearSystem(IReadOnlyVector rhsVector, IVector lhsVector)
 		{
@@ -38,24 +42,42 @@ namespace MGroup.Solvers.MatrixFree
 
 		private void SolveLinearSystem(DistributedOverlappingVector input, DistributedOverlappingVector output)
 		{
-			Debug.Assert(inverseDiagonal.HasSameFormat(input));
-			Debug.Assert(inverseDiagonal.HasSameFormat(output));
+			Debug.Assert(indexer.IsCompatibleWith(input.Indexer));
+			Debug.Assert(indexer.IsCompatibleWith(output.Indexer));
 
-			inverseDiagonal.Environment.DoPerNode(elementID =>
+			environment.DoPerNode(elementID =>
 			{
-				Vector localX = input.LocalVectors[elementID];
-				Vector localY = output.LocalVectors[elementID];
-				Vector localDiagonal = inverseDiagonal.LocalVectors[elementID];
-				localY.CopyFrom(localX);
-				localY.MultiplyEntrywiseIntoThis(localDiagonal);
+				Vector xe = input.LocalVectors[elementID];
+				Vector ye = output.LocalVectors[elementID];
+				DiagonalMatrix De = elementInverseDiagonals[elementID];
+				DiagonalMatrix We = dofScaling.GetScalingMatrix(elementID);
+				
+				// ye = (We)^T * De * We * xe
+				var temp = Vector.CreateZero(xe.Length);
+				We.MultiplyIntoResult(xe, ye);
+				De.MultiplyIntoResult(ye, temp);
+				We.MultiplyIntoResult(temp, ye);
 			});
+
+			output.SumOverlappingEntries();
 		}
 
 		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling)
 		{
 			if (systemMatrix is DistributedOverlappingMatrix<IMatrix> distributedMatrix)
 			{
-				UpdateMatrix(distributedMatrix);
+				this.environment = distributedMatrix.Environment;
+				this.indexer = distributedMatrix.Indexer;
+				this.dofScaling = dofScaling;
+				dofScaling.Initialize();
+
+				this.elementInverseDiagonals = environment.CalcNodeData(elementID =>
+				{
+					IMatrix elementMatrix = distributedMatrix.LocalMatrices[elementID];
+					var diagonal = DiagonalMatrix.CreateFromArray(elementMatrix.GetDiagonalAsArray());
+					diagonal.Invert();
+					return diagonal;
+				});
 			}
 			else
 			{
@@ -64,13 +86,5 @@ namespace MGroup.Solvers.MatrixFree
 		}
 
 		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified) => throw new NotImplementedException();
-
-		private void UpdateMatrix(DistributedOverlappingMatrix<IMatrix> matrix)
-		{
-			var diagonal = new DistributedOverlappingVector(matrix.Indexer, e => matrix.LocalMatrices[e].GetDiagonal());
-			diagonal.SumOverlappingEntries(); // Doing this avoids any need for dof scaling!
-			diagonal.DoToAllEntriesIntoThis(x => 1 / x);
-			this.inverseDiagonal = diagonal;
-		}
 	}
 }

@@ -8,7 +8,7 @@ namespace MGroup.Solvers.MatrixFree
 
 	public interface IDofScaling
 	{
-		void Calculate(PartitionedMatrixGlobal partitionedMatrix);
+		void Initialize();
 
 		DiagonalMatrix GetScalingMatrix(int elementID);
 	}

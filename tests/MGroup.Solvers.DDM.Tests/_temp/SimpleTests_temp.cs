@@ -128,15 +128,15 @@ namespace MGroup.Solvers.DDM.Tests._temp
 
 			// Solver
 			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			var partition = new DefaultElementPartition(environment, model, domain);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
+			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
 			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
-			pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
-			//IPreconditioner preconditioner = new IdentityPreconditioner();
-			IPreconditioner preconditioner = new PartitionedJacobiPreconditionerDistributed();
-			var partition = new DefaultElementPartition(environment, model, domain);
-			//IPreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal(new HomogeneousDofScaling(partition));
-			var solver = new MatrixFreeSolverDistributed(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner);
+			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
+			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerDistributed();
+			IMatrixFreePreconditioner preconditioner = new ElementDiagonalPreconditionerDistributed();
+			var solver = new MatrixFreeSolverDistributed(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner, true);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -174,15 +174,15 @@ namespace MGroup.Solvers.DDM.Tests._temp
 
 			// Solver
 			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			var partition = new DefaultElementPartition(environment, model, domain);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
+			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
 			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
-			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
-			//IPreconditioner preconditioner = new IdentityPreconditioner();
-			IPreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
-			var partition = new DefaultElementPartition(environment, model, domain);
-			//IPreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal(new HomogeneousDofScaling(partition));
-			var solver = new MatrixFreeSolverGlobal(domain, pcgAlgorithmFactory.Build(), preconditioner);
+			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
+			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
+			IMatrixFreePreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal();
+			var solver = new MatrixFreeSolverGlobal(domain, partition, pcgAlgorithmFactory.Build(), preconditioner, true);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis

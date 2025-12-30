@@ -30,17 +30,18 @@ namespace MGroup.Solvers.MatrixFree
 
 	public class MatrixFreeSolverDistributed : ISolver_v2
 	{
-		private readonly bool matrixPatternWillNotBeModified = false;
+		private readonly IDofScaling dofScaling;
 		private readonly IComputeEnvironment environment;
+		private readonly bool matrixPatternWillNotBeModified = false;
 		private readonly IElementPartition partition;
 		private readonly PcgAlgorithm pcgAlgorithm;
-		private readonly IPreconditioner preconditioner;
+		private readonly IMatrixFreePreconditioner preconditioner;
 
 		private bool mustUpdatePreconditioner = true;
 		private FreeDofSelector_temp freeDofSelector;
 		private DistributedOverlappingIndexer dofIndexer;
 
-		public MatrixFreeSolverDistributed(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
+		public MatrixFreeSolverDistributed(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
 		{
 			this.environment = environment;
 			Domain = domain;
@@ -50,6 +51,15 @@ namespace MGroup.Solvers.MatrixFree
 			freeDofSelector = new FreeDofSelector_temp(environment, domain);
 			DofOrdering = new DofOrderingDistributed(environment, domain, partition, freeDofSelector);
 			LinearSystem = new LinearSystem_v2();
+
+			if (isHomogeneous)
+			{
+				this.dofScaling = new HomogeneousDofScalingDistributed(environment, Domain, partition, freeDofSelector);
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
@@ -115,7 +125,8 @@ namespace MGroup.Solvers.MatrixFree
 			if (mustUpdatePreconditioner)
 			{
 				watch.Start();
-				preconditioner.UpdateMatrix(LinearSystem.Matrix, !matrixPatternWillNotBeModified);
+				//preconditioner.UpdateMatrix(LinearSystem.Matrix, !matrixPatternWillNotBeModified);
+				preconditioner.Update(LinearSystem.Matrix, null, null, dofScaling);
 				mustUpdatePreconditioner = false;
 				watch.Stop();
 				Logger.LogTaskDuration("Calculating preconditioner", watch.ElapsedMilliseconds);

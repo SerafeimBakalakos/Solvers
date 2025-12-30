@@ -21,19 +21,33 @@ namespace MGroup.Solvers.MatrixFree
 
 	public class MatrixFreeSolverGlobal : ISolver_v2
 	{
+		private readonly IDofScaling dofScaling;
+		private readonly IReadOnlyList<ISuperElement> elements;
 		private readonly bool matrixPatternWillNotBeModified = false;
+		private readonly IElementPartition partition;
 		private readonly PcgAlgorithm pcgAlgorithm;
-		private readonly IPreconditioner preconditioner;
+		private readonly IMatrixFreePreconditioner preconditioner;
 
 		private bool mustUpdatePreconditioner = true;
 
-		public MatrixFreeSolverGlobal(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
+		public MatrixFreeSolverGlobal(ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
 		{
 			Domain = domain;
+			this.elements = Domain.EnumerateElements().ToList();
+			this.partition = partition;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
 			DofOrdering = new DefaultSubdomainDofOrdering_v2(domain, null);
 			LinearSystem = new LinearSystem_v2();
+
+			if (isHomogeneous)
+			{
+				this.dofScaling = new HomogeneousDofScalingGlobal(partition, elements, DofOrdering);
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}	
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
@@ -62,7 +76,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = new PartitionedMatrixGlobal(Domain.EnumerateElements().ToList(), DofOrdering);
+			LinearSystem.Matrix = new PartitionedMatrixGlobal(elements, DofOrdering);
 		}
 
 		public void SolveLinearSystem() //TODO: This is identical to PcgSolver
@@ -81,7 +95,8 @@ namespace MGroup.Solvers.MatrixFree
 			if (mustUpdatePreconditioner)
 			{
 				watch.Start();
-				preconditioner.UpdateMatrix(LinearSystem.Matrix, !matrixPatternWillNotBeModified);
+				//preconditioner.UpdateMatrix(LinearSystem.Matrix, !matrixPatternWillNotBeModified);
+				preconditioner.Update(LinearSystem.Matrix, elements, DofOrdering, dofScaling);
 				mustUpdatePreconditioner = false;
 				watch.Stop();
 				Logger.LogTaskDuration("Calculating preconditioner", watch.ElapsedMilliseconds);

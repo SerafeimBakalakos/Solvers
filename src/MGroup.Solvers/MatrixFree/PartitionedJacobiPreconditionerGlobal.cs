@@ -12,29 +12,25 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 
-	public class PartitionedJacobiPreconditionerGlobal : IPreconditioner
+	public class PartitionedJacobiPreconditionerGlobal : IMatrixFreePreconditioner
 	{
 		private ISubdomainDofOrdering_v2 dofOrdering;
 		private IReadOnlyCollection<ISuperElement> elements;
 		private DiagonalMatrix inverseDiagonalMatrix;
 
-		public PartitionedJacobiPreconditionerGlobal()
-		{
-		}
-
-		public IPreconditioner CopyWithInitialSettings() => throw new NotImplementedException();
+		public IPreconditioner CopyWithInitialSettings() => new PartitionedJacobiPreconditionerGlobal();
 
 		public void SolveLinearSystem(IReadOnlyVector rhsVector, IVector lhsVector)
 		{
 			inverseDiagonalMatrix.MultiplyIntoResult(rhsVector, lhsVector);
 		}
 
-		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified)
+		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling)
 		{
-			if (matrix is PartitionedMatrixGlobal partitionedMatrix)
+			if (systemMatrix is PartitionedMatrixGlobal partitionedMatrix)
 			{
-				this.dofOrdering = partitionedMatrix.DofOrdering;
-				this.elements = partitionedMatrix.Elements;
+				this.dofOrdering = dofOrdering;
+				this.elements = elements;
 				inverseDiagonalMatrix = DiagonalMatrix.CreateZero(dofOrdering.NumDofs);
 				foreach (ISuperElement element in elements)
 				{
@@ -49,5 +45,7 @@ namespace MGroup.Solvers.MatrixFree
 				throw new NonMatchingFormatException($"Can only operate on {nameof(PartitionedMatrixGlobal)}");
 			}
 		}
+
+		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified) => throw new NotImplementedException();
 	}
 }
