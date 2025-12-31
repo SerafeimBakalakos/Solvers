@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Preconditioning
 {
 	using System;
 	using System.Collections.Generic;
@@ -15,12 +15,13 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
+	using MGroup.Solvers.MatrixFree.Dofs;
 
-	public class PartitionedJacobiPreconditionerDistributed : IMatrixFreePreconditioner
+	public class MatrixFreeJacobiPreconditioner : IMatrixFreePreconditioner
 	{
 		private DistributedOverlappingVector inverseDiagonal;
 
-		public IPreconditioner CopyWithInitialSettings() => new PartitionedJacobiPreconditionerDistributed();
+		public IPreconditioner CopyWithInitialSettings() => new MatrixFreeJacobiPreconditioner();
 
 		public void SolveLinearSystem(IReadOnlyVector rhsVector, IVector lhsVector)
 		{
@@ -70,7 +71,7 @@ namespace MGroup.Solvers.MatrixFree
 			var diagonal = new DistributedOverlappingVector(matrix.Indexer, e => matrix.LocalMatrices[e].GetDiagonal());
 			diagonal.SumOverlappingEntries(); // Doing this avoids any need for dof scaling!
 			diagonal.DoToAllEntriesIntoThis(x => 1 / x);
-			this.inverseDiagonal = diagonal;
+			inverseDiagonal = diagonal;
 		}
 	}
 }

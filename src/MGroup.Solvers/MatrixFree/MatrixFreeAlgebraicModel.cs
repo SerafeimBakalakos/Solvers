@@ -19,6 +19,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 	using MGroup.Solvers.LinearSystem;
+	using MGroup.Solvers.MatrixFree.Dofs;
 	using MGroup.Solvers.Results;
 
 	public class MatrixFreeAlgebraicModel : IAlgebraicModel_v2

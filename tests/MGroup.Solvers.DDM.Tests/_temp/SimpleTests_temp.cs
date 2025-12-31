@@ -36,6 +36,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.MatrixFree;
+	using MGroup.Solvers.MatrixFree.Monolithic;
+	using MGroup.Solvers.MatrixFree.Preconditioning;
 	using MGroup.Solvers.Results;
 	using Xunit;
 
@@ -135,8 +137,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
 			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
 			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerDistributed();
-			IMatrixFreePreconditioner preconditioner = new ElementDiagonalPreconditionerDistributed();
-			var solver = new MatrixFreeSolverDistributed(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner, true);
+			IMatrixFreePreconditioner preconditioner = new MatrixFreeLumpedPreconditioner();
+			var solver = new MatrixFreeSolver(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner, true);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -181,8 +183,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
 			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
 			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
-			IMatrixFreePreconditioner preconditioner = new ElementDiagonalPreconditionerGlobal();
-			var solver = new MatrixFreeSolverGlobal(domain, partition, pcgAlgorithmFactory.Build(), preconditioner, true);
+			IMatrixFreePreconditioner preconditioner = new MatrixFreeLumpedPreconditionerMonolithic();
+			var solver = new MatrixFreeSolverMonolithic(domain, partition, pcgAlgorithmFactory.Build(), preconditioner, true);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis

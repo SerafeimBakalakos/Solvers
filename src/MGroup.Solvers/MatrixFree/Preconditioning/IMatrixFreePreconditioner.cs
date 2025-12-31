@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Preconditioning
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,6 +8,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.MatrixFree.Dofs;
 
 	public interface IMatrixFreePreconditioner : IPreconditioner
 	{

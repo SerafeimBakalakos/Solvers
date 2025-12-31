@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Monolithic
 {
 	using System;
 	using System.Collections.Generic;
@@ -12,15 +12,17 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
+	using MGroup.Solvers.MatrixFree.Dofs;
+	using MGroup.Solvers.MatrixFree.Preconditioning;
 
-	public class ElementDiagonalPreconditionerGlobal : IMatrixFreePreconditioner
+	public class MatrixFreeLumpedPreconditionerMonolithic : IMatrixFreePreconditioner
 	{
 		private IDofScaling dofScaling;
 		private ISubdomainDofOrdering_v2 dofOrdering;
 		private IReadOnlyCollection<ISuperElement> elements;
 		private Dictionary<int, DiagonalMatrix> elementInverseDiagonals;
 
-		public ElementDiagonalPreconditionerGlobal()
+		public MatrixFreeLumpedPreconditionerMonolithic()
 		{
 		}
 
@@ -45,7 +47,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling)
 		{
-			if (systemMatrix is PartitionedMatrixGlobal partitionedMatrix)
+			if (systemMatrix is ElementWiseMatrixMonolithic partitionedMatrix)
 			{
 				this.elements = elements;
 				this.dofOrdering = dofOrdering;
@@ -63,7 +65,7 @@ namespace MGroup.Solvers.MatrixFree
 			}
 			else
 			{
-				throw new NonMatchingFormatException($"Can only operate on {nameof(PartitionedMatrixGlobal)}");
+				throw new NonMatchingFormatException($"Can only operate on {nameof(ElementWiseMatrixMonolithic)}");
 			}
 		}
 

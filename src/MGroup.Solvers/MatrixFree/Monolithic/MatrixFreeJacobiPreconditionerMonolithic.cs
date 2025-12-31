@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Monolithic
 {
 	using System;
 	using System.Collections.Generic;
@@ -11,14 +11,16 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
+	using MGroup.Solvers.MatrixFree.Dofs;
+	using MGroup.Solvers.MatrixFree.Preconditioning;
 
-	public class PartitionedJacobiPreconditionerGlobal : IMatrixFreePreconditioner
+	public class MatrixFreeJacobiPreconditionerMonolithic : IMatrixFreePreconditioner
 	{
 		private ISubdomainDofOrdering_v2 dofOrdering;
 		private IReadOnlyCollection<ISuperElement> elements;
 		private DiagonalMatrix inverseDiagonalMatrix;
 
-		public IPreconditioner CopyWithInitialSettings() => new PartitionedJacobiPreconditionerGlobal();
+		public IPreconditioner CopyWithInitialSettings() => new MatrixFreeJacobiPreconditionerMonolithic();
 
 		public void SolveLinearSystem(IReadOnlyVector rhsVector, IVector lhsVector)
 		{
@@ -27,7 +29,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling)
 		{
-			if (systemMatrix is PartitionedMatrixGlobal partitionedMatrix)
+			if (systemMatrix is ElementWiseMatrixMonolithic partitionedMatrix)
 			{
 				this.dofOrdering = dofOrdering;
 				this.elements = elements;
@@ -42,7 +44,7 @@ namespace MGroup.Solvers.MatrixFree
 			}
 			else
 			{
-				throw new NonMatchingFormatException($"Can only operate on {nameof(PartitionedMatrixGlobal)}");
+				throw new NonMatchingFormatException($"Can only operate on {nameof(ElementWiseMatrixMonolithic)}");
 			}
 		}
 

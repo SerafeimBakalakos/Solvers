@@ -27,8 +27,10 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.LinearAlgebraExtensions;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.MatrixFree.Dofs;
+	using MGroup.Solvers.MatrixFree.Preconditioning;
 
-	public class MatrixFreeSolverDistributed : ISolver_v2
+	public class MatrixFreeSolver : ISolver_v2
 	{
 		private readonly IDofScaling dofScaling;
 		private readonly IComputeEnvironment environment;
@@ -41,7 +43,7 @@ namespace MGroup.Solvers.MatrixFree
 		private FreeDofSelector_temp freeDofSelector;
 		private DistributedOverlappingIndexer dofIndexer;
 
-		public MatrixFreeSolverDistributed(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
+		public MatrixFreeSolver(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
 		{
 			this.environment = environment;
 			Domain = domain;
@@ -54,7 +56,7 @@ namespace MGroup.Solvers.MatrixFree
 
 			if (isHomogeneous)
 			{
-				this.dofScaling = new HomogeneousDofScalingDistributed(environment, Domain, partition, freeDofSelector);
+				this.dofScaling = new HomogeneousDofScaling(environment, Domain, partition, freeDofSelector);
 			}
 			else
 			{

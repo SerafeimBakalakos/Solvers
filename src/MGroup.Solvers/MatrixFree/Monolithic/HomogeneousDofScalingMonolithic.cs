@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Monolithic
 {
 	using System;
 	using System.Collections.Generic;
@@ -9,8 +9,9 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.MatrixFree.Dofs;
 
-	public class HomogeneousDofScalingGlobal : IDofScaling
+	public class HomogeneousDofScalingMonolithic : IDofScaling
 	{
 		private readonly ISubdomainDofOrdering_v2 dofOrdering;
 		private readonly IReadOnlyCollection<ISuperElement> elements;
@@ -18,7 +19,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		private Dictionary<int, DiagonalMatrix> elementScalingMatrices;
 
-		public HomogeneousDofScalingGlobal(IElementPartition partition, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
+		public HomogeneousDofScalingMonolithic(IElementPartition partition, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			this.partition = partition;
 			this.dofOrdering = dofOrdering;

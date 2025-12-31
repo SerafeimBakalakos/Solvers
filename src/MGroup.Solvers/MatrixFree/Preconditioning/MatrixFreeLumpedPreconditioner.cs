@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Preconditioning
 {
 	using System;
 	using System.Collections.Generic;
@@ -16,15 +16,16 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions;
+	using MGroup.Solvers.MatrixFree.Dofs;
 
-	public class ElementDiagonalPreconditionerDistributed : IMatrixFreePreconditioner
+	public class MatrixFreeLumpedPreconditioner : IMatrixFreePreconditioner
 	{
 		private IDofScaling dofScaling;
 		private Dictionary<int, DiagonalMatrix> elementInverseDiagonals;
 		private IComputeEnvironment environment;
 		private DistributedOverlappingIndexer indexer;
 
-		public IPreconditioner CopyWithInitialSettings() => new ElementDiagonalPreconditionerDistributed();
+		public IPreconditioner CopyWithInitialSettings() => new MatrixFreeLumpedPreconditioner();
 
 		public void SolveLinearSystem(IReadOnlyVector rhsVector, IVector lhsVector)
 		{
@@ -66,12 +67,12 @@ namespace MGroup.Solvers.MatrixFree
 		{
 			if (systemMatrix is DistributedOverlappingMatrix<IMatrix> distributedMatrix)
 			{
-				this.environment = distributedMatrix.Environment;
-				this.indexer = distributedMatrix.Indexer;
+				environment = distributedMatrix.Environment;
+				indexer = distributedMatrix.Indexer;
 				this.dofScaling = dofScaling;
 				dofScaling.Initialize();
 
-				this.elementInverseDiagonals = environment.CalcNodeData(elementID =>
+				elementInverseDiagonals = environment.CalcNodeData(elementID =>
 				{
 					IMatrix elementMatrix = distributedMatrix.LocalMatrices[elementID];
 					var diagonal = DiagonalMatrix.CreateFromArray(elementMatrix.GetDiagonalAsArray());

@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Dofs
 {
 	using System;
 	using System.Collections.Generic;
@@ -25,7 +25,7 @@ namespace MGroup.Solvers.MatrixFree
 		public FreeDofSelector_temp(IComputeEnvironment environment, ISubdomain_v2 domain)
 		{
 			this.environment = environment;
-			this.model = ((FullDomain_temp)domain).Model;
+			model = ((FullDomain_temp)domain).Model;
 			this.domain = domain;
 		}
 

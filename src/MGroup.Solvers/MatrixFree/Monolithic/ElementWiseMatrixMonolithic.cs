@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Monolithic
 {
 	using System;
 	using System.Collections.Generic;
@@ -13,15 +13,15 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 
-	public class PartitionedMatrixGlobal : DefaultMatrix
+	public class ElementWiseMatrixMonolithic : DefaultMatrix
 	{
-		public PartitionedMatrixGlobal(IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
+		public ElementWiseMatrixMonolithic(IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
 		{
-			this.Elements = elements;
-			this.DofOrdering = dofOrdering;
-			this.NumColumns = dofOrdering.NumDofs;
+			Elements = elements;
+			DofOrdering = dofOrdering;
+			NumColumns = dofOrdering.NumDofs;
 
-			this.ElementMatrices = new Dictionary<int, IReadOnlyMatrix>(elements.Count);
+			ElementMatrices = new Dictionary<int, IReadOnlyMatrix>(elements.Count);
 			foreach (ISuperElement element in elements)
 			{
 				(int[] elementDofIndices, int[] subdomainDofIndices) = DofOrdering.MapDofsElementToSubdomain(element);
@@ -57,15 +57,15 @@ namespace MGroup.Solvers.MatrixFree
 
 		public override IMatrix CreateZeroMatrixWithSameFormat()
 		{
-			var result = new PartitionedMatrixGlobal(Elements, DofOrdering);
+			var result = new ElementWiseMatrixMonolithic(Elements, DofOrdering);
 			return result;
 		}
 
 		public override bool HasSameFormat(IReadOnlyMatrix otherMatrix)
 		{
-			if (otherMatrix is PartitionedMatrixGlobal casted)
+			if (otherMatrix is ElementWiseMatrixMonolithic casted)
 			{
-				if ((casted.Elements == this.Elements) && (casted.DofOrdering == this.DofOrdering))
+				if (casted.Elements == Elements && casted.DofOrdering == DofOrdering)
 				{
 					return true;
 					//return DictionariesHaveSameKeys(this.elementMatrices, casted.elementMatrices);

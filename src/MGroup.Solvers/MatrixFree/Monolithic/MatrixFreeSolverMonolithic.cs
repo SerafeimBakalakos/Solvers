@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Monolithic
 {
 	using System;
 	using System.Collections.Generic;
@@ -18,8 +18,10 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.MatrixFree.Dofs;
+	using MGroup.Solvers.MatrixFree.Preconditioning;
 
-	public class MatrixFreeSolverGlobal : ISolver_v2
+	public class MatrixFreeSolverMonolithic : ISolver_v2
 	{
 		private readonly IDofScaling dofScaling;
 		private readonly IReadOnlyList<ISuperElement> elements;
@@ -30,10 +32,10 @@ namespace MGroup.Solvers.MatrixFree
 
 		private bool mustUpdatePreconditioner = true;
 
-		public MatrixFreeSolverGlobal(ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
+		public MatrixFreeSolverMonolithic(ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
 		{
 			Domain = domain;
-			this.elements = Domain.EnumerateElements().ToList();
+			elements = Domain.EnumerateElements().ToList();
 			this.partition = partition;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
@@ -42,7 +44,7 @@ namespace MGroup.Solvers.MatrixFree
 
 			if (isHomogeneous)
 			{
-				this.dofScaling = new HomogeneousDofScalingGlobal(partition, elements, DofOrdering);
+				dofScaling = new HomogeneousDofScalingMonolithic(partition, elements, DofOrdering);
 			}
 			else
 			{
@@ -76,7 +78,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = new PartitionedMatrixGlobal(elements, DofOrdering);
+			LinearSystem.Matrix = new ElementWiseMatrixMonolithic(elements, DofOrdering);
 		}
 
 		public void SolveLinearSystem() //TODO: This is identical to PcgSolver

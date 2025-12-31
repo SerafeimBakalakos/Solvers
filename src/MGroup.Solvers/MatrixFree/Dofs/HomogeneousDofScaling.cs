@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.MatrixFree
+namespace MGroup.Solvers.MatrixFree.Dofs
 {
 	using System;
 	using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 
-	public class HomogeneousDofScalingDistributed : IDofScaling
+	public class HomogeneousDofScaling : IDofScaling
 	{
 		private readonly ISubdomain_v2 domain;
 		private readonly IComputeEnvironment environment;
@@ -22,7 +22,7 @@ namespace MGroup.Solvers.MatrixFree
 		
 		private Dictionary<int, DiagonalMatrix> elementScalingMatrices;
 
-		public HomogeneousDofScalingDistributed(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, FreeDofSelector_temp freeDofSelector)
+		public HomogeneousDofScaling(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, FreeDofSelector_temp freeDofSelector)
 		{
 			this.environment = environment;
 			this.domain = domain;
@@ -34,7 +34,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public void Initialize()
 		{
-			this.elementScalingMatrices = environment.CalcNodeData(elementID =>
+			elementScalingMatrices = environment.CalcNodeData(elementID =>
 			{
 				ISuperElement element = domain.GetElement(elementID);
 				IntDofTable elementDofs = freeDofSelector.GetFreeDofsOfElement(element);
