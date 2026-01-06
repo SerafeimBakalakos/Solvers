@@ -17,28 +17,38 @@ namespace MGroup.Solvers.DDM.Discretization
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 
-	public class DefaultSubdomain_temp : ISubdomain_v2
+	public class DefaultSubdomain_v2 : ISubdomain_v2
 	{
+		private readonly bool cacheElementDofs;
 		private readonly ConstrainedDofLocator constrainedDofLocator;
 		private readonly IElementMatrixProvider elementMatrixProvider;
 		private readonly IModel_v2 model;
 
 		private SortedSet<INode> nodes = new SortedSet<INode>(Comparer<INode>.Create((n1, n2) => n1.ID.CompareTo(n2.ID)));
-		private Dictionary<int, DefaultElement_temp> elements = new Dictionary<int, DefaultElement_temp>();
+		private Dictionary<int, DefaultElement> elements = new Dictionary<int, DefaultElement>();
 
-		public DefaultSubdomain_temp(int id, IModel_v2 model, ConstrainedDofLocator constrainedDofLocator, IElementMatrixProvider elementMatrixProvider)
+		public DefaultSubdomain_v2(int id, IModel_v2 model, ConstrainedDofLocator constrainedDofLocator, IElementMatrixProvider elementMatrixProvider, bool cacheElementDofs = true)
 		{
 			ID = id;
 			this.model = model;
 			this.constrainedDofLocator = constrainedDofLocator;
 			this.elementMatrixProvider = elementMatrixProvider;
+			this.cacheElementDofs = cacheElementDofs;
 		}
 
 		public int ID { get; }
 
 		public void AddElement(IElementType element)
 		{
-			elements[element.ID] = new DefaultElement_temp(element, model, constrainedDofLocator, elementMatrixProvider);
+			if (cacheElementDofs)
+			{
+				elements[element.ID] = new DefaultElementCaching(element, model, constrainedDofLocator, elementMatrixProvider);
+			}
+			else
+			{
+				elements[element.ID] = new DefaultElement(element, model, constrainedDofLocator, elementMatrixProvider);
+			}
+
 			foreach (INode node in element.Nodes)
 			{
 				nodes.Add(node);

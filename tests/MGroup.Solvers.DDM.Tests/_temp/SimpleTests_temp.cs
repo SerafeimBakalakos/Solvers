@@ -129,7 +129,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			environment.Initialize(nodeTopology);
 
 			// Solver
-			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			var domain = new FullDomain_v2(model, elementMatrixProvider, true);
 			var partition = new DefaultElementPartition(environment, model, domain);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
@@ -175,7 +175,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			var domain = new FullDomain_v2(model, elementMatrixProvider, true);
 			var partition = new DefaultElementPartition(environment, model, domain);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
@@ -222,7 +222,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			var domain = new FullDomain_temp(model, elementMatrixProvider);
+			var domain = new FullDomain_v2(model, elementMatrixProvider, true);
 			ISolver_v2 solver = CreateMonolithicSolver(solverName, domain);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 

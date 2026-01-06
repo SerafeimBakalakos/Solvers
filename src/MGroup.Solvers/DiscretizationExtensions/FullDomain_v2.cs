@@ -18,23 +18,34 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 
-	public class FullDomain_temp : ISubdomain_v2
+	public class FullDomain_v2 : ISubdomain_v2
 	{
 		private readonly ConstrainedDofLocator constrainedDofLocator;
 		private readonly IElementMatrixProvider elementMatrixProvider;
-		private readonly Dictionary<int, DefaultElement_temp> elements;
+		private readonly Dictionary<int, DefaultElement> elements;
 
-		public FullDomain_temp(IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
+		public FullDomain_v2(IModel_v2 model, IElementMatrixProvider elementMatrixProvider, bool cacheElementDofs = true)
 		{
 			this.Model = model;
 			this.elementMatrixProvider = elementMatrixProvider;
 			this.ID = 0;
 
 			constrainedDofLocator = new ConstrainedDofLocator(model);
-			elements = new Dictionary<int, DefaultElement_temp>();
-			foreach (IElementType element in model.EnumerateElements())
+			
+			elements = new Dictionary<int, DefaultElement>();
+			if (cacheElementDofs)
 			{
-				elements[element.ID] = new DefaultElement_temp(element, Model, constrainedDofLocator, elementMatrixProvider);
+				foreach (IElementType element in model.EnumerateElements())
+				{
+					elements[element.ID] = new DefaultElementCaching(element, Model, constrainedDofLocator, elementMatrixProvider);
+				}
+			}
+			else
+			{
+				foreach (IElementType element in model.EnumerateElements())
+				{
+					elements[element.ID] = new DefaultElement(element, Model, constrainedDofLocator, elementMatrixProvider);
+				}
 			}
 		}
 

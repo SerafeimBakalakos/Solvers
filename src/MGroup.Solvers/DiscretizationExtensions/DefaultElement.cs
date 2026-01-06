@@ -13,15 +13,13 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.Solvers;
 	using MGroup.Solvers.DofOrdering;
 
-	public class DefaultElement_temp : ISuperElement
+	public class DefaultElement : ISuperElement
 	{
-		private readonly IModel_v2 model;
-		private readonly ConstrainedDofLocator constrainedDofLocator;
-		private readonly IElementMatrixProvider elementMatrixProvider;
+		protected readonly IModel_v2 model;
+		protected readonly ConstrainedDofLocator constrainedDofLocator;
+		protected readonly IElementMatrixProvider elementMatrixProvider;
 
-		private int[] freeToAllDofs;
-
-		public DefaultElement_temp(IElementType femElement, IModel_v2 model, ConstrainedDofLocator constrainedDofs,
+		public DefaultElement(IElementType femElement, IModel_v2 model, ConstrainedDofLocator constrainedDofs,
 			IElementMatrixProvider elementMatrixProvider)
 		{
 			ElementEntity = femElement;
@@ -37,6 +35,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 		public IMatrix BuildMatrix()
 		{
 			IMatrix matrix = elementMatrixProvider.Matrix(ElementEntity);
+			int[] freeToAllDofs = MapFreeToAllDofs();
 			if (freeToAllDofs == null)
 			{
 				return matrix;
@@ -51,7 +50,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public IEnumerable<INode> EnumerateNodes() => ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
 
-		public IntDofTable GetDofs()
+		public virtual IntDofTable GetDofs()
 		{
 			IReadOnlyList<INode> elementNodes = ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
 			IReadOnlyList<IReadOnlyList<IDofType>> elementDofs = ElementEntity.DofEnumerator.GetDofTypesForMatrixAssembly(ElementEntity);
@@ -59,6 +58,30 @@ namespace MGroup.Solvers.DiscretizationExtensions
 			var freeDofs = new IntDofTable();
 			var freeToAllDofs = new List<int>(elementNodes.Count * elementDofs[0].Count);
 			int freeDofIdx = 0;
+			for (int nodeIdx = 0; nodeIdx < elementNodes.Count; ++nodeIdx)
+			{
+				INode node = elementNodes[nodeIdx];
+				for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
+				{
+					IDofType dofType = elementDofs[nodeIdx][dofIdx];
+					if (!constrainedDofLocator.IsConstrainedDof(node, dofType))
+					{
+						int dofID = model.DofTypes.GetIdOfDof(dofType);
+						freeDofs?.TryAdd(node.ID, dofID, freeDofIdx);
+						++freeDofIdx;
+					}
+				}
+			}
+
+			return freeDofs;
+		}
+
+		protected virtual int[] MapFreeToAllDofs()
+		{
+			IReadOnlyList<INode> elementNodes = ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
+			IReadOnlyList<IReadOnlyList<IDofType>> elementDofs = ElementEntity.DofEnumerator.GetDofTypesForMatrixAssembly(ElementEntity);
+
+			var freeToAllDofs = new List<int>(elementNodes.Count * elementDofs[0].Count);
 			int allDofIdx = 0;
 			bool hasConstrainedDofs = false;
 			for (int nodeIdx = 0; nodeIdx < elementNodes.Count; ++nodeIdx)
@@ -73,22 +96,14 @@ namespace MGroup.Solvers.DiscretizationExtensions
 					}
 					else
 					{
-						int dofID = model.DofTypes.GetIdOfDof(dofType);
-						freeDofs?.TryAdd(node.ID, dofID, freeDofIdx);
 						freeToAllDofs.Add(allDofIdx);
-						++freeDofIdx;
 					}
 
 					++allDofIdx;
 				}
 			}
 
-			if (hasConstrainedDofs)
-			{
-				this.freeToAllDofs = freeToAllDofs.ToArray(); // It will be used for matrix assembly
-			}
-
-			return freeDofs;
+			return hasConstrainedDofs ? freeToAllDofs.ToArray() : null;
 		}
 	}
 }

@@ -90,7 +90,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 
 			// Constrained dofs
 			ActiveDofs activeDofs = model.DofTypes;
-			var subdomain = (DefaultSubdomain_temp)partition.GetSubdomain(subdomainID);
+			var subdomain = (DefaultSubdomain_v2)partition.GetSubdomain(subdomainID);
 			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = subdomain.FindDiricletBCs();
 			foreach (INodalDirichletBoundaryCondition<IDofType> constraint in constraints)
 			{

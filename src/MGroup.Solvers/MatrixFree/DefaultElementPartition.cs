@@ -16,11 +16,11 @@ namespace MGroup.Solvers.MatrixFree
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly IModel_v2 model;
-		private readonly FullDomain_temp fullDomain;
+		private readonly FullDomain_v2 fullDomain;
 
 		private ConcurrentDictionary<int, ISet<int>> elementNeighbors;
 
-		public DefaultElementPartition(IComputeEnvironment environment, IModel_v2 model, FullDomain_temp fullDomain)
+		public DefaultElementPartition(IComputeEnvironment environment, IModel_v2 model, FullDomain_v2 fullDomain)
 		{
 			this.environment = environment;
 			this.model = model;
