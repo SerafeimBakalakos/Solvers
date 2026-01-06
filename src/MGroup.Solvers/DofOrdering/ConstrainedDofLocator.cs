@@ -17,9 +17,20 @@ namespace MGroup.Solvers.DofOrdering
 		public ConstrainedDofLocator(IModel_v2 model)
 		{
 			this.model = model;
+			FindConstrainedDofs();
 		}
 
-		public void FindConstrainedDofs()
+		public bool IsConstrainedDof(INode node, IDofType dof)
+		{
+			if (constrainedDofs.TryGetValue(node.ID, out HashSet<int> dofsOfNode))
+			{
+				return dofsOfNode.Contains(model.DofTypes.GetIdOfDof(dof));
+			}
+
+			return false;
+		}
+
+		private void FindConstrainedDofs()
 		{
 			constrainedDofs = new Dictionary<int, HashSet<int>>();
 			foreach (INodalDirichletBoundaryCondition<IDofType> bc in model.GetDirichletBCs())
@@ -33,16 +44,6 @@ namespace MGroup.Solvers.DofOrdering
 
 				dofsOfNode.Add(model.DofTypes.GetIdOfDof(bc.DOF));
 			}
-		}
-
-		public bool IsConstrainedDof(INode node, IDofType dof)
-		{
-			if (constrainedDofs.TryGetValue(node.ID, out HashSet<int> dofsOfNode))
-			{
-				return dofsOfNode.Contains(model.DofTypes.GetIdOfDof(dof));
-			}
-
-			return false;
 		}
 	}
 }

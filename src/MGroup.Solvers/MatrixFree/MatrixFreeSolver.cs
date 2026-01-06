@@ -49,12 +49,12 @@ namespace MGroup.Solvers.MatrixFree
 			this.partition = partition;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			DofOrdering = new DofOrderingDistributed(environment, domain, partition);
+			DofOrdering = new DistributedDofOrdering(environment, domain, partition);
 			LinearSystem = new LinearSystem_v2();
 
 			if (isHomogeneous)
 			{
-				this.dofScaling = new HomogeneousDofScaling(environment, Domain, partition);
+				this.dofScaling = new HomogeneousDofScaling(environment, Domain, partition, DofOrdering);
 			}
 			else
 			{
@@ -64,7 +64,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public DofOrderingDistributed DofOrdering { get; }
+		public DistributedDofOrdering DofOrdering { get; }
 
 		public LinearSystem_v2 LinearSystem { get; }
 
@@ -76,7 +76,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new MatrixFreeAlgebraicModel(environment, physicalModel, Domain, LinearSystem);
+			return new MatrixFreeAlgebraicModel(environment, physicalModel, Domain, LinearSystem, DofOrdering);
 		}
 
 		public void PrepareDofs()

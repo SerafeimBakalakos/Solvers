@@ -58,15 +58,6 @@ namespace MGroup.Solvers.DDM.Discretization
 			return freeDofOrderer.OrderFreeDofs(elements.Values.Select(e => e.ElementEntity), nodes, dirichletBCs);
 		}
 
-		public void PrepareDofs()
-		{
-			//This works only for non-overlapping DDMs
-			foreach (DefaultElement_temp element in elements.Values)
-			{
-				element.PrepareDofs();
-			}
-		}
-
 		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDiricletBCs()
 		{
 			return model.EnumerateBoundaryConditions()

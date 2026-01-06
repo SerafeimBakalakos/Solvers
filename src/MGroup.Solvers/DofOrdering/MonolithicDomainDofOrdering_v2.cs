@@ -7,13 +7,13 @@ namespace MGroup.Solvers.DofOrdering
 	using MGroup.Solvers;
 	using MGroup.Solvers.DiscretizationExtensions;
 
-	public class DefaultSubdomainDofOrdering_v2 : ISubdomainDofOrdering_v2
+	public class MonolithicDomainDofOrdering_v2 : ISubdomainDofOrdering_v2
 	{
 		private readonly ISubdomain_v2 subdomain;
 		private readonly IReorderingAlgorithm? reorderingAlgorithm;
 		private Dictionary<int, (int[] element, int[] subdomain)> elementToSubdomainDofIndices = new Dictionary<int, (int[], int[])>();
 
-		public DefaultSubdomainDofOrdering_v2(ISubdomain_v2 subdomain, IReorderingAlgorithm? reorderingAlgorithm)
+		public MonolithicDomainDofOrdering_v2(ISubdomain_v2 subdomain, IReorderingAlgorithm? reorderingAlgorithm)
 		{
 			this.subdomain = subdomain;
 			this.reorderingAlgorithm = reorderingAlgorithm;
@@ -44,7 +44,6 @@ namespace MGroup.Solvers.DofOrdering
 
 		public void OrderDofs()
 		{
-			subdomain.PrepareDofs();
 			Dofs = subdomain.OrderDofs_temp();
 			NumDofs = Dofs.NumEntries;
 			if (reorderingAlgorithm != null)

@@ -53,14 +53,5 @@ namespace MGroup.Solvers.DiscretizationExtensions
 			var freeDofOrderer = new DefaultFreeDofOrderer_v2(Model);
 			return freeDofOrderer.OrderFreeDofs(Model.EnumerateElements(), Model.EnumerateNodes(), Model.GetDirichletBCs());
 		}
-
-		public void PrepareDofs()
-		{
-			constrainedDofLocator.FindConstrainedDofs();
-			foreach (DefaultElement_temp element in elements.Values)
-			{
-				element.PrepareDofs();
-			}
-		}
 	}
 }

@@ -39,7 +39,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			this.partition = partition;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			DofOrdering = new DefaultSubdomainDofOrdering_v2(domain, null);
+			DofOrdering = new MonolithicDomainDofOrdering_v2(domain, null);
 			LinearSystem = new LinearSystem_v2();
 
 			if (isHomogeneous)

@@ -26,16 +26,18 @@ namespace MGroup.Solvers.MatrixFree
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly LinearSystem_v2 linearSystem;
+		private readonly DistributedDofOrdering dofOrdering;
 		private readonly IModel_v2 model;
 		private readonly ISubdomain_v2 domain;
 
 		public MatrixFreeAlgebraicModel(IComputeEnvironment environment, IModel_v2 model, ISubdomain_v2 domain,
-			LinearSystem_v2 linearSystem)
+			LinearSystem_v2 linearSystem, DistributedDofOrdering dofOrdering)
 		{
 			this.environment = environment;
 			this.model = model;
 			this.domain = domain;
 			this.linearSystem = linearSystem;
+			this.dofOrdering = dofOrdering;
 		}
 
 		public void AddToGlobalVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector)
@@ -45,8 +47,7 @@ namespace MGroup.Solvers.MatrixFree
 			{
 				ISuperElement element = domain.GetElement(elementID);
 				var elementVector = distributedVector.LocalVectors[elementID];
-				IntDofTable elementFreeDofs = element.GetDofs();
-
+				IntDofTable elementFreeDofs = dofOrdering.GetElementDofs(elementID);
 				foreach (INodalModelQuantity<IDofType> load in FilterElementData(nodalLoads, element))
 				{
 					int dofID = model.DofTypes.GetIdOfDof(load.DOF);
@@ -68,8 +69,7 @@ namespace MGroup.Solvers.MatrixFree
 				// Free dofs
 				ISuperElement element = domain.GetElement(elementID);
 				Vector elementVector = distributedVector.LocalVectors[elementID];
-				IntDofTable elementFreeDofs = element.GetDofs();
-				
+				IntDofTable elementFreeDofs = dofOrdering.GetElementDofs(elementID);
 				foreach ((int node, int dofID, int dofIdx) in elementFreeDofs)
 				{
 					// Race condition, but there is no need for sync, since all local vectors will overwrite the same value

@@ -20,7 +20,5 @@ namespace MGroup.Solvers.DiscretizationExtensions
 		IMatrix BuildMatrix();
 
 		IVector BuildRhsVector_temp();
-
-		void PrepareDofs();
 	}
 }

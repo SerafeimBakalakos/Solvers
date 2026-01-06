@@ -90,7 +90,7 @@ namespace MGroup.Solvers.DDM.Psm
 			{
 				ISubdomain_v2 subdomain = partition.GetSubdomain(subdomainID);
 				var subLinearSystem = new SubdomainLinearSystem_v2<TMatrix>(LinearSystem, subdomainID);
-				var dofOrdering = new DefaultSubdomainDofOrdering_v2(subdomain, null);
+				var dofOrdering = new MonolithicDomainDofOrdering_v2(subdomain, null);
 				ISubdomainMatrixAssembler_v2<TMatrix> matrixAssembler = matrixManagerFactory.CreateAssembler();
 				var psmDofs = new PsmSubdomainDofs_v2(partition, subdomain, dofOrdering, false);
 				IPsmSubdomainMatrixManager_v2 psmMatrices = matrixManagerFactory.CreateMatrixManager(provider, subLinearSystem, psmDofs);
@@ -223,7 +223,6 @@ namespace MGroup.Solvers.DDM.Psm
 		public void PrepareDofs()
 		{
 			// Dofs of original linear system
-			Domain.PrepareDofs();
 			environment.DoPerNode(subdomainID =>
 			{
 				subdomainDofOrderings[subdomainID].OrderDofs();

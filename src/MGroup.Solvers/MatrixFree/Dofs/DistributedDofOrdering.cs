@@ -10,13 +10,15 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 
-	public class DofOrderingDistributed
+	public class DistributedDofOrdering
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly ISubdomain_v2 domain;
 		private readonly IElementPartition partition;
 
-		public DofOrderingDistributed(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition)
+		private Dictionary<int, IntDofTable> elementDofs;
+
+		public DistributedDofOrdering(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition)
 		{
 			this.environment = environment;
 			this.domain = domain;
@@ -25,21 +27,23 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 
 		public DistributedOverlappingIndexer CreateIndexer()
 		{
-			domain.PrepareDofs();
+			elementDofs = environment.CalcNodeData(elementID => domain.GetElement(elementID).GetDofs()); // cache them for repeated use
 			ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> commonDofsBetweenElements = FindAllCommonDofs();
 			var indexer = new DistributedOverlappingIndexer(environment);
 			indexer.Initialize(elementID => InitializeIndexer(elementID, commonDofsBetweenElements[elementID]));
 			return indexer;
 		}
 
+		public IntDofTable GetElementDofs(int elementID) => elementDofs[elementID];
+
 		private ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> FindAllCommonDofs()
 		{
 			var commonDofsBetweenElements = new ConcurrentDictionary<int, Dictionary<int, SortedDofSet>>();
 
-			// Find all dofs of each subdomain at the common nodes.
-			environment.DoPerNode(subdomainID =>
+			// Find all dofs of each element at the common nodes.
+			environment.DoPerNode(elementID =>
 			{
-				commonDofsBetweenElements[subdomainID] = FindCommonDofsOfElement(subdomainID);
+				commonDofsBetweenElements[elementID] = FindCommonDofsOfElement(elementID);
 			});
 
 			// Send these dofs to the corresponding neighbors and receive theirs.
@@ -79,9 +83,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 
 		private Dictionary<int, SortedDofSet> FindCommonDofsOfElement(int elementID)
 		{
-			ISuperElement element = domain.GetElement(elementID);
-			IntDofTable elementDofs = element.GetDofs();
-
+			IntDofTable elementDofs = this.elementDofs[elementID];
 			var commonDofsOfElement = new Dictionary<int, SortedDofSet>();
 			foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
 			{
@@ -97,8 +99,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 
 		private LocalIndexerDto InitializeIndexer(int elementID, Dictionary<int, SortedDofSet> commonDofsWithNeighbors)
 		{
-			ISuperElement element = domain.GetElement(elementID);
-			IntDofTable elementDofs = element.GetDofs();
+			IntDofTable elementDofs = this.elementDofs[elementID];
 
 			var allCommonDofIndices = new Dictionary<int, int[]>();
 			foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
@@ -112,6 +113,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 					commonDofIndices.Add(elementDofs[nodeID, dofID]);
 					
 				}
+
 				allCommonDofIndices[neighborID] = commonDofIndices.ToArray();
 			}
 

@@ -30,7 +30,7 @@ namespace MGroup.Solvers.Direct
 		{
 			this.Domain = domain;
 			this.isMatrixPositiveDefinite = isMatrixPositiveDefinite;
-			DofOrdering = new DefaultSubdomainDofOrdering_v2(domain, null);
+			DofOrdering = new MonolithicDomainDofOrdering_v2(domain, null);
 			LinearSystem = new LinearSystem_v2();
 		}
 

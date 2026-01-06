@@ -55,10 +55,5 @@ namespace MGroup.Solvers.DDM.Discretization
 			=> subdomains[getSubdomainOfElement(elementID)].GetElement(elementID);
 
 		public IntDofTable OrderDofs_temp() => throw new NotImplementedException();
-
-		public void PrepareDofs()
-		{
-			constrainedDofLocator.FindConstrainedDofs();
-		}
 	}
 }

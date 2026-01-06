@@ -36,7 +36,7 @@ namespace MGroup.Solvers.Direct
 				reorderingAlgorithm = new AmdSymmetricOrdering(laImplementation);
 			}
 
-			DofOrdering = new DefaultSubdomainDofOrdering_v2(domain, reorderingAlgorithm);
+			DofOrdering = new MonolithicDomainDofOrdering_v2(domain, reorderingAlgorithm);
 			LinearSystem = new LinearSystem_v2();
 		}
 

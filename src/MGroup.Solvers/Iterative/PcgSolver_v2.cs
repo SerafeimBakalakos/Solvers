@@ -37,7 +37,7 @@ namespace MGroup.Solvers.Iterative
 			Domain = domain;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			DofOrdering = new DefaultSubdomainDofOrdering_v2(domain, null);
+			DofOrdering = new MonolithicDomainDofOrdering_v2(domain, null);
 			LinearSystem = new LinearSystem_v2();
 		}
 
