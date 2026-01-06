@@ -44,7 +44,8 @@ namespace MGroup.Solvers.DofOrdering
 
 		public void OrderDofs()
 		{
-			Dofs = subdomain.OrderDofs();
+			subdomain.PrepareDofs();
+			Dofs = subdomain.OrderDofs_temp();
 			NumDofs = Dofs.NumEntries;
 			if (reorderingAlgorithm != null)
 			{

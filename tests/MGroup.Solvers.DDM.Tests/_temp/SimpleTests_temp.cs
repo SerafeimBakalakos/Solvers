@@ -25,6 +25,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.MSolve.Solution;
 	using MGroup.NumericalAnalyzers;
+	using MGroup.Solvers.DDM.Discretization;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DDM.Psm;
@@ -63,10 +64,9 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Partition
-			var domain = new FullDomain_temp(model, elementMatrixProvider);
 			Dictionary<int, int> elementsToSubdomains = Plane2DExample.GetSubdomainsOfElements();
-			var partitioner = new SimplePartitioner_temp(Plane2DExample.NumSubdomainsTotal, e => elementsToSubdomains[e]);
-			IPartition_v2 partition = partitioner.Decompose(model, elementMatrixProvider);
+			Func<int, int> getSubdomainOfElement = (e) => elementsToSubdomains[e];
+			var domain = new DecomposedNonOverlappingDomain(model, elementMatrixProvider, Plane2DExample.NumSubdomainsTotal, getSubdomainOfElement);
 
 			// Solver
 			var solverFactory = new PsmSolver_v2<SymmetricCscMatrix>.Factory(environment, laProviderForSolver, new PsmSubdomainMatrixManagerSymmetricCsc_v2.Factory());
@@ -75,7 +75,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 				MaxIterations = 200,
 				ResidualTolerance = 1E-10
 			};
-			PsmSolver_v2<SymmetricCscMatrix> solver = solverFactory.BuildSolver(domain, partition);
+			PsmSolver_v2<SymmetricCscMatrix> solver = solverFactory.BuildSolver(domain, domain.Partition);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis

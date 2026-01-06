@@ -17,17 +17,15 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 	{
 		private readonly ISubdomain_v2 domain;
 		private readonly IComputeEnvironment environment;
-		private readonly FreeDofSelector_temp freeDofSelector;
 		private readonly IElementPartition partition;
 		
 		private Dictionary<int, DiagonalMatrix> elementScalingMatrices;
 
-		public HomogeneousDofScaling(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, FreeDofSelector_temp freeDofSelector)
+		public HomogeneousDofScaling(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition)
 		{
 			this.environment = environment;
 			this.domain = domain;
 			this.partition = partition;
-			this.freeDofSelector = freeDofSelector;
 		}
 
 		public DiagonalMatrix GetScalingMatrix(int elementID) => elementScalingMatrices[elementID];
@@ -37,7 +35,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 			elementScalingMatrices = environment.CalcNodeData(elementID =>
 			{
 				ISuperElement element = domain.GetElement(elementID);
-				IntDofTable elementDofs = freeDofSelector.GetFreeDofsOfElement(element);
+				IntDofTable elementDofs = element.GetDofs();
 				int numElementDofs = elementDofs.NumEntries;
 
 				// Multiplicities of element dofs

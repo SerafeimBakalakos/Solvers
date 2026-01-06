@@ -40,7 +40,6 @@ namespace MGroup.Solvers.MatrixFree
 		private readonly IMatrixFreePreconditioner preconditioner;
 
 		private bool mustUpdatePreconditioner = true;
-		private FreeDofSelector_temp freeDofSelector;
 		private DistributedOverlappingIndexer dofIndexer;
 
 		public MatrixFreeSolver(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
@@ -50,13 +49,12 @@ namespace MGroup.Solvers.MatrixFree
 			this.partition = partition;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			freeDofSelector = new FreeDofSelector_temp(environment, domain);
-			DofOrdering = new DofOrderingDistributed(environment, domain, partition, freeDofSelector);
+			DofOrdering = new DofOrderingDistributed(environment, domain, partition);
 			LinearSystem = new LinearSystem_v2();
 
 			if (isHomogeneous)
 			{
-				this.dofScaling = new HomogeneousDofScaling(environment, Domain, partition, freeDofSelector);
+				this.dofScaling = new HomogeneousDofScaling(environment, Domain, partition);
 			}
 			else
 			{
@@ -78,14 +76,11 @@ namespace MGroup.Solvers.MatrixFree
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new MatrixFreeAlgebraicModel(environment, physicalModel, Domain, LinearSystem, freeDofSelector);
+			return new MatrixFreeAlgebraicModel(environment, physicalModel, Domain, LinearSystem);
 		}
 
 		public void PrepareDofs()
 		{
-			// Temporarily distinguish which dofs are free
-			freeDofSelector.FindFreeDofs_temp();
-
 			// Indexer for distributed vectors and matrices
 			partition.FindElementNeighbors();
 			dofIndexer = DofOrdering.CreateIndexer();
@@ -99,14 +94,7 @@ namespace MGroup.Solvers.MatrixFree
 			environment.DoPerNode(elementID =>
 			{
 				ISuperElement element = Domain.GetElement(elementID);
-				IMatrix elementMatrix = element.BuildMatrix();
-				int[] freeDofs = freeDofSelector.FreeToAllDofsForElement(elementID);
-				if (freeDofs.Length < elementMatrix.NumColumns)
-				{
-					elementMatrix = elementMatrix.GetSubmatrix(freeDofs, freeDofs);
-				}
-
-				distributedMatrix.LocalMatrices[elementID] = elementMatrix;
+				distributedMatrix.LocalMatrices[elementID] = element.BuildMatrix();
 			});
 			LinearSystem.Matrix = distributedMatrix;
 		}

@@ -223,6 +223,7 @@ namespace MGroup.Solvers.DDM.Psm
 		public void PrepareDofs()
 		{
 			// Dofs of original linear system
+			Domain.PrepareDofs();
 			environment.DoPerNode(subdomainID =>
 			{
 				subdomainDofOrderings[subdomainID].OrderDofs();

@@ -15,17 +15,27 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 
 	public class FullDomain_temp : ISubdomain_v2
 	{
+		private readonly ConstrainedDofLocator constrainedDofLocator;
 		private readonly IElementMatrixProvider elementMatrixProvider;
+		private readonly Dictionary<int, DefaultElement_temp> elements;
 
 		public FullDomain_temp(IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
 		{
 			this.Model = model;
 			this.elementMatrixProvider = elementMatrixProvider;
 			this.ID = 0;
+
+			constrainedDofLocator = new ConstrainedDofLocator(model);
+			elements = new Dictionary<int, DefaultElement_temp>();
+			foreach (IElementType element in model.EnumerateElements())
+			{
+				elements[element.ID] = new DefaultElement_temp(element, Model, constrainedDofLocator, elementMatrixProvider);
+			}
 		}
 
 		public int ID { get; }
@@ -34,19 +44,23 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public IEnumerable<INode> EnumerateNodes() => Model.EnumerateNodes();
 
-		public IEnumerable<ISuperElement> EnumerateElements()
-			=> Model.EnumerateElements().Select(e => new DefaultElement_temp(e, Model.DofTypes, elementMatrixProvider));
+		public IEnumerable<ISuperElement> EnumerateElements() => elements.Values;
 
-		public ISuperElement GetElement(int id)
-		{
-			IElementType elementType = Model.GetElement(id);
-			return new DefaultElement_temp(elementType, Model.DofTypes, elementMatrixProvider);
-		}
+		public ISuperElement GetElement(int id) => elements[id];
 
-		public IntDofTable OrderDofs()
+		public IntDofTable OrderDofs_temp()
 		{
 			var freeDofOrderer = new DefaultFreeDofOrderer_v2(Model);
 			return freeDofOrderer.OrderFreeDofs(Model.EnumerateElements(), Model.EnumerateNodes(), Model.GetDirichletBCs());
+		}
+
+		public void PrepareDofs()
+		{
+			constrainedDofLocator.FindConstrainedDofs();
+			foreach (DefaultElement_temp element in elements.Values)
+			{
+				element.PrepareDofs();
+			}
 		}
 	}
 }

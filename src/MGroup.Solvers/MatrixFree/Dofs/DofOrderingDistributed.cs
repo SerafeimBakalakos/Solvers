@@ -15,18 +15,17 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 		private readonly IComputeEnvironment environment;
 		private readonly ISubdomain_v2 domain;
 		private readonly IElementPartition partition;
-		private readonly FreeDofSelector_temp freeDofSelector;
 
-		public DofOrderingDistributed(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, FreeDofSelector_temp freeDofSelector)
+		public DofOrderingDistributed(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition)
 		{
 			this.environment = environment;
 			this.domain = domain;
 			this.partition = partition;
-			this.freeDofSelector = freeDofSelector;
 		}
 
 		public DistributedOverlappingIndexer CreateIndexer()
 		{
+			domain.PrepareDofs();
 			ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> commonDofsBetweenElements = FindAllCommonDofs();
 			var indexer = new DistributedOverlappingIndexer(environment);
 			indexer.Initialize(elementID => InitializeIndexer(elementID, commonDofsBetweenElements[elementID]));
@@ -81,7 +80,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 		private Dictionary<int, SortedDofSet> FindCommonDofsOfElement(int elementID)
 		{
 			ISuperElement element = domain.GetElement(elementID);
-			IntDofTable elementDofs = freeDofSelector.GetFreeDofsOfElement(element);
+			IntDofTable elementDofs = element.GetDofs();
 
 			var commonDofsOfElement = new Dictionary<int, SortedDofSet>();
 			foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
@@ -99,7 +98,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 		private LocalIndexerDto InitializeIndexer(int elementID, Dictionary<int, SortedDofSet> commonDofsWithNeighbors)
 		{
 			ISuperElement element = domain.GetElement(elementID);
-			IntDofTable elementDofs = freeDofSelector.GetFreeDofsOfElement(element);
+			IntDofTable elementDofs = element.GetDofs();
 
 			var allCommonDofIndices = new Dictionary<int, int[]>();
 			foreach (int neighborID in partition.GetNeighborsOfElement(elementID))

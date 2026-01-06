@@ -16,6 +16,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.DDM.Discretization;
 	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;

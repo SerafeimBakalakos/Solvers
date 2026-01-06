@@ -1,6 +1,4 @@
-using MGroup.Solvers.DiscretizationExtensions;
-
-namespace MGroup.Solvers.DiscretizationExtensions
+namespace MGroup.Solvers.DDM.Discretization
 {
 	using System;
 	using System.Collections.Generic;
@@ -16,21 +14,23 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 
 	public class DefaultSubdomain_temp : ISubdomain_v2
 	{
-		private readonly IModel_v2 model;
+		private readonly ConstrainedDofLocator constrainedDofLocator;
 		private readonly IElementMatrixProvider elementMatrixProvider;
+		private readonly IModel_v2 model;
 
-		private SortedSet<INode> nodes = new SortedSet<INode>(
-			Comparer<INode>.Create((n1, n2) => n1.ID.CompareTo(n2.ID)));
+		private SortedSet<INode> nodes = new SortedSet<INode>(Comparer<INode>.Create((n1, n2) => n1.ID.CompareTo(n2.ID)));
 		private Dictionary<int, DefaultElement_temp> elements = new Dictionary<int, DefaultElement_temp>();
 
-		public DefaultSubdomain_temp(int id, IModel_v2 model, IElementMatrixProvider elementMatrixProvider)
+		public DefaultSubdomain_temp(int id, IModel_v2 model, ConstrainedDofLocator constrainedDofLocator, IElementMatrixProvider elementMatrixProvider)
 		{
-			this.ID = id;
+			ID = id;
 			this.model = model;
+			this.constrainedDofLocator = constrainedDofLocator;
 			this.elementMatrixProvider = elementMatrixProvider;
 		}
 
@@ -38,7 +38,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public void AddElement(IElementType element)
 		{
-			elements[element.ID] = new DefaultElement_temp(element, model.DofTypes, elementMatrixProvider);
+			elements[element.ID] = new DefaultElement_temp(element, model, constrainedDofLocator, elementMatrixProvider);
 			foreach (INode node in element.Nodes)
 			{
 				nodes.Add(node);
@@ -51,11 +51,20 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public ISuperElement GetElement(int elementID) => elements[elementID];
 
-		public IntDofTable OrderDofs()
+		public IntDofTable OrderDofs_temp()
 		{
 			var freeDofOrderer = new DefaultFreeDofOrderer_v2(model);
 			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> dirichletBCs = FindDiricletBCs();
 			return freeDofOrderer.OrderFreeDofs(elements.Values.Select(e => e.ElementEntity), nodes, dirichletBCs);
+		}
+
+		public void PrepareDofs()
+		{
+			//This works only for non-overlapping DDMs
+			foreach (DefaultElement_temp element in elements.Values)
+			{
+				element.PrepareDofs();
+			}
 		}
 
 		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDiricletBCs()

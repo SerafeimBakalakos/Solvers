@@ -1,5 +1,3 @@
-using MGroup.Solvers.DiscretizationExtensions;
-
 namespace MGroup.Solvers.DiscretizationExtensions
 {
 	using System;
@@ -13,16 +11,22 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers;
+	using MGroup.Solvers.DofOrdering;
 
 	public class DefaultElement_temp : ISuperElement
 	{
-		private readonly ActiveDofs allDofs;
+		private readonly IModel_v2 model;
+		private readonly ConstrainedDofLocator constrainedDofLocator;
 		private readonly IElementMatrixProvider elementMatrixProvider;
 
-		public DefaultElement_temp(IElementType femElement, ActiveDofs allDofs, IElementMatrixProvider elementMatrixProvider)
+		private IntDofTable freeDofs;
+		private int[] freeToAllDofs;
+		public DefaultElement_temp(IElementType femElement, IModel_v2 model, ConstrainedDofLocator constrainedDofs,
+			IElementMatrixProvider elementMatrixProvider)
 		{
 			ElementEntity = femElement;
-			this.allDofs = allDofs;
+			this.model = model;
+			this.constrainedDofLocator = constrainedDofs;
 			this.elementMatrixProvider = elementMatrixProvider;
 		}
 
@@ -33,32 +37,50 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public IMatrix BuildMatrix()
 		{
-			return elementMatrixProvider.Matrix(ElementEntity);
+			IMatrix matrix = elementMatrixProvider.Matrix(ElementEntity);
+			return matrix.GetSubmatrix(freeToAllDofs, freeToAllDofs);
 		}
 
 		public IVector BuildRhsVector_temp() => throw new NotImplementedException();
 
-		public IntDofTable GetDofs()
+		public IntDofTable GetDofs() => freeDofs;
+
+		public IEnumerable<INode> EnumerateNodes() => ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
+
+		public void PrepareDofs()
 		{
+			#region debug
+			if (freeDofs != null)
+			{
+				throw new Exception("This must happen only once for now (linear-static analysis)");
+			}
+			#endregion
+
 			IReadOnlyList<INode> elementNodes = ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
 			IReadOnlyList<IReadOnlyList<IDofType>> elementDofs = ElementEntity.DofEnumerator.GetDofTypesForMatrixAssembly(ElementEntity);
 
-			var result = new IntDofTable();
-			int elementDofIdx = 0;
+			freeDofs = new IntDofTable();
+			var freeToAllDofs = new List<int>(elementNodes.Count * elementDofs[0].Count);
+			int freeDofIdx = 0;
+			int allDofIdx = 0;
 			for (int nodeIdx = 0; nodeIdx < elementNodes.Count; ++nodeIdx)
 			{
-				int nodeID = elementNodes[nodeIdx].ID;
+				INode node = elementNodes[nodeIdx];
 				for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
 				{
-					int dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
-					result.TryAdd(nodeID, dofID, elementDofIdx);
-					++elementDofIdx;
+					IDofType dofType = elementDofs[nodeIdx][dofIdx];
+					if (!constrainedDofLocator.IsConstrainedDof(node, dofType))
+					{
+						int dofID = model.DofTypes.GetIdOfDof(dofType);
+						freeDofs.TryAdd(node.ID, dofID, freeDofIdx);
+						freeToAllDofs.Add(allDofIdx);
+						++freeDofIdx;
+					}
+					++allDofIdx;
 				}
 			}
 
-			return result;
+			this.freeToAllDofs = freeToAllDofs.ToArray();
 		}
-
-		public IEnumerable<INode> EnumerateNodes() => ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
 	}
 }

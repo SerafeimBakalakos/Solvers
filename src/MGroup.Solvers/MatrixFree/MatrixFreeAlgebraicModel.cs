@@ -26,18 +26,16 @@ namespace MGroup.Solvers.MatrixFree
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly LinearSystem_v2 linearSystem;
-		private readonly FreeDofSelector_temp freeDofSelector;
 		private readonly IModel_v2 model;
 		private readonly ISubdomain_v2 domain;
 
 		public MatrixFreeAlgebraicModel(IComputeEnvironment environment, IModel_v2 model, ISubdomain_v2 domain,
-			LinearSystem_v2 linearSystem, FreeDofSelector_temp freeDofSelector)
+			LinearSystem_v2 linearSystem)
 		{
 			this.environment = environment;
 			this.model = model;
 			this.domain = domain;
 			this.linearSystem = linearSystem;
-			this.freeDofSelector = freeDofSelector;
 		}
 
 		public void AddToGlobalVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector)
@@ -47,7 +45,8 @@ namespace MGroup.Solvers.MatrixFree
 			{
 				ISuperElement element = domain.GetElement(elementID);
 				var elementVector = distributedVector.LocalVectors[elementID];
-				IntDofTable elementFreeDofs = freeDofSelector.GetFreeDofsOfElement(element);
+				IntDofTable elementFreeDofs = element.GetDofs();
+
 				foreach (INodalModelQuantity<IDofType> load in FilterElementData(nodalLoads, element))
 				{
 					int dofID = model.DofTypes.GetIdOfDof(load.DOF);
@@ -69,7 +68,7 @@ namespace MGroup.Solvers.MatrixFree
 				// Free dofs
 				ISuperElement element = domain.GetElement(elementID);
 				Vector elementVector = distributedVector.LocalVectors[elementID];
-				IntDofTable elementFreeDofs = freeDofSelector.GetFreeDofsOfElement(element);
+				IntDofTable elementFreeDofs = element.GetDofs();
 				
 				foreach ((int node, int dofID, int dofIdx) in elementFreeDofs)
 				{
