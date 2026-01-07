@@ -12,6 +12,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.LinearAlgebraExtensions.Views;
 
 	public class DefaultElement : ISuperElement
 	{
@@ -42,7 +43,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 			}
 			else
 			{
-				return matrix.GetSubmatrix(freeToAllDofs, freeToAllDofs);
+				return new SubmatrixView(matrix, freeToAllDofs);
 			}
 		}
 

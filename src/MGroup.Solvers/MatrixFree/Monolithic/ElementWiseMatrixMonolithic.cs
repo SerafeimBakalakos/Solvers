@@ -12,6 +12,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
 
 	public class ElementWiseMatrixMonolithic : DefaultMatrix
 	{
@@ -24,7 +25,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			ElementMatrices = new Dictionary<int, IReadOnlyMatrix>(elements.Count);
 			foreach (ISuperElement element in elements)
 			{
-				IMatrix elementMatrix = element.BuildMatrix();
+				FullMatrixRowMajor elementMatrix = FullMatrixRowMajorExtensions.CreateFromMatrix(element.BuildMatrix());
 				ElementMatrices[element.ID] = elementMatrix;
 			}
 		}

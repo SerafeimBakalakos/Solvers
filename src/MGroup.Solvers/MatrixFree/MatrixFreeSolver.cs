@@ -25,6 +25,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.LinearAlgebraExtensions;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.MatrixFree.Dofs;
@@ -94,7 +95,8 @@ namespace MGroup.Solvers.MatrixFree
 			environment.DoPerNode(elementID =>
 			{
 				ISuperElement element = Domain.GetElement(elementID);
-				distributedMatrix.LocalMatrices[elementID] = element.BuildMatrix();
+				FullMatrixRowMajor elementMatrix = FullMatrixRowMajorExtensions.CreateFromMatrix(element.BuildMatrix());
+				distributedMatrix.LocalMatrices[elementID] = elementMatrix;
 			});
 			LinearSystem.Matrix = distributedMatrix;
 		}
