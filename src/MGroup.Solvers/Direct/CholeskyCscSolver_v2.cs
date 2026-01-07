@@ -27,7 +27,7 @@ namespace MGroup.Solvers.Direct
 
 		private ICholeskySymmetricCsc factorization;
 
-		public CholeskyCscSolver_v2(ISubdomain_v2 domain, IImplementationProvider laImplementation, IReorderingAlgorithm reorderingAlgorithm = null)
+		public CholeskyCscSolver_v2(ISubdomain_v2 domain, IImplementationProvider laImplementation, IReorderingAlgorithm reorderingAlgorithm = null, bool cacheElementDofs = true)
 		{
 			this.Domain = domain;
 			this.laImplementation = laImplementation;
@@ -36,7 +36,7 @@ namespace MGroup.Solvers.Direct
 				reorderingAlgorithm = new AmdSymmetricOrdering(laImplementation);
 			}
 
-			DofOrdering = new MonolithicDomainDofOrdering_v2(domain, reorderingAlgorithm);
+			DofOrdering = new MonolithicDomainDofOrdering(domain, reorderingAlgorithm);
 			LinearSystem = new LinearSystem_v2();
 		}
 

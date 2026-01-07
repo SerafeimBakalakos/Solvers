@@ -4,12 +4,9 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text;
-	using System.Threading.Tasks;
 
-	using MGroup.Constitutive.Structural;
 	using MGroup.Constitutive.Structural.Providers;
 	using MGroup.Environments;
-	using MGroup.LinearAlgebra.Distributed.Overlapping;
 	using MGroup.LinearAlgebra.Implementations;
 	using MGroup.LinearAlgebra.Implementations.Managed;
 	using MGroup.LinearAlgebra.Iterative;
@@ -17,24 +14,15 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
 	using MGroup.LinearAlgebra.Iterative.Termination.Iterations;
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Discretization;
-	using MGroup.MSolve.Discretization.BoundaryConditions;
-	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.MSolve.Discretization.Providers;
-	using MGroup.MSolve.Solution;
-	using MGroup.NumericalAnalyzers;
 	using MGroup.Solvers.DDM.Discretization;
-	using MGroup.Solvers.DDM.LinearSystem;
-	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DDM.Psm;
 	using MGroup.Solvers.DDM.PSM.InterfaceProblem;
 	using MGroup.Solvers.DDM.PSM.StiffnessMatrices;
 	using MGroup.Solvers.DDM.Tests.ExampleModels;
 	using MGroup.Solvers.Direct;
 	using MGroup.Solvers.DiscretizationExtensions;
-	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.MatrixFree;
 	using MGroup.Solvers.MatrixFree.Monolithic;
@@ -77,6 +65,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 				MaxIterations = 200,
 				ResidualTolerance = 1E-10
 			};
+			solverFactory.CacheElementDofs = cacheElementDofs;
 			PsmSolver_v2<SymmetricCscMatrix> solver = solverFactory.BuildSolver(domain, domain.Partition);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
@@ -186,7 +175,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
 			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
 			IMatrixFreePreconditioner preconditioner = new MatrixFreeLumpedPreconditionerMonolithic();
-			var solver = new MatrixFreeSolverMonolithic(domain, partition, pcgAlgorithmFactory.Build(), preconditioner, isHomogeneous: true);
+			var solver = new MatrixFreeSolverMonolithic(domain, partition, pcgAlgorithmFactory.Build(), preconditioner, isHomogeneous: true, cacheElementDofs);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -245,12 +234,12 @@ namespace MGroup.Solvers.DDM.Tests._temp
 		{
 			if (solverName == SolverName.DenseMatrixSolver)
 			{
-				return new DenseMatrixSolver_v2(domain, true);
+				return new DenseMatrixSolver_v2(domain, isMatrixPositiveDefinite: true, cacheElementDofs);
 			}
 			else if (solverName == SolverName.CholeskyCscSolver)
 			{
 				IImplementationProvider laProviderForSolver = new ManagedSequentialImplementationProvider();
-				return new CholeskyCscSolver_v2(domain, laProviderForSolver);
+				return new CholeskyCscSolver_v2(domain, laProviderForSolver, reorderingAlgorithm: null, cacheElementDofs);
 			}
 			else if (solverName == SolverName.PcgSolver)
 			{
@@ -260,7 +249,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 				//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
 				//var preconditioner = new IdentityPreconditioner();
 				var preconditioner = new JacobiPreconditioner();
-				return new PcgSolver_v2(domain, pcgAlgorithmFactory.Build(), preconditioner);
+				return new PcgSolver_v2(domain, pcgAlgorithmFactory.Build(), preconditioner, cacheElementDofs);
 			}
 			else
 			{

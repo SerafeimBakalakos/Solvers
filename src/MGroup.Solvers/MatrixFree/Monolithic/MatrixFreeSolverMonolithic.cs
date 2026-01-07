@@ -32,15 +32,23 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 
 		private bool mustUpdatePreconditioner = true;
 
-		public MatrixFreeSolverMonolithic(ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
+		public MatrixFreeSolverMonolithic(ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous, bool cacheElementDofs = true)
 		{
 			Domain = domain;
 			elements = Domain.EnumerateElements().ToList();
 			this.partition = partition;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			DofOrdering = new MonolithicDomainDofOrdering_v2(domain, null);
 			LinearSystem = new LinearSystem_v2();
+
+			if (cacheElementDofs)
+			{
+				DofOrdering = new MonolithicDomainDofOrderingCaching(domain, null);
+			}
+			else
+			{
+				DofOrdering = new MonolithicDomainDofOrdering(domain, null);
+			}
 
 			if (isHomogeneous)
 			{

@@ -32,13 +32,20 @@ namespace MGroup.Solvers.Iterative
 
 		private bool mustUpdatePreconditioner = true;
 
-		public PcgSolver_v2(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner)
+		public PcgSolver_v2(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner, bool cacheElementDofs = true)
 		{
 			Domain = domain;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
-			DofOrdering = new MonolithicDomainDofOrdering_v2(domain, null);
 			LinearSystem = new LinearSystem_v2();
+			if (cacheElementDofs)
+			{
+				DofOrdering = new MonolithicDomainDofOrderingCaching(domain, null);
+			}
+			else
+			{
+				DofOrdering = new MonolithicDomainDofOrdering(domain, null);
+			}
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;

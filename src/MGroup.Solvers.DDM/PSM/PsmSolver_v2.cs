@@ -69,7 +69,7 @@ namespace MGroup.Solvers.DDM.Psm
 			IImplementationProvider provider, IPsmSubdomainMatrixManagerFactory_v2<TMatrix> matrixManagerFactory,
 			bool explicitSubdomainMatrices, IPsmPreconditioner preconditioner,
 			IPsmInterfaceProblemSolverFactory interfaceProblemSolverFactory, bool isHomogeneous, DdmLogger logger,
-			bool optimizedSubdomainTopology, /*PsmReanalysisOptions reanalysis,*/ string name = "PSM Solver")
+			bool optimizedSubdomainTopology, /*PsmReanalysisOptions reanalysis,*/ bool cacheElementDofs)
 		{
 			this.name = name;
 			this.environment = environment;
@@ -90,8 +90,18 @@ namespace MGroup.Solvers.DDM.Psm
 			{
 				ISubdomain_v2 subdomain = partition.GetSubdomain(subdomainID);
 				var subLinearSystem = new SubdomainLinearSystem_v2<TMatrix>(LinearSystem, subdomainID);
-				var dofOrdering = new MonolithicDomainDofOrdering_v2(subdomain, null);
 				ISubdomainMatrixAssembler_v2<TMatrix> matrixAssembler = matrixManagerFactory.CreateAssembler();
+
+				ISubdomainDofOrdering_v2 dofOrdering; // No reordering for this, since no Kff matrices will be factorized
+				if (cacheElementDofs)
+				{
+					dofOrdering = new MonolithicDomainDofOrderingCaching(subdomain, null);
+				}
+				else
+				{
+					dofOrdering = new MonolithicDomainDofOrdering(subdomain, null);
+				}
+
 				var psmDofs = new PsmSubdomainDofs_v2(partition, subdomain, dofOrdering, false);
 				IPsmSubdomainMatrixManager_v2 psmMatrices = matrixManagerFactory.CreateMatrixManager(provider, subLinearSystem, psmDofs);
 				var psmVectors = new PsmSubdomainVectors_v2(subLinearSystem, psmDofs, psmMatrices);
@@ -162,7 +172,7 @@ namespace MGroup.Solvers.DDM.Psm
 			}
 			this.interfaceProblemSolver = interfaceProblemSolverFactory.BuildIterativeMethod(convergenceCriterion);
 
-			Logger = new SolverLogger(name);
+			Logger = new SolverLogger(GetType().Name);
 			LoggerDdm = logger;
 
 			if (provider is ManagedSequentialImplementationProvider)
@@ -449,32 +459,26 @@ namespace MGroup.Solvers.DDM.Psm
 			{
 				this.environment = environment;
 				this.laProvider = laProvider;
-
-				EnableLogging = false;
-				ExplicitSubdomainMatrices = false;
-				InterfaceProblemSolverFactory = new PsmInterfaceProblemSolverFactoryPcg();
-				IsHomogeneousProblem = true;
 				PsmMatricesFactory = matrixManagerFactory; //new PsmSubdomainMatrixManagerSymmetricCSparse.Factory();
-				Preconditioner = new PsmPreconditionerIdentity();
-				ReanalysisOptions = PsmReanalysisOptions.CreateWithAllDisabled();
-				OptimizedSubdomainTopology = false;
 			}
 
-			public bool EnableLogging { get; set; }
+			public bool CacheElementDofs = true;
 
-			public bool ExplicitSubdomainMatrices { get; set; }
+			public bool EnableLogging { get; set; } = false;
 
-			public IPsmInterfaceProblemSolverFactory InterfaceProblemSolverFactory { get; set; }
+			public bool ExplicitSubdomainMatrices { get; set; } = false;
 
-			public bool IsHomogeneousProblem { get; set; }
+			public IPsmInterfaceProblemSolverFactory InterfaceProblemSolverFactory { get; set; } = new PsmInterfaceProblemSolverFactoryPcg();
+
+			public bool IsHomogeneousProblem { get; set; } = true;
 
 			public IPsmSubdomainMatrixManagerFactory_v2<TMatrix> PsmMatricesFactory { get; }
 
-			public IPsmPreconditioner Preconditioner { get; set; }
+			public IPsmPreconditioner Preconditioner { get; set; } = new PsmPreconditionerIdentity();
 
-			public PsmReanalysisOptions ReanalysisOptions { get; set; }
+			public PsmReanalysisOptions ReanalysisOptions { get; set; } = PsmReanalysisOptions.CreateWithAllDisabled();
 
-			public bool OptimizedSubdomainTopology { get; set; }
+			public bool OptimizedSubdomainTopology { get; set; } = false;
 
 			public virtual PsmSolver_v2<TMatrix> BuildSolver(ISubdomain_v2 domain, IPartition_v2 partition)
 			{
@@ -482,7 +486,7 @@ namespace MGroup.Solvers.DDM.Psm
 				DdmLogger logger = null;
 				return new PsmSolver_v2<TMatrix>(environment, domain, partition, laProvider, PsmMatricesFactory,
 					ExplicitSubdomainMatrices, Preconditioner, InterfaceProblemSolverFactory, IsHomogeneousProblem,
-					logger, OptimizedSubdomainTopology);
+					logger, OptimizedSubdomainTopology, CacheElementDofs);
 			}
 		}
 	}

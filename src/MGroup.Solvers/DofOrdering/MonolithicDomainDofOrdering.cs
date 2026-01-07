@@ -7,15 +7,14 @@ namespace MGroup.Solvers.DofOrdering
 	using MGroup.Solvers;
 	using MGroup.Solvers.DiscretizationExtensions;
 
-	public class MonolithicDomainDofOrdering_v2 : ISubdomainDofOrdering_v2
+	public class MonolithicDomainDofOrdering : ISubdomainDofOrdering_v2
 	{
-		private readonly ISubdomain_v2 subdomain;
+		protected readonly ISubdomain_v2 domain;
 		private readonly IReorderingAlgorithm? reorderingAlgorithm;
-		private Dictionary<int, int[]> elementToDomainDofIndices;
 
-		public MonolithicDomainDofOrdering_v2(ISubdomain_v2 subdomain, IReorderingAlgorithm? reorderingAlgorithm)
+		public MonolithicDomainDofOrdering(ISubdomain_v2 domain, IReorderingAlgorithm? reorderingAlgorithm)
 		{
-			this.subdomain = subdomain;
+			this.domain = domain;
 			this.reorderingAlgorithm = reorderingAlgorithm;
 		}
 
@@ -23,12 +22,12 @@ namespace MGroup.Solvers.DofOrdering
 
 		public int NumDofs { get; private set; }
 
-		public int[] MapDofsElementToDomain(ISuperElement element) => elementToDomainDofIndices[element.ID];
+		public virtual int[] MapDofsElementToDomain(ISuperElement element) => MapElementDofs(element);
 
-		public void OrderDofs()
+		public virtual void OrderDofs()
 		{
 			// Domain dofs
-			DomainDofs = subdomain.OrderDofs_temp();
+			DomainDofs = domain.OrderDofs_temp();
 			NumDofs = DomainDofs.NumEntries;
 			
 			// Reordering
@@ -36,15 +35,7 @@ namespace MGroup.Solvers.DofOrdering
 			{
 				ReorderDofs(reorderingAlgorithm);
 			}
-
-			// Element-to-domain dof maps
-			elementToDomainDofIndices = new Dictionary<int, int[]>();
-			foreach (ISuperElement element in subdomain.EnumerateElements())
-			{
-				elementToDomainDofIndices[element.ID] = MapElementDofs(element);
-			}
 		}
-
 
 		//public void WriteLocalToGlobalMaps_temp()
 		//{
@@ -61,7 +52,7 @@ namespace MGroup.Solvers.DofOrdering
 		//	}
 		//}
 
-		private int[] MapElementDofs(ISuperElement superElement)
+		protected int[] MapElementDofs(ISuperElement superElement)
 		{
 			IntDofTable elementDofs = superElement.GetDofs();
 			int numElementDofs = elementDofs.NumEntries; //TODO: Optimize this
@@ -79,7 +70,7 @@ namespace MGroup.Solvers.DofOrdering
 		private void ReorderDofs(IReorderingAlgorithm reorderingAlgorithm)
 		{
 			var pattern = SparsityPatternSymmetric.CreateEmpty(NumDofs);
-			foreach (ISuperElement element in subdomain.EnumerateElements())
+			foreach (ISuperElement element in domain.EnumerateElements())
 			{
 				int[] elementToDomainDofs = MapElementDofs(element);
 
