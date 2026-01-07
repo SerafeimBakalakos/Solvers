@@ -25,6 +25,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.MatrixFree;
+	using MGroup.Solvers.MatrixFree.ElementMatrices;
 	using MGroup.Solvers.MatrixFree.Monolithic;
 	using MGroup.Solvers.MatrixFree.Preconditioning;
 	using MGroup.Solvers.Results;
@@ -122,14 +123,19 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			// Solver
 			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs);
 			var partition = new DefaultElementPartition(environment, model, domain);
+			var solverFactory = new MatrixFreeSolver.Factory(environment);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
 			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
-			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
-			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerDistributed();
-			IMatrixFreePreconditioner preconditioner = new MatrixFreeLumpedPreconditioner();
-			var solver = new MatrixFreeSolver(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner, isHomogeneous: true);
+			solverFactory.IterativeAlgorithm = pcgAlgorithmFactory.Build();
+			//solverFactory.Preconditioner = new MatrixFreeIdentityPreconditioner();
+			//solverFactory.Preconditioner = new MatrixFreeJacobiPreconditioner();
+			solverFactory.Preconditioner = new MatrixFreeLumpedPreconditioner();
+			solverFactory.IsMaterialHomogeneous = true;
+			//solverFactory.ElementMatrixConverter = new NullElementMatrixConverter();
+			solverFactory.ElementMatrixConverter = new FullRowMajorElementMatrixConverter();
+			MatrixFreeSolver solver = solverFactory.BuildSolver(domain, partition);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis

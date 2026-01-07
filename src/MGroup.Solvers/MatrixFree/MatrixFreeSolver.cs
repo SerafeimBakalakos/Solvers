@@ -12,6 +12,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.LinearAlgebra.Iterative;
 	using MGroup.LinearAlgebra.Iterative.PreconditionedConjugateGradient;
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
+	using MGroup.LinearAlgebra.Iterative.Termination.Iterations;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Reduction;
 	using MGroup.LinearAlgebra.Vectors;
@@ -29,6 +30,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.MatrixFree.Dofs;
+	using MGroup.Solvers.MatrixFree.ElementMatrices;
 	using MGroup.Solvers.MatrixFree.Preconditioning;
 
 	public class MatrixFreeSolver : ISolver_v2
@@ -39,17 +41,18 @@ namespace MGroup.Solvers.MatrixFree
 		private readonly IElementPartition partition;
 		private readonly PcgAlgorithm pcgAlgorithm;
 		private readonly IMatrixFreePreconditioner preconditioner;
-
+		private readonly IElementMatrixConverter elementMatrixConverter;
 		private bool mustUpdatePreconditioner = true;
 		private DistributedOverlappingIndexer dofIndexer;
 
-		public MatrixFreeSolver(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous)
+		public MatrixFreeSolver(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm iterativeAlgorithm, IMatrixFreePreconditioner preconditioner, IElementMatrixConverter elementMatrixConverter, bool isHomogeneous)
 		{
 			this.environment = environment;
 			Domain = domain;
 			this.partition = partition;
-			this.pcgAlgorithm = pcgAlgorithm;
+			this.pcgAlgorithm = iterativeAlgorithm;
 			this.preconditioner = preconditioner;
+			this.elementMatrixConverter = elementMatrixConverter;
 			DofOrdering = new DistributedDofOrdering(environment, domain, partition);
 			LinearSystem = new LinearSystem_v2();
 
@@ -95,7 +98,7 @@ namespace MGroup.Solvers.MatrixFree
 			environment.DoPerNode(elementID =>
 			{
 				ISuperElement element = Domain.GetElement(elementID);
-				FullMatrixRowMajor elementMatrix = FullMatrixRowMajorExtensions.CreateFromMatrix(element.BuildMatrix());
+				IMatrix elementMatrix = elementMatrixConverter.ConvertElementMatrix(element.BuildMatrix());
 				distributedMatrix.LocalMatrices[elementID] = elementMatrix;
 			});
 			LinearSystem.Matrix = distributedMatrix;
@@ -139,6 +142,32 @@ namespace MGroup.Solvers.MatrixFree
 			Logger.LogTaskDuration("Iterative algorithm", watch.ElapsedMilliseconds);
 			Logger.LogIterativeAlgorithm(stats.NumIterationsRequired, stats.ResidualNormRatioEstimation);
 			Logger.IncrementAnalysisStep();
+		}
+
+		public class Factory
+		{
+			private readonly IComputeEnvironment environment;
+
+			public Factory(IComputeEnvironment environment)
+			{
+				this.environment = environment;
+
+				var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
+				IterativeAlgorithm = pcgAlgorithmFactory.Build();
+			}
+
+			public IElementMatrixConverter ElementMatrixConverter { get; set; } = new NullElementMatrixConverter();
+
+			public bool IsMaterialHomogeneous { get; set; }
+
+			public PcgAlgorithm IterativeAlgorithm { get; set; }
+
+			public IMatrixFreePreconditioner Preconditioner { get; set; } = new MatrixFreeJacobiPreconditioner();
+
+			public MatrixFreeSolver BuildSolver(ISubdomain_v2 domain, IElementPartition partition)
+			{
+				return new MatrixFreeSolver(environment, domain, partition, IterativeAlgorithm, Preconditioner, ElementMatrixConverter, IsMaterialHomogeneous);
+			}
 		}
 	}
 }
