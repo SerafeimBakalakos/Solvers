@@ -50,26 +50,5 @@ namespace MGroup.Solvers.Assemblers
 				}
 			}
 		}
-
-		private static void AddElementToSubdomainMatrix(Matrix subdomainMatrix, IReadOnlyMatrix elementMatrix,
-			int[] elementIndices, int[] subdomainDofIndices)
-		{
-			Debug.Assert(elementMatrix.NumRows == elementMatrix.NumColumns);
-			Debug.Assert(subdomainDofIndices.Length == elementIndices.Length);
-
-			int numRelevantRows = elementIndices.Length;
-			for (int i = 0; i < numRelevantRows; ++i)
-			{
-				int elementRow = elementIndices[i];
-				int subdomainRow = subdomainDofIndices[i];
-				for (int j = 0; j < numRelevantRows; ++j)
-				{
-					int elementCol = elementIndices[j];
-					int subdomainCol = subdomainDofIndices[j];
-
-					subdomainMatrix[subdomainRow, subdomainCol] += elementMatrix[elementRow, elementCol];
-				}
-			}
-		}
 	}
 }

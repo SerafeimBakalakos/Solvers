@@ -9,9 +9,9 @@ namespace MGroup.Solvers.Assemblers
 	using System.Xml.Linq;
 
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.LinearAlgebra.Matrices.Builders;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
 	public class SymmetricCscMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<SymmetricCscMatrix>
 	{
@@ -25,15 +25,14 @@ namespace MGroup.Solvers.Assemblers
 		public SymmetricCscMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
 			int numDofs = dofOrdering.DomainDofs.NumEntries;
-			var subdomainMatrix = DokSymmetric.CreateEmpty(numDofs);
+			var subdomainMatrix = DokSymmetric_v2.CreateEmpty(numDofs);
 
 			// Process the stiffness of each element
 			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
 				int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
-				int[] temp = Enumerable.Range(0, elementToDomainDofs.Length).ToArray();
 				IMatrix elementMatrix = element.BuildMatrix();
-				subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, temp, elementToDomainDofs);
+				subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, elementToDomainDofs);
 			}
 
 			(double[] values, int[] rowIndices, int[] colOffsets) = subdomainMatrix.BuildSymmetricCscArrays(sortColsOfEachRow);
