@@ -36,9 +36,9 @@ namespace MGroup.Solvers.DiscretizationExtensions
 		{
 			IMatrix matrix = elementMatrixProvider.Matrix(ElementEntity);
 			int[] freeToAllDofs = MapFreeToAllDofs();
-			if (freeToAllDofs == null)
+			if (freeToAllDofs.Length == 0) 
 			{
-				return matrix;
+				return matrix; // No constrained dofs. Use the whole matrix
 			}
 			else
 			{
@@ -76,6 +76,10 @@ namespace MGroup.Solvers.DiscretizationExtensions
 			return freeDofs;
 		}
 
+		/// <summary>
+		/// Calculates an int[] map with map.Length = number of free dofs. For each free dof index, the total dof index for the element is stored (counting both free and constrained dofs), which matches the rows & columns of IElementMatrixProvider.Matrix(IElementType). If there are no constrained dofs, then an int[0] is returned instead.
+		/// </summary>
+		/// <returns>The free-to-all dofs int[] array (or int[0])</returns>
 		protected virtual int[] MapFreeToAllDofs()
 		{
 			IReadOnlyList<INode> elementNodes = ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
@@ -103,7 +107,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 				}
 			}
 
-			return hasConstrainedDofs ? freeToAllDofs.ToArray() : null;
+			return hasConstrainedDofs ? freeToAllDofs.ToArray() : Array.Empty<int>();
 		}
 	}
 }

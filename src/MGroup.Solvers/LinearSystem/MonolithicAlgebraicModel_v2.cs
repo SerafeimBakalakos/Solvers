@@ -35,7 +35,7 @@ namespace MGroup.Solvers.LinearSystem
 			foreach (INodalModelQuantity<IDofType> nodalQuantity in nodalModelQuantities)
 			{
 				int dofID = model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
-				int dofIdx = dofOrdering.Dofs[nodalQuantity.Node.ID, dofID];
+				int dofIdx = dofOrdering.DomainDofs[nodalQuantity.Node.ID, dofID];
 				subdomainVector[dofIdx] += nodalQuantity.Amount;
 			}
 		}
@@ -46,7 +46,7 @@ namespace MGroup.Solvers.LinearSystem
 			var results = new Table<int, int, double>();
 
 			// Free dofs
-			foreach ((int node, int dof, int freeDofIdx) in dofOrdering.Dofs)
+			foreach ((int node, int dof, int freeDofIdx) in dofOrdering.DomainDofs)
 			{
 				results[node, dof] = solutionFreeDofs[freeDofIdx];
 			}

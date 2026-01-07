@@ -44,6 +44,8 @@ namespace MGroup.Solvers.DDM.Tests._temp
 
 	public static class SimpleTests_temp
 	{
+		private const bool cacheElementDofs = true;
+
 		public enum SolverName
 		{
 			DenseMatrixSolver, CholeskyCscSolver, PcgSolver
@@ -66,7 +68,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			// Partition
 			Dictionary<int, int> elementsToSubdomains = Plane2DExample.GetSubdomainsOfElements();
 			Func<int, int> getSubdomainOfElement = (e) => elementsToSubdomains[e];
-			var domain = new DecomposedNonOverlappingDomain(model, elementMatrixProvider, Plane2DExample.NumSubdomainsTotal, getSubdomainOfElement);
+			var domain = new DecomposedNonOverlappingDomain(model, elementMatrixProvider, Plane2DExample.NumSubdomainsTotal, getSubdomainOfElement, cacheElementDofs);
 
 			// Solver
 			var solverFactory = new PsmSolver_v2<SymmetricCscMatrix>.Factory(environment, laProviderForSolver, new PsmSubdomainMatrixManagerSymmetricCsc_v2.Factory());
@@ -129,7 +131,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			environment.Initialize(nodeTopology);
 
 			// Solver
-			var domain = new FullDomain_v2(model, elementMatrixProvider, true);
+			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs);
 			var partition = new DefaultElementPartition(environment, model, domain);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
@@ -138,7 +140,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
 			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerDistributed();
 			IMatrixFreePreconditioner preconditioner = new MatrixFreeLumpedPreconditioner();
-			var solver = new MatrixFreeSolver(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner, true);
+			var solver = new MatrixFreeSolver(environment, domain, partition, pcgAlgorithmFactory.Build(), preconditioner, isHomogeneous: true);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -163,7 +165,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 		}
 
 		[Fact]
-		public static void TestMatrixFreeSolverGlobal()
+		public static void TestMatrixFreeSolverMonolithic()
 		{
 			IComputeEnvironment environment = new SequentialSharedEnvironment();
 
@@ -175,7 +177,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			var domain = new FullDomain_v2(model, elementMatrixProvider, true);
+			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs);
 			var partition = new DefaultElementPartition(environment, model, domain);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
@@ -184,7 +186,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
 			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
 			IMatrixFreePreconditioner preconditioner = new MatrixFreeLumpedPreconditionerMonolithic();
-			var solver = new MatrixFreeSolverMonolithic(domain, partition, pcgAlgorithmFactory.Build(), preconditioner, true);
+			var solver = new MatrixFreeSolverMonolithic(domain, partition, pcgAlgorithmFactory.Build(), preconditioner, isHomogeneous: true);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -222,7 +224,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			var domain = new FullDomain_v2(model, elementMatrixProvider, true);
+			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs);
 			ISolver_v2 solver = CreateMonolithicSolver(solverName, domain);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 

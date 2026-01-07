@@ -54,7 +54,7 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 			var internalToAll = new HashSet<int>();
 			int subdomainBoundaryIdx = 0;
 
-			IntDofTable allDofs = dofOrdering.Dofs;
+			IntDofTable allDofs = dofOrdering.DomainDofs;
 			IEnumerable<int> nodes = allDofs.GetRows();
 			if (sortDofsWhenPossible)
 			{

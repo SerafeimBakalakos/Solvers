@@ -22,16 +22,16 @@ namespace MGroup.Solvers.Assemblers
 
 		public CsrMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
-			int numDofs = dofOrdering.Dofs.NumEntries;
+			int numDofs = dofOrdering.DomainDofs.NumEntries;
 			var subdomainMatrix = DokRowMajor.CreateEmpty(numDofs, numDofs);
 
 			// Process the stiffness of each element
 			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
-				// TODO: perhaps that could be done and cached during the dof enumeration to avoid iterating over the dofs twice
-				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
+				int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
+				int[] temp = Enumerable.Range(0, elementToDomainDofs.Length).ToArray();
 				IMatrix elementMatrix = element.BuildMatrix();
-				subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, elementDofIndices, subdomainDofIndices);
+				subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, temp, elementToDomainDofs);
 			}
 
 			(double[] values, int[] colIndices, int[] rowOffsets) = subdomainMatrix.BuildCsrArrays(sortColsOfEachRow);

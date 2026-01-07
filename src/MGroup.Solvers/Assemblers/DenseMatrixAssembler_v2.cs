@@ -16,16 +16,15 @@ namespace MGroup.Solvers.Assemblers
 	{
 		public Matrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
 		{
-			int numDofs = dofOrdering.Dofs.NumEntries;
+			int numDofs = dofOrdering.DomainDofs.NumEntries;
 			var subdomainMatrix = Matrix.CreateZero(numDofs, numDofs);
 
 			// Process the stiffness of each element
 			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
-				// TODO: perhaps that could be done and cached during the dof enumeration to avoid iterating over the dofs twice
-				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
+				int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
 				IMatrix elementMatrix = element.BuildMatrix();
-				AddElementToSubdomainMatrix(subdomainMatrix, elementMatrix, elementDofIndices, subdomainDofIndices);
+				AddElementToSubdomainMatrix(subdomainMatrix, elementMatrix, elementToDomainDofs);
 			}
 
 			return subdomainMatrix;
@@ -33,6 +32,23 @@ namespace MGroup.Solvers.Assemblers
 
 		public void HandleDofOrderingWasModified()
 		{
+		}
+
+		private static void AddElementToSubdomainMatrix(Matrix subdomainMatrix, IReadOnlyMatrix elementMatrix, int[] elementToSubdomainDofs)
+		{
+			int order = elementMatrix.NumColumns;
+			Debug.Assert(elementMatrix.NumRows == order);
+			Debug.Assert(elementToSubdomainDofs.Length == order);
+
+			for (int i = 0; i < order; ++i)
+			{
+				int subdomainRow = elementToSubdomainDofs[i];
+				for (int j = 0; j < order; ++j)
+				{
+					int subdomainCol = elementToSubdomainDofs[j];
+					subdomainMatrix[subdomainRow, subdomainCol] += elementMatrix[i, j];
+				}
+			}
 		}
 
 		private static void AddElementToSubdomainMatrix(Matrix subdomainMatrix, IReadOnlyMatrix elementMatrix,

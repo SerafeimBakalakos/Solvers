@@ -189,7 +189,7 @@ namespace MGroup.Solvers.DDM
 		protected Dictionary<int, SortedDofSet> FindLocalSubdomainDofsAtCommonNodes(int subdomainID)
 		{
 			var commonDofsOfSubdomain = new Dictionary<int, SortedDofSet>();
-			IntDofTable subdomainDofs = getSubdomainDofs(subdomainID).Dofs;
+			IntDofTable subdomainDofs = getSubdomainDofs(subdomainID).DomainDofs;
 			foreach (int neighborID in GetNeighborsOfSubdomain(subdomainID))
 			{
 				var dofSet = new SortedDofSet();

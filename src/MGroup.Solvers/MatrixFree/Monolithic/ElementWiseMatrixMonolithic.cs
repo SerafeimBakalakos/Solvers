@@ -24,12 +24,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			ElementMatrices = new Dictionary<int, IReadOnlyMatrix>(elements.Count);
 			foreach (ISuperElement element in elements)
 			{
-				(int[] elementDofIndices, int[] subdomainDofIndices) = DofOrdering.MapDofsElementToSubdomain(element);
 				IMatrix elementMatrix = element.BuildMatrix();
-				if (elementDofIndices.Length != elementMatrix.NumColumns)
-				{
-					elementMatrix = elementMatrix.GetSubmatrix(elementDofIndices, elementDofIndices);
-				}
 				ElementMatrices[element.ID] = elementMatrix;
 			}
 		}
@@ -87,11 +82,11 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			y.Clear();
 			foreach (ISuperElement element in Elements)
 			{
-				(int[] elementDofIndices, int[] subdomainDofIndices) = DofOrdering.MapDofsElementToSubdomain(element);
-				Vector xe = x.GetSubvector(subdomainDofIndices);
-				var ye = Vector.CreateZero(subdomainDofIndices.Length);
+				int[] elementToDomainDofs = DofOrdering.MapDofsElementToDomain(element);
+				Vector xe = x.GetSubvector(elementToDomainDofs);
+				var ye = Vector.CreateZero(elementToDomainDofs.Length);
 				ElementMatrices[element.ID].MultiplyIntoResult(xe, ye);
-				y.AddIntoThisNonContiguouslyFrom(subdomainDofIndices, ye);
+				y.AddIntoThisNonContiguouslyFrom(elementToDomainDofs, ye);
 			}
 		}
 	}

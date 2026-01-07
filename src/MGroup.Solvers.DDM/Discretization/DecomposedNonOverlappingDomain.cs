@@ -21,7 +21,7 @@ namespace MGroup.Solvers.DDM.Discretization
 		private readonly Func<int, int> getSubdomainOfElement;
 		private readonly DefaultSubdomain_v2[] subdomains;
 
-		public DecomposedNonOverlappingDomain(IModel_v2 model, IElementMatrixProvider elementMatrixProvider, int numSubdomains, Func<int, int> getSubdomainOfElement)
+		public DecomposedNonOverlappingDomain(IModel_v2 model, IElementMatrixProvider elementMatrixProvider, int numSubdomains, Func<int, int> getSubdomainOfElement, bool cacheElementDofs = true)
 		{
 			this.model = model;
 			this.constrainedDofLocator = new ConstrainedDofLocator(model);
@@ -30,7 +30,7 @@ namespace MGroup.Solvers.DDM.Discretization
 			this.subdomains = new DefaultSubdomain_v2[numSubdomains];
 			for (int s = 0; s < numSubdomains; s++)
 			{
-				this.subdomains[s] = new DefaultSubdomain_v2(s, model, constrainedDofLocator, elementMatrixProvider);
+				this.subdomains[s] = new DefaultSubdomain_v2(s, model, constrainedDofLocator, elementMatrixProvider, cacheElementDofs);
 			}
 
 			foreach (IElementType element in model.EnumerateElements())

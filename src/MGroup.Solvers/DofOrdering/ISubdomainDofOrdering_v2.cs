@@ -11,14 +11,19 @@ namespace MGroup.Solvers.DofOrdering
 
 	public interface ISubdomainDofOrdering_v2
 	{
-		IntDofTable Dofs { get; }
+		IntDofTable DomainDofs { get; }
 
 		int NumDofs { get; }
 
-		(int[] elementDofIndices, int[] subdomainDofIndices) MapDofsElementToSubdomain(ISuperElement element);
+		/// <summary>
+		/// </summary>
+		/// <param name="element"></param>
+		/// <remarks>
+		/// Assumes that all dofs in <paramref name="element"/> also exist in the subdomain.
+		/// </remarks>
+		/// <returns></returns>
+		int[] MapDofsElementToDomain(ISuperElement element);
 
 		void OrderDofs();
-
-		void PrepareDofMaps();
 	}
 }

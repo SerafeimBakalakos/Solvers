@@ -36,9 +36,9 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 				inverseDiagonalMatrix = DiagonalMatrix.CreateZero(dofOrdering.NumDofs);
 				foreach (ISuperElement element in elements)
 				{
-					(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
+					int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
 					IReadOnlyMatrix elementMatrix = partitionedMatrix.ElementMatrices[element.ID];
-					inverseDiagonalMatrix.AddSubmatrix(subdomainDofIndices, elementMatrix.GetDiagonalAsArray());
+					inverseDiagonalMatrix.AddSubmatrix(elementToDomainDofs, elementMatrix.GetDiagonalAsArray());
 				}
 				inverseDiagonalMatrix.Invert();
 			}

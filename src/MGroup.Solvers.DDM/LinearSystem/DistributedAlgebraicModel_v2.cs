@@ -48,7 +48,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 			DistributedOverlappingVector distributedVector = CheckCompatibleVector(vector);
 			environment.DoPerNode(subdomainID =>
 			{
-				IntDofTable subdomainFreeDofs = freeDofOrderings[subdomainID].Dofs;
+				IntDofTable subdomainFreeDofs = freeDofOrderings[subdomainID].DomainDofs;
 				var subdomainVector = distributedVector.LocalVectors[subdomainID];
 
 				//TODO: This was optimized previously! ProblemStructural and Model provided only the loads that correspond to this subdomain
@@ -82,7 +82,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 			// Free dofs
 			DistributedOverlappingVector distributedVector = CheckCompatibleVector(solutionFreeDofs);
 			Vector subdomainVector = distributedVector.LocalVectors[subdomainID];
-			IntDofTable subdomainFreeDofs = freeDofOrderings[subdomainID].Dofs;
+			IntDofTable subdomainFreeDofs = freeDofOrderings[subdomainID].DomainDofs;
 			foreach ((int node, int dof, int freeDofIdx) in subdomainFreeDofs)
 			{
 				results[node, dof] = subdomainVector[freeDofIdx];

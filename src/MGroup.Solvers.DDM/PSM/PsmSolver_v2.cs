@@ -226,14 +226,13 @@ namespace MGroup.Solvers.DDM.Psm
 			environment.DoPerNode(subdomainID =>
 			{
 				subdomainDofOrderings[subdomainID].OrderDofs();
-				subdomainDofOrderings[subdomainID].PrepareDofMaps();
 				subdomainMatrixAssemblers[subdomainID].HandleDofOrderingWasModified();
 			});
 
 			subdomainTopology.FindCommonNodesBetweenSubdomains();
 			subdomainTopology.FindCommonDofsBetweenSubdomains();
 
-			allDofIndexer = subdomainTopology.CreateDistributedVectorIndexer(s => subdomainDofOrderings[s].Dofs);
+			allDofIndexer = subdomainTopology.CreateDistributedVectorIndexer(s => subdomainDofOrderings[s].DomainDofs);
 			LinearSystem.RhsVector = new DistributedOverlappingVector(allDofIndexer);
 			LinearSystem.Solution = new DistributedOverlappingVector(allDofIndexer);
 		}

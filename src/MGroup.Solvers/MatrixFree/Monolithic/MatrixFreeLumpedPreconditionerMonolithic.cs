@@ -36,12 +36,12 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			x.Clear();
 			foreach (ISuperElement element in elements)
 			{
-				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
+				int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
 				DiagonalMatrix We = dofScaling.GetScalingMatrix(element.ID);
-				Vector ye = y.GetSubvector(subdomainDofIndices);
-				var xe = Vector.CreateZero(subdomainDofIndices.Length);
+				Vector ye = y.GetSubvector(elementToDomainDofs);
+				var xe = Vector.CreateZero(elementToDomainDofs.Length);
 				elementInverseDiagonals[element.ID].MultiplyIntoResult(We*ye, xe);
-				x.AddIntoThisNonContiguouslyFrom(subdomainDofIndices, We*xe);
+				x.AddIntoThisNonContiguouslyFrom(elementToDomainDofs, We*xe);
 			}
 		}
 

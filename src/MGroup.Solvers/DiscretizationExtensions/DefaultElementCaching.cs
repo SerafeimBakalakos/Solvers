@@ -58,10 +58,22 @@ namespace MGroup.Solvers.DiscretizationExtensions
 			{
 				this.freeToAllDofs = freeToAllDofs.ToArray(); // It will be used for matrix assembly
 			}
+			else
+			{
+				this.freeToAllDofs = Array.Empty<int>();
+			}
 
 			return freeDofs;
 		}
 
-		protected override int[] MapFreeToAllDofs() => freeToAllDofs;
+		protected override int[] MapFreeToAllDofs()
+		{
+			if (freeToAllDofs == null)
+			{
+				throw new InvalidOperationException("The free & constrained dofs of this element have not been identified yet");
+			}
+
+			return freeToAllDofs;
+		}
 	}
 }

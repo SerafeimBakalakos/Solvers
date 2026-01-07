@@ -11,7 +11,7 @@ namespace MGroup.Solvers.DofOrdering
 	{
 		private readonly ISubdomain_v2 subdomain;
 		private readonly IReorderingAlgorithm? reorderingAlgorithm;
-		private Dictionary<int, (int[] element, int[] subdomain)> elementToSubdomainDofIndices = new Dictionary<int, (int[], int[])>();
+		private Dictionary<int, int[]> elementToDomainDofIndices;
 
 		public MonolithicDomainDofOrdering_v2(ISubdomain_v2 subdomain, IReorderingAlgorithm? reorderingAlgorithm)
 		{
@@ -19,80 +19,61 @@ namespace MGroup.Solvers.DofOrdering
 			this.reorderingAlgorithm = reorderingAlgorithm;
 		}
 
-		public IntDofTable Dofs { get; private set; }
+		public IntDofTable DomainDofs { get; private set; }
 
 		public int NumDofs { get; private set; }
 
-		/// <summary>
-		/// </summary>
-		/// <param name="element"></param>
-		/// <remarks>
-		/// Assumes that all dofs in <paramref name="element"/> also exist in the subdomain.
-		/// </remarks>
-		/// <returns></returns>
-		public (int[] elementDofIndices, int[] subdomainDofIndices) MapDofsElementToSubdomain(ISuperElement element)
-		{
-			bool isStored = elementToSubdomainDofIndices.TryGetValue(element.ID, out (int[] element, int[] subdomain) dofIndices);
-			if (!isStored)
-			{
-				dofIndices = MapDofs(element);
-				elementToSubdomainDofIndices[element.ID] = dofIndices;
-			}
-
-			return dofIndices;
-		}
+		public int[] MapDofsElementToDomain(ISuperElement element) => elementToDomainDofIndices[element.ID];
 
 		public void OrderDofs()
 		{
-			Dofs = subdomain.OrderDofs_temp();
-			NumDofs = Dofs.NumEntries;
+			// Domain dofs
+			DomainDofs = subdomain.OrderDofs_temp();
+			NumDofs = DomainDofs.NumEntries;
+			
+			// Reordering
 			if (reorderingAlgorithm != null)
 			{
 				ReorderDofs(reorderingAlgorithm);
 			}
-		}
 
-		public void PrepareDofMaps()
-		{
-			elementToSubdomainDofIndices = new Dictionary<int, (int[], int[])>();
+			// Element-to-domain dof maps
+			elementToDomainDofIndices = new Dictionary<int, int[]>();
 			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
-				elementToSubdomainDofIndices[element.ID] = MapDofs(element);
+				elementToDomainDofIndices[element.ID] = MapElementDofs(element);
 			}
 		}
 
-		public void WriteLocalToGlobalMaps_temp()
-		{
-			foreach (int elemID in elementToSubdomainDofIndices.Keys)
-			{
-				(_, int[] localToGlobal) = elementToSubdomainDofIndices[elemID];
-				Debug.Write($"Element {elemID}: local-to-global dofs =");
-				foreach (int index in localToGlobal)
-				{
-					Debug.Write(" ");
-					Debug.Write(index);
-				}
-				Debug.WriteLine("");
-			}
-		}
 
-		private (int[] elementDofIndices, int[] subdomainDofIndices) MapDofs(ISuperElement superElement)
+		//public void WriteLocalToGlobalMaps_temp()
+		//{
+		//	foreach (int elemID in elementToDomainDofIndices.Keys)
+		//	{
+		//		int[] localToGlobal = elementToDomainDofIndices[elemID];
+		//		Debug.Write($"Element {elemID}: local-to-global dofs =");
+		//		foreach (int index in localToGlobal)
+		//		{
+		//			Debug.Write(" ");
+		//			Debug.Write(index);
+		//		}
+		//		Debug.WriteLine("");
+		//	}
+		//}
+
+		private int[] MapElementDofs(ISuperElement superElement)
 		{
 			IntDofTable elementDofs = superElement.GetDofs();
 			int numElementDofs = elementDofs.NumEntries; //TODO: Optimize this
 
-			var elementDofIndices = new List<int>(numElementDofs);
-			var subdomainDofIndices = new List<int>(numElementDofs);
+			var map = new int[numElementDofs];
 			foreach ((int nodeID, int dofID, int elementDofIdx) in elementDofs)
 			{
-				if (Dofs.TryGetValue(nodeID, dofID, out int subdomainDofIdx))
-				{
-					elementDofIndices.Add(elementDofIdx);
-					subdomainDofIndices.Add(subdomainDofIdx);
-				}
+				int domainDofIdx = DomainDofs[nodeID, dofID]; // If the element has dofs that do not exist in the domain, something has gone wrong. Let it throw an exception.
+				map[elementDofIdx] = domainDofIdx;
 			}
 
-			return (elementDofIndices.ToArray(), subdomainDofIndices.ToArray());
+			return map;
 		}
 
 		private void ReorderDofs(IReorderingAlgorithm reorderingAlgorithm)
@@ -100,14 +81,14 @@ namespace MGroup.Solvers.DofOrdering
 			var pattern = SparsityPatternSymmetric.CreateEmpty(NumDofs);
 			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
-				(int[] elementDofIndices, int[] subdomainDofIndices) = MapDofsElementToSubdomain(element);
+				int[] elementToDomainDofs = MapElementDofs(element);
 
-				//TODO: ISubdomainFreeDofOrdering could perhaps return whether the subdomainDofIndices are sorted or not.
-				pattern.ConnectIndices(subdomainDofIndices, false);
+				//TODO: This object could perhaps return whether the subdomainDofIndices are sorted or not.
+				pattern.ConnectIndices(elementToDomainDofs, false);
 			}
 
 			(int[] permutation, bool oldToNew) = reorderingAlgorithm.FindPermutation(pattern);
-			Dofs.Reorder(permutation, oldToNew);
+			DomainDofs.Reorder(permutation, oldToNew);
 		}
 	}
 }

@@ -59,7 +59,6 @@ namespace MGroup.Solvers.Iterative
 		public void PrepareDofs()
 		{
 			DofOrdering.OrderDofs();
-			DofOrdering.PrepareDofMaps();
 			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
 		}
 

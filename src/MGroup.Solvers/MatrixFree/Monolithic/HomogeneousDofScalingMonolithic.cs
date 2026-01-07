@@ -31,32 +31,24 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			elementScalingMatrices = new Dictionary<int, DiagonalMatrix>();
 			foreach (ISuperElement element in elements)
 			{
-				// Multiplicities of all element dofs
+				// Multiplicities of element dofs
 				IntDofTable elementDofs = element.GetDofs();
-				var dofMultiplicitiesAll = new int[elementDofs.NumEntries];
+				int numDofs = elementDofs.NumEntries;
+				var dofMultiplicities = new int[numDofs];
 				foreach (INode node in element.EnumerateNodes())
 				{
 					int nodeMultiplicity = partition.FindMultiplicityOfNode(node.ID);
 					foreach (int dofIdx in elementDofs.GetValuesOfRow(node.ID))
 					{
-						dofMultiplicitiesAll[dofIdx] = nodeMultiplicity;
+						dofMultiplicities[dofIdx] = nodeMultiplicity;
 					}
 				}
 
-				// Multiplicities of active dofs only (e.g. free dofs)
-				(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapDofsElementToSubdomain(element);
-				int numActiveDofs = elementDofIndices.Length;
-				var dofMultiplicitiesActive = new int[numActiveDofs];
-				for (int i = 0; i < numActiveDofs; i++)
-				{
-					dofMultiplicitiesActive[i] = dofMultiplicitiesAll[elementDofIndices[i]];
-				}
-
 				// Invert
-				var inverseMultiplicities = new double[numActiveDofs];
-				for (int i = 0; i < numActiveDofs; i++)
+				var inverseMultiplicities = new double[numDofs];
+				for (int i = 0; i < numDofs; i++)
 				{
-					inverseMultiplicities[i] = 1.0 / dofMultiplicitiesActive[i];
+					inverseMultiplicities[i] = 1.0 / dofMultiplicities[i];
 				}
 
 				elementScalingMatrices[element.ID] = DiagonalMatrix.CreateFromArray(inverseMultiplicities);

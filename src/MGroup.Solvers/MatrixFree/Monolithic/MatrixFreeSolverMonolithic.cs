@@ -72,7 +72,6 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 		public void PrepareDofs()
 		{
 			DofOrdering.OrderDofs();
-			DofOrdering.PrepareDofMaps();
 			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
 		}
 
