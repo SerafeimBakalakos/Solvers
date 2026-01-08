@@ -31,7 +31,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 
 		public DiagonalMatrix GetScalingMatrix(int elementID) => elementScalingMatrices[elementID];
 
-		public void Initialize()
+		public void Update()
 		{
 			elementScalingMatrices = environment.CalcNodeData(elementID =>
 			{

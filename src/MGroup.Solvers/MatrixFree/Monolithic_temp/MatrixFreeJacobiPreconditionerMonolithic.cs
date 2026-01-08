@@ -3,7 +3,6 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using System;
 	using System.Collections.Generic;
 	using System.Text;
-	using System.Xml.Linq;
 
 	using MGroup.LinearAlgebra.Exceptions;
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
@@ -15,53 +14,33 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.Solvers.MatrixFree.Dofs;
 	using MGroup.Solvers.MatrixFree.Preconditioning;
 
-	public class MatrixFreeLumpedPreconditionerMonolithic : IMatrixFreePreconditioner
+	public class MatrixFreeJacobiPreconditionerMonolithic : IMatrixFreePreconditionerMonolithic
 	{
-		private IDofScaling dofScaling;
 		private ISubdomainDofOrdering_v2 dofOrdering;
 		private IReadOnlyCollection<ISuperElement> elements;
-		private Dictionary<int, DiagonalMatrix> elementInverseDiagonals;
+		private DiagonalMatrix inverseDiagonalMatrix;
 
-		public MatrixFreeLumpedPreconditionerMonolithic()
-		{
-		}
-
-		public IPreconditioner CopyWithInitialSettings() => throw new NotImplementedException();
+		public IPreconditioner CopyWithInitialSettings() => new MatrixFreeJacobiPreconditionerMonolithic();
 
 		public void SolveLinearSystem(IReadOnlyVector rhsVector, IVector lhsVector)
 		{
-			//TODO: This is almost idential to PartitionedMatrix.MultiplyVectorIntoResult
-			var x = (Vector)lhsVector;
-			var y = (Vector)rhsVector;
-			x.Clear();
-			foreach (ISuperElement element in elements)
-			{
-				int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
-				DiagonalMatrix We = dofScaling.GetScalingMatrix(element.ID);
-				Vector ye = y.GetSubvector(elementToDomainDofs);
-				var xe = Vector.CreateZero(elementToDomainDofs.Length);
-				elementInverseDiagonals[element.ID].MultiplyIntoResult(We*ye, xe);
-				x.AddIntoThisNonContiguouslyFrom(elementToDomainDofs, We*xe);
-			}
+			inverseDiagonalMatrix.MultiplyIntoResult(rhsVector, lhsVector);
 		}
 
 		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling)
 		{
 			if (systemMatrix is ElementWiseMatrixMonolithic partitionedMatrix)
 			{
-				this.elements = elements;
 				this.dofOrdering = dofOrdering;
-				this.dofScaling = dofScaling;
-				dofScaling.Initialize();
-
-				elementInverseDiagonals = new Dictionary<int, DiagonalMatrix>();
+				this.elements = elements;
+				inverseDiagonalMatrix = DiagonalMatrix.CreateZero(dofOrdering.NumDofs);
 				foreach (ISuperElement element in elements)
 				{
+					int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
 					IReadOnlyMatrix elementMatrix = partitionedMatrix.ElementMatrices[element.ID];
-					var diagonal = DiagonalMatrix.CreateFromArray(elementMatrix.GetDiagonalAsArray());
-					diagonal.Invert();
-					elementInverseDiagonals[element.ID] = diagonal;
+					inverseDiagonalMatrix.AddSubmatrix(elementToDomainDofs, elementMatrix.GetDiagonalAsArray());
 				}
+				inverseDiagonalMatrix.Invert();
 			}
 			else
 			{

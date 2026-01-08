@@ -8,7 +8,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 
 	public interface IDofScaling
 	{
-		void Initialize();
+		void Update();
 
 		DiagonalMatrix GetScalingMatrix(int elementID);
 	}

@@ -17,11 +17,11 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 	using MGroup.Solvers.LinearAlgebraExtensions;
 	using MGroup.Solvers.MatrixFree.Dofs;
 
-	public class MatrixFreeJacobiPreconditioner : IMatrixFreePreconditioner
+	public class MatrixFreeJacobiPreconditioner : IPreconditioner
 	{
 		private DistributedOverlappingVector inverseDiagonal;
 
-		public IPreconditioner CopyWithInitialSettings() => new MatrixFreeJacobiPreconditioner();
+		public IPreconditioner CopyWithInitialSettings() => throw new NotImplementedException();
 
 		public void SolveLinearSystem(IReadOnlyVector rhsVector, IVector lhsVector)
 		{
@@ -34,6 +34,18 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 				throw new ArgumentException(
 					"This operation is legal only if the left-hand-side and right-hand-side vectors are distributed" +
 					" with overlapping entries.");
+			}
+		}
+
+		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified)
+		{
+			if (matrix is DistributedOverlappingMatrix<IMatrix> distributedMatrix)
+			{
+				UpdateMatrix(distributedMatrix);
+			}
+			else
+			{
+				throw new NonMatchingFormatException($"Can only operate on {nameof(DistributedOverlappingMatrix<IMatrix>)}");
 			}
 		}
 
@@ -52,26 +64,17 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 			});
 		}
 
-		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling)
-		{
-			if (systemMatrix is DistributedOverlappingMatrix<IMatrix> distributedMatrix)
-			{
-				UpdateMatrix(distributedMatrix);
-			}
-			else
-			{
-				throw new NonMatchingFormatException($"Can only operate on {nameof(DistributedOverlappingMatrix<IMatrix>)}");
-			}
-		}
-
-		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified) => throw new NotImplementedException();
-
 		private void UpdateMatrix(DistributedOverlappingMatrix<IMatrix> matrix)
 		{
 			var diagonal = new DistributedOverlappingVector(matrix.Indexer, e => matrix.LocalMatrices[e].GetDiagonal());
 			diagonal.SumOverlappingEntries(); // Doing this avoids any need for dof scaling!
 			diagonal.DoToAllEntriesIntoThis(x => 1 / x);
 			inverseDiagonal = diagonal;
+		}
+
+		public class Factory : IMatrixFreePreconditionerFactory
+		{
+			public IPreconditioner CreatePreconditioner(IDofScaling dofScaling) => new MatrixFreeJacobiPreconditioner();
 		}
 	}
 }

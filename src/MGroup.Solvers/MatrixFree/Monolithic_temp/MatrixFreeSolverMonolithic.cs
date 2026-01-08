@@ -28,11 +28,11 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 		private readonly bool matrixPatternWillNotBeModified = false;
 		private readonly IElementPartition partition;
 		private readonly PcgAlgorithm pcgAlgorithm;
-		private readonly IMatrixFreePreconditioner preconditioner;
+		private readonly IMatrixFreePreconditionerMonolithic preconditioner;
 
 		private bool mustUpdatePreconditioner = true;
 
-		public MatrixFreeSolverMonolithic(ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditioner preconditioner, bool isHomogeneous, bool cacheElementDofs = true)
+		public MatrixFreeSolverMonolithic(ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditionerMonolithic preconditioner, bool isHomogeneous, bool cacheElementDofs = true)
 		{
 			Domain = domain;
 			elements = Domain.EnumerateElements().ToList();

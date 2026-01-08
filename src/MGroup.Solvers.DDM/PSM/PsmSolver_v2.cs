@@ -480,7 +480,7 @@ namespace MGroup.Solvers.DDM.Psm
 
 			public bool OptimizedSubdomainTopology { get; set; } = false;
 
-			public virtual PsmSolver_v2<TMatrix> BuildSolver(ISubdomain_v2 domain, IPartition_v2 partition)
+			public virtual PsmSolver_v2<TMatrix> CreateSolver(ISubdomain_v2 domain, IPartition_v2 partition)
 			{
 				//DdmLogger logger = EnableLogging ? new DdmLogger(environment, "PSM Solver", model.NumSubdomains) : null;
 				DdmLogger logger = null;

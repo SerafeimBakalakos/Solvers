@@ -6,12 +6,13 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.MatrixFree.Dofs;
 
-	public interface IMatrixFreePreconditioner : IPreconditioner
+	public class MatrixFreeIdentityPreconditionerFactory : IMatrixFreePreconditionerFactory
 	{
-		void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling);
+		public IPreconditioner CreatePreconditioner(IDofScaling dofScaling) => new IdentityPreconditioner();
 	}
 }

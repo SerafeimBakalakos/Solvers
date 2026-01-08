@@ -67,7 +67,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 				ResidualTolerance = 1E-10
 			};
 			solverFactory.CacheElementDofs = cacheElementDofs;
-			PsmSolver_v2<SymmetricCscMatrix> solver = solverFactory.BuildSolver(domain, domain.Partition);
+			PsmSolver_v2<SymmetricCscMatrix> solver = solverFactory.CreateSolver(domain, domain.Partition);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -129,13 +129,13 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
 			solverFactory.IterativeAlgorithm = pcgAlgorithmFactory.Build();
-			//solverFactory.Preconditioner = new MatrixFreeIdentityPreconditioner();
-			//solverFactory.Preconditioner = new MatrixFreeJacobiPreconditioner();
-			solverFactory.Preconditioner = new MatrixFreeLumpedPreconditioner();
+			//solverFactory.PreconditionerFactory = new MatrixFreeIdentityPreconditionerFactory();
+			//solverFactory.PreconditionerFactory = new MatrixFreeJacobiPreconditioner.Factory();
+			solverFactory.PreconditionerFactory = new MatrixFreeLumpedPreconditioner.Factory(environment);
 			solverFactory.IsMaterialHomogeneous = true;
 			//solverFactory.ElementMatrixConverter = new NullElementMatrixConverter();
 			solverFactory.ElementMatrixConverter = new FullRowMajorElementMatrixConverter();
-			MatrixFreeSolver solver = solverFactory.BuildSolver(domain, partition);
+			MatrixFreeSolver solver = solverFactory.CreateSolver(domain, partition);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
 			// Linear static analysis
@@ -178,9 +178,9 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
 			pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 			pcgAlgorithmFactory.ResidualTolerance = 1E-10;
-			//IMatrixFreePreconditioner preconditioner = new IdentityPreconditioner();
-			//IMatrixFreePreconditioner preconditioner = new PartitionedJacobiPreconditionerGlobal();
-			IMatrixFreePreconditioner preconditioner = new MatrixFreeLumpedPreconditionerMonolithic();
+			//IMatrixFreePreconditionerMonolithic preconditioner = new IdentityPreconditioner();
+			//IMatrixFreePreconditionerMonolithic preconditioner = new PartitionedJacobiPreconditionerGlobal();
+			IMatrixFreePreconditionerMonolithic preconditioner = new MatrixFreeLumpedPreconditionerMonolithic();
 			var solver = new MatrixFreeSolverMonolithic(domain, partition, pcgAlgorithmFactory.Build(), preconditioner, isHomogeneous: true, cacheElementDofs);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 

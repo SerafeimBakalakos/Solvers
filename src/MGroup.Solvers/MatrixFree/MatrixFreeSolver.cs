@@ -35,35 +35,36 @@ namespace MGroup.Solvers.MatrixFree
 
 	public class MatrixFreeSolver : ISolver_v2
 	{
-		private readonly IDofScaling dofScaling;
 		private readonly IComputeEnvironment environment;
 		private readonly bool matrixPatternWillNotBeModified = false;
 		private readonly IElementPartition partition;
 		private readonly PcgAlgorithm pcgAlgorithm;
-		private readonly IMatrixFreePreconditioner preconditioner;
+		private readonly IPreconditioner preconditioner;
 		private readonly IElementMatrixConverter elementMatrixConverter;
 		private bool mustUpdatePreconditioner = true;
 		private DistributedOverlappingIndexer dofIndexer;
 
-		public MatrixFreeSolver(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm iterativeAlgorithm, IMatrixFreePreconditioner preconditioner, IElementMatrixConverter elementMatrixConverter, bool isHomogeneous)
+		public MatrixFreeSolver(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm iterativeAlgorithm, IMatrixFreePreconditionerFactory preconditionerFactory, IElementMatrixConverter elementMatrixConverter, bool isHomogeneous)
 		{
 			this.environment = environment;
 			Domain = domain;
 			this.partition = partition;
 			this.pcgAlgorithm = iterativeAlgorithm;
-			this.preconditioner = preconditioner;
 			this.elementMatrixConverter = elementMatrixConverter;
 			DofOrdering = new DistributedDofOrdering(environment, domain, partition);
 			LinearSystem = new LinearSystem_v2();
 
+			IDofScaling dofScaling;
 			if (isHomogeneous)
 			{
-				this.dofScaling = new HomogeneousDofScaling(environment, Domain, partition, DofOrdering);
+				dofScaling = new HomogeneousDofScaling(environment, Domain, partition, DofOrdering);
 			}
 			else
 			{
 				throw new NotImplementedException();
 			}
+
+			this.preconditioner = preconditionerFactory.CreatePreconditioner(dofScaling);
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
@@ -121,7 +122,7 @@ namespace MGroup.Solvers.MatrixFree
 			{
 				watch.Start();
 				//preconditioner.UpdateMatrix(LinearSystem.Matrix, !matrixPatternWillNotBeModified);
-				preconditioner.Update(LinearSystem.Matrix, null, null, dofScaling);
+				preconditioner.UpdateMatrix(LinearSystem.Matrix, true);
 				mustUpdatePreconditioner = false;
 				watch.Stop();
 				Logger.LogTaskDuration("Calculating preconditioner", watch.ElapsedMilliseconds);
@@ -162,11 +163,12 @@ namespace MGroup.Solvers.MatrixFree
 
 			public PcgAlgorithm IterativeAlgorithm { get; set; }
 
-			public IMatrixFreePreconditioner Preconditioner { get; set; } = new MatrixFreeJacobiPreconditioner();
+			public IMatrixFreePreconditionerFactory PreconditionerFactory { get; set; }
+				= new MatrixFreeJacobiPreconditioner.Factory();
 
-			public MatrixFreeSolver BuildSolver(ISubdomain_v2 domain, IElementPartition partition)
+			public MatrixFreeSolver CreateSolver(ISubdomain_v2 domain, IElementPartition partition)
 			{
-				return new MatrixFreeSolver(environment, domain, partition, IterativeAlgorithm, Preconditioner, ElementMatrixConverter, IsMaterialHomogeneous);
+				return new MatrixFreeSolver(environment, domain, partition, IterativeAlgorithm, PreconditionerFactory, ElementMatrixConverter, IsMaterialHomogeneous);
 			}
 		}
 	}

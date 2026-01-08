@@ -26,7 +26,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			this.elements = elements;
 		}
 
-		public void Initialize()
+		public void Update()
 		{
 			elementScalingMatrices = new Dictionary<int, DiagonalMatrix>();
 			foreach (ISuperElement element in elements)
