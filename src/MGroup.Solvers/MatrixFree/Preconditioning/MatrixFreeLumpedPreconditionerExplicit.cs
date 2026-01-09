@@ -18,18 +18,20 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 	using MGroup.Solvers.LinearAlgebraExtensions;
 	using MGroup.Solvers.MatrixFree.Dofs;
 
-	public class MatrixFreeLumpedPreconditioner : IPreconditioner
+	public class MatrixFreeLumpedPreconditionerExplicit : IPreconditioner
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly IDofScaling dofScaling;
+		private readonly bool cacheTempStorage;
 
-		private Dictionary<int, DiagonalMatrix> elementInverseDiagonals;
+		private Dictionary<int, DiagonalMatrix> elementMatrices;
 		private DistributedOverlappingIndexer indexer;
 
-		public MatrixFreeLumpedPreconditioner(IComputeEnvironment environment, IDofScaling dofScaling)
+		public MatrixFreeLumpedPreconditionerExplicit(IComputeEnvironment environment, IDofScaling dofScaling, bool cacheTempStorage)
 		{
 			this.environment = environment;
 			this.dofScaling = dofScaling;
+			this.cacheTempStorage = cacheTempStorage;
 		}
 
 		public IPreconditioner CopyWithInitialSettings() => throw new NotImplementedException();
@@ -52,16 +54,7 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 		{
 			if (matrix is DistributedOverlappingMatrix<IMatrix> distributedMatrix)
 			{
-				indexer = distributedMatrix.Indexer;
-				dofScaling.Update();
-
-				elementInverseDiagonals = environment.CalcNodeData(elementID =>
-				{
-					IMatrix elementMatrix = distributedMatrix.LocalMatrices[elementID];
-					var diagonal = DiagonalMatrix.CreateFromArray(elementMatrix.GetDiagonalAsArray());
-					diagonal.Invert();
-					return diagonal;
-				});
+				UpdateMatrix(distributedMatrix);
 			}
 			else
 			{
@@ -78,17 +71,31 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 			{
 				Vector xe = input.LocalVectors[elementID];
 				Vector ye = output.LocalVectors[elementID];
-				DiagonalMatrix De = elementInverseDiagonals[elementID];
-				DiagonalMatrix We = dofScaling.GetScalingMatrix(elementID);
+				DiagonalMatrix Me = elementMatrices[elementID];
 
-				// ye = (We)^T * De * We * xe
-				var temp = Vector.CreateZero(xe.Length);
-				We.MultiplyIntoResult(xe, ye);
-				De.MultiplyIntoResult(ye, temp);
-				We.MultiplyIntoResult(temp, ye);
+				// ye = Me * xe = (We)^T * De * We * xe
+				Me.MultiplyIntoResult(xe, ye);
 			});
 
 			output.SumOverlappingEntries();
+		}
+
+		private void UpdateMatrix(DistributedOverlappingMatrix<IMatrix> matrix)
+		{
+			indexer = matrix.Indexer;
+			dofScaling.Update();
+
+			elementMatrices = environment.CalcNodeData(elementID =>
+			{
+				IMatrix elementMatrix = matrix.LocalMatrices[elementID];
+				// Extracting the diagonal is not implicit per se, but it is always more efficient than repeatedly accessing the diagonal entries of an arbitrary matrix format.
+				var De = DiagonalMatrix.CreateFromArray(elementMatrix.GetDiagonalAsArray());
+				De.Invert();
+				
+				DiagonalMatrix We = dofScaling.GetScalingMatrix(elementID);
+				De.OtherTransposeTimesThisTimesOther(We);
+				return De;
+			});
 		}
 
 		public class Factory : IMatrixFreePreconditionerFactory
@@ -100,8 +107,10 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 				this.environment = environment;
 			}
 
+			public bool CacheTemporaryStorage { get; set; } = false;
+
 			public IPreconditioner CreatePreconditioner(IDofScaling dofScaling)
-				=> new MatrixFreeLumpedPreconditioner(environment, dofScaling);
+				=> new MatrixFreeLumpedPreconditionerExplicit(environment, dofScaling, CacheTemporaryStorage);
 		}
 	}
 }

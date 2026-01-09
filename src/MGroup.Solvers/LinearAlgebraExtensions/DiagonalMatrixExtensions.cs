@@ -19,6 +19,28 @@ namespace MGroup.Solvers.LinearAlgebraExtensions
 			}
 		}
 
+		public static void MultiplyEntryWise(this DiagonalMatrix thisMatrix, DiagonalMatrix otherMatrix)
+		{
+			double[] thisDiagonal = thisMatrix.RawDiagonal;
+			double[] otherDiagonal = otherMatrix.RawDiagonal;
+			for (int i = 0; i < thisMatrix.NumColumns; i++)
+			{
+				thisDiagonal[i] *= otherDiagonal[i];
+			}
+		}
+
+		public static void OtherTransposeTimesThisTimesOther(this DiagonalMatrix thisMatrix, DiagonalMatrix otherMatrix)
+		{
+			// No transposing is needed, since everything is diagonal
+			double[] thisDiagonal = thisMatrix.RawDiagonal;
+			double[] otherDiagonal = otherMatrix.RawDiagonal;
+			for (int i = 0; i < thisMatrix.NumColumns; i++)
+			{
+				double otherValue = otherDiagonal[i];
+				thisDiagonal[i] *= otherValue * otherValue;
+			}
+		}
+
 		public static void MultiplyIntoResult(this DiagonalMatrix thisMatrix, IReadOnlyVector lhs, IVector rhs)
 		{
 			if ((lhs is Vector lhsDense) && (rhs is Vector rhsDense))

@@ -67,7 +67,7 @@ namespace MGroup.Solvers.MatrixFree.Preconditioning
 		private void UpdateMatrix(DistributedOverlappingMatrix<IMatrix> matrix)
 		{
 			var diagonal = new DistributedOverlappingVector(matrix.Indexer, e => matrix.LocalMatrices[e].GetDiagonal());
-			diagonal.SumOverlappingEntries(); // Doing this avoids any need for dof scaling!
+			diagonal.SumOverlappingEntries(); // Doing this avoids any need for dof scaling (e.g. based on multiplicity)!
 			diagonal.DoToAllEntriesIntoThis(x => 1 / x);
 			inverseDiagonal = diagonal;
 		}
