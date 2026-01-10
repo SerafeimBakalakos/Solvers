@@ -133,7 +133,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			//solverFactory.PreconditionerFactory = new MatrixFreeJacobiPreconditioner.Factory();
 			solverFactory.PreconditionerFactory = new MatrixFreeLumpedPreconditionerImplicit.Factory(environment);
 			//solverFactory.PreconditionerFactory = new MatrixFreeLumpedPreconditionerExplicit.Factory(environment);
-			solverFactory.IsMaterialHomogeneous = true;
+			solverFactory.IsMaterialHomogeneous = false;
 			//solverFactory.ElementMatrixConverter = new NullElementMatrixConverter();
 			solverFactory.ElementMatrixConverter = new FullRowMajorElementMatrixConverter();
 			MatrixFreeSolver solver = solverFactory.CreateSolver(domain, partition);

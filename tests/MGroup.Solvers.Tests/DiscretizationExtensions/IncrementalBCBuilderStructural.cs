@@ -1,7 +1,10 @@
-namespace MGroup.Solvers.DDM.Tests.DiscretizationExtensions
+namespace MGroup.Solvers.Tests.DiscretizationExtensions
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
+	using System.Text;
+	using System.Threading.Tasks;
 
 	using MGroup.Constitutive.Structural;
 	using MGroup.Constitutive.Structural.BoundaryConditions;
@@ -13,9 +16,9 @@ namespace MGroup.Solvers.DDM.Tests.DiscretizationExtensions
 	//TODO: Make these work for distributed implementations of Model. So far they assume that if an entity exists, it is in memory.
 	public class IncrementalBCBuilderStructural
 	{
-		private readonly TableExtension<INode, IStructuralDofType, double> dirichletBCs 
+		private readonly TableExtension<INode, IStructuralDofType, double> dirichletBCs
 			= new TableExtension<INode, IStructuralDofType, double>();
-		private readonly TableExtension<INode, IStructuralDofType, double> neumannBCs 
+		private readonly TableExtension<INode, IStructuralDofType, double> neumannBCs
 			= new TableExtension<INode, IStructuralDofType, double>();
 		private readonly Model _model;
 		private readonly bool throwExceptionIfDifferentBC;

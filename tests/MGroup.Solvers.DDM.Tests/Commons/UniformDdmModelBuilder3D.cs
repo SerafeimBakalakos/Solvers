@@ -1,5 +1,8 @@
 namespace MGroup.Solvers.DDM.Tests.Commons
 {
+	using System.Data;
+	using System.Diagnostics;
+
 	using MGroup.Constitutive.Structural;
 	using MGroup.Constitutive.Structural.Continuum;
 	using MGroup.Constitutive.Structural.Transient;
@@ -11,10 +14,10 @@ namespace MGroup.Solvers.DDM.Tests.Commons
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Meshes.Structured;
 	using MGroup.MSolve.Geometry.Coordinates;
-	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DDM.FetiDP.Dofs;
 	using MGroup.Solvers.DDM.Partitioning;
-	using MGroup.Solvers.DDM.Tests.DiscretizationExtensions;
+	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Tests.DiscretizationExtensions;
 
 	public class UniformDdmModelBuilder3D
 	{

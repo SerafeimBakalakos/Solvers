@@ -61,7 +61,7 @@ namespace MGroup.Solvers.MatrixFree
 			}
 			else
 			{
-				throw new NotImplementedException();
+				dofScaling = new HeterogeneousDofScaling(environment, Domain, LinearSystem);
 			}
 
 			this.preconditioner = preconditionerFactory.CreatePreconditioner(dofScaling);
