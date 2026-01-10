@@ -13,6 +13,7 @@ namespace MGroup.Solvers.DDM.PSM.Scaling
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.DDM.LinearSystem;
 	using MGroup.Solvers.DDM.PSM.Dofs;
+	using MGroup.Solvers.LinearAlgebraExtensions.Distributed;
 
 	public class HeterogeneousScaling : IBoundaryDofScaling
 	{
@@ -63,7 +64,7 @@ namespace MGroup.Solvers.DDM.PSM.Scaling
 
 			// Use distributed vectors to let each subdomain inform its neighbors about its stiffness at their common dofs
 			var distributedVector = new DistributedOverlappingVector(indexer, diagonalStiffnesses);
-			distributedVector.RegularizeOverlappingEntries();
+			distributedVector.RegularizeOverlappingEntries_v2();
 
 			Action<int> storeRelativeStiffness = subdomainID =>
 			{
