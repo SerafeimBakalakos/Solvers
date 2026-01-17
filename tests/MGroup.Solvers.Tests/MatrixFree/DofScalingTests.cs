@@ -18,6 +18,7 @@ namespace MGroup.Solvers.Tests.MatrixFree
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.MatrixFree;
 	using MGroup.Solvers.MatrixFree.Dofs;
@@ -38,14 +39,13 @@ namespace MGroup.Solvers.Tests.MatrixFree
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs: true);
 			var partition = new DefaultElementPartition(environment, model, domain);
-			var dofOrdering = new DistributedDofOrdering(environment, domain, partition);
+			var dofManager = new DistributedDofManager(environment, domain, partition);
 			var linearSystem = new LinearSystem_v2();
-
 			var dofScaling = new HeterogeneousDofScaling(environment, domain, linearSystem);
 
 			partition.FindElementNeighbors();
-			var indexer = dofOrdering.CreateIndexer();
-			var distributedMatrix = new DistributedOverlappingMatrix<IMatrix>(indexer);
+			dofManager.PrepareDofs();
+			var distributedMatrix = new DistributedOverlappingMatrix<IMatrix>(dofManager.DistributedIndexer);
 			environment.DoPerNode(elementID =>
 			{
 				ISuperElement element = domain.GetElement(elementID);
@@ -78,12 +78,12 @@ namespace MGroup.Solvers.Tests.MatrixFree
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs: true);
 			var partition = new DefaultElementPartition(environment, model, domain);
-			var dofOrdering = new DistributedDofOrdering(environment, domain, partition);
-
-			var dofScaling = new HomogeneousDofScaling(environment, domain, partition, dofOrdering);
+			var dofManager = new DistributedDofManager(environment, domain, partition);
+			var dofScaling = new HomogeneousDofScaling(environment, domain, partition, dofManager);
 
 			partition.FindElementNeighbors();
-			var indexer = dofOrdering.CreateIndexer();
+			dofManager.PrepareDofs();
+			var distributedMatrix = new DistributedOverlappingMatrix<IMatrix>(dofManager.DistributedIndexer);
 			dofScaling.Update();
 
 			Dictionary<int, double[]> expectedMultiplicities = GetElementDofMultiplicities();

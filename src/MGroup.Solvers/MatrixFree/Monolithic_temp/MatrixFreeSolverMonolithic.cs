@@ -15,6 +15,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
@@ -41,18 +42,14 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			this.preconditioner = preconditioner;
 			LinearSystem = new LinearSystem_v2();
 
-			if (cacheElementDofs)
-			{
-				DofOrdering = new MonolithicDomainDofOrderingCaching(domain, null);
-			}
-			else
-			{
-				DofOrdering = new MonolithicDomainDofOrdering(domain, null);
-			}
+			var dofOrderingStrategy = new DefaultDofOrdering(sortNodes: true, sortDofs: true);
+			DofManager = cacheElementDofs
+				? new MonolithicDomainDofManagerCaching(domain, dofOrderingStrategy, null)
+				: new MonolithicDomainDofManager(domain, dofOrderingStrategy, null);
 
 			if (isHomogeneous)
 			{
-				dofScaling = new HomogeneousDofScalingMonolithic(partition, elements, DofOrdering);
+				dofScaling = new HomogeneousDofScalingMonolithic(partition, elements);
 			}
 			else
 			{
@@ -62,7 +59,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISubdomainDofOrdering_v2 DofOrdering { get; }
+		public IMonolithicDofManager DofManager { get; }
 
 		public LinearSystem_v2 LinearSystem { get; }
 
@@ -74,18 +71,18 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new MonolithicAlgebraicModel_v2(physicalModel, DofOrdering);
+			return new MonolithicAlgebraicModel_v2(physicalModel, DofManager);
 		}
 
 		public void PrepareDofs()
 		{
-			DofOrdering.OrderDofs();
-			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
+			DofManager.PrepareDofs();
+			LinearSystem.RhsVector = Vector.CreateZero(DofManager.NumDomainDofs);
 		}
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = new ElementWiseMatrixMonolithic(elements, DofOrdering);
+			LinearSystem.Matrix = new ElementWiseMatrixMonolithic(elements, DofManager);
 		}
 
 		public void SolveLinearSystem() //TODO: This is identical to PcgSolver
@@ -105,7 +102,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			{
 				watch.Start();
 				//preconditioner.UpdateMatrix(LinearSystem.Matrix, !matrixPatternWillNotBeModified);
-				preconditioner.Update(LinearSystem.Matrix, elements, DofOrdering, dofScaling);
+				preconditioner.Update(LinearSystem.Matrix, elements, DofManager, dofScaling);
 				mustUpdatePreconditioner = false;
 				watch.Stop();
 				Logger.LogTaskDuration("Calculating preconditioner", watch.ElapsedMilliseconds);

@@ -12,6 +12,7 @@ namespace MGroup.Solvers.Assemblers
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public class SymmetricCscMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<SymmetricCscMatrix>
 	{
@@ -22,15 +23,15 @@ namespace MGroup.Solvers.Assemblers
 			this.sortColsOfEachRow = sortColsOfEachRow;
 		}
 
-		public SymmetricCscMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
+		public SymmetricCscMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, IMonolithicDofManager dofManager)
 		{
-			int numDofs = dofOrdering.DomainDofs.NumEntries;
+			int numDofs = dofManager.NumDomainDofs;
 			var subdomainMatrix = DokSymmetric_v2.CreateEmpty(numDofs);
 
 			// Process the stiffness of each element
 			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
-				int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
+				int[] elementToDomainDofs = dofManager.MapDofsElementToDomain(element);
 				IMatrix elementMatrix = element.BuildMatrix();
 				subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, elementToDomainDofs);
 			}

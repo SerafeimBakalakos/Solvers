@@ -12,21 +12,22 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public class HomogeneousDofScaling : IDofScaling
 	{
 		private readonly ISubdomain_v2 domain;
 		private readonly IComputeEnvironment environment;
 		private readonly IElementPartition partition;
-		private readonly DistributedDofOrdering dofOrdering;
+		private readonly IDistributedDofManager dofManager;
 		private Dictionary<int, DiagonalMatrix> elementScalingMatrices;
 
-		public HomogeneousDofScaling(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, DistributedDofOrdering dofOrdering)
+		public HomogeneousDofScaling(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, IDistributedDofManager dofManager)
 		{
 			this.environment = environment;
 			this.domain = domain;
 			this.partition = partition;
-			this.dofOrdering = dofOrdering;
+			this.dofManager = dofManager;
 		}
 
 		public DiagonalMatrix GetScalingMatrix(int elementID) => elementScalingMatrices[elementID];
@@ -36,7 +37,7 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 			elementScalingMatrices = environment.CalcNodeData(elementID =>
 			{
 				ISuperElement element = domain.GetElement(elementID);
-				IntDofTable elementDofs = dofOrdering.GetElementDofs(elementID);
+				IntDofTable elementDofs = dofManager.GetElementDofs(elementID);
 				int numElementDofs = elementDofs.NumEntries;
 
 				// Multiplicities of element dofs

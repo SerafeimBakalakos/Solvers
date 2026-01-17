@@ -9,10 +9,11 @@ namespace MGroup.Solvers.Assemblers
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public interface ISubdomainMatrixAssembler_v2<TMatrix> where TMatrix : IMatrix
 	{
-		TMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 subdomainDofOrdering);
+		TMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, IMonolithicDofManager dofManager);
 
 		/// <summary>
 		/// Update internal state when the freedom degree ordering is changed (e.g. reordering, XFEM, adaptive FEM). It 

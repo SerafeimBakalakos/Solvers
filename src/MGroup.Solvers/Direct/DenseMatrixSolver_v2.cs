@@ -7,15 +7,18 @@ namespace MGroup.Solvers.Direct
 	using System.Text;
 	using System.Threading.Tasks;
 
+	using MGroup.LinearAlgebra.Implementations;
+	using MGroup.LinearAlgebra.Implementations.Managed;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution;
-	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.Assemblers;
+	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearSystem;
+	using MGroup.Solvers.Logging;
 
 	public class DenseMatrixSolver_v2 : ISolver_v2
 	{
@@ -24,26 +27,19 @@ namespace MGroup.Solvers.Direct
 
 		private Matrix inverse;
 
-		//private readonly reordering = new NullReordering(); Why do I need NullReordering? Solvers that do not need to reorder can just not call the ISubdomain.ReorderDofs() method
-
-		public DenseMatrixSolver_v2(ISubdomain_v2 domain, bool isMatrixPositiveDefinite, bool cacheElementDofs = true)
+		public DenseMatrixSolver_v2(ISubdomain_v2 domain, IDofOrderingStrategy_v2 dofOrderingStrategy, bool isMatrixPositiveDefinite,  bool cacheElementDofs)
 		{
 			this.Domain = domain;
 			this.isMatrixPositiveDefinite = isMatrixPositiveDefinite;
 			LinearSystem = new LinearSystem_v2();
-			if (cacheElementDofs)
-			{
-				DofOrdering = new MonolithicDomainDofOrderingCaching(domain, null);
-			}
-			else
-			{
-				DofOrdering = new MonolithicDomainDofOrdering(domain, null);
-			}
+			DofManager = cacheElementDofs
+				? new MonolithicDomainDofManagerCaching(domain, dofOrderingStrategy, null)
+				: new MonolithicDomainDofManager(domain, dofOrderingStrategy, null);
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISubdomainDofOrdering_v2 DofOrdering { get; }
+		public IMonolithicDofManager DofManager { get; }
 
 		public LinearSystem_v2 LinearSystem { get; }
 
@@ -53,18 +49,18 @@ namespace MGroup.Solvers.Direct
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new MonolithicAlgebraicModel_v2(physicalModel, DofOrdering);
+			return new MonolithicAlgebraicModel_v2(physicalModel, DofManager);
 		}
 
 		public void PrepareDofs()
 		{
-			DofOrdering.OrderDofs();
-			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
+			DofManager.PrepareDofs();
+			LinearSystem.RhsVector = Vector.CreateZero(DofManager.NumDomainDofs);
 		}
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofManager);
 		}
 
 		public void SolveLinearSystem()
@@ -104,6 +100,24 @@ namespace MGroup.Solvers.Direct
 			watch.Stop();
 			Logger.LogTaskDuration("Back/forward substitutions", watch.ElapsedMilliseconds);
 			Logger.IncrementAnalysisStep();
+		}
+
+		public class Factory
+		{
+			public Factory()
+			{
+			}
+
+			public bool CacheElementDofs { get; set; } = true;
+
+			public IDofOrderingStrategy_v2 DofOrderingStrategy { get; set; } = new DefaultDofOrdering(sortNodes: true, sortDofs: true);
+
+			public bool IsMatrixPositiveDefinite { get; set; } = false;
+
+			public DenseMatrixSolver_v2 CreateSolver(ISubdomain_v2 domain)
+			{
+				return new DenseMatrixSolver_v2(domain, DofOrderingStrategy, CacheElementDofs, IsMatrixPositiveDefinite);
+			}
 		}
 	}
 }

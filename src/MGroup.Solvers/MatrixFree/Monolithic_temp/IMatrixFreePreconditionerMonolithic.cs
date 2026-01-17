@@ -8,10 +8,11 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.MatrixFree.Dofs;
 
 	public interface IMatrixFreePreconditionerMonolithic : IPreconditioner
 	{
-		void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling);
+		void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, IMonolithicDofManager dofManager, IDofScaling dofScaling);
 	}
 }

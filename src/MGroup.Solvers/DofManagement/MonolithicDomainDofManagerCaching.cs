@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DofOrdering
+namespace MGroup.Solvers.DofOrdering_v2
 {
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -7,20 +7,20 @@ namespace MGroup.Solvers.DofOrdering
 	using MGroup.Solvers;
 	using MGroup.Solvers.DiscretizationExtensions;
 
-	public class MonolithicDomainDofOrderingCaching : MonolithicDomainDofOrdering
+	public class MonolithicDomainDofManagerCaching : MonolithicDomainDofManager
 	{
 		private Dictionary<int, int[]> elementToDomainDofIndices;
 
-		public MonolithicDomainDofOrderingCaching(ISubdomain_v2 domain, IReorderingAlgorithm? reorderingAlgorithm)
-			: base(domain, reorderingAlgorithm)
+		public MonolithicDomainDofManagerCaching(ISubdomain_v2 domain, IDofOrderingStrategy_v2 orderingStrategy, IReorderingAlgorithm? reorderingAlgorithm)
+			: base(domain, orderingStrategy, reorderingAlgorithm)
 		{
 		}
 
 		public override int[] MapDofsElementToDomain(ISuperElement element) => elementToDomainDofIndices[element.ID];
 
-		public override void OrderDofs()
+		public override void PrepareDofs()
 		{
-			base.OrderDofs();
+			base.PrepareDofs();
 
 			// Element-to-domain dof maps
 			elementToDomainDofIndices = new Dictionary<int, int[]>();

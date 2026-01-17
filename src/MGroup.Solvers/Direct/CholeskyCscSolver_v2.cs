@@ -19,6 +19,8 @@ namespace MGroup.Solvers.Direct
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.LinearSystem;
+	using MGroup.LinearAlgebra.Implementations.Managed;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public class CholeskyCscSolver_v2 : ISolver_v2, IDisposable
 	{
@@ -27,17 +29,14 @@ namespace MGroup.Solvers.Direct
 
 		private ICholeskySymmetricCsc factorization;
 
-		public CholeskyCscSolver_v2(ISubdomain_v2 domain, IImplementationProvider laImplementation, IReorderingAlgorithm reorderingAlgorithm = null, bool cacheElementDofs = true)
+		public CholeskyCscSolver_v2(ISubdomain_v2 domain, IImplementationProvider laImplementation, IDofOrderingStrategy_v2 dofOrderingStrategy, IReorderingAlgorithm reorderingAlgorithm, bool cacheElementDofs)
 		{
 			this.Domain = domain;
 			this.laImplementation = laImplementation;
-			if (reorderingAlgorithm == null)
-			{
-				reorderingAlgorithm = new AmdSymmetricOrdering(laImplementation);
-			}
-
-			DofOrdering = new MonolithicDomainDofOrdering(domain, reorderingAlgorithm);
 			LinearSystem = new LinearSystem_v2();
+			DofManager = cacheElementDofs 
+				? new MonolithicDomainDofManagerCaching(domain, dofOrderingStrategy, reorderingAlgorithm)
+				: new MonolithicDomainDofManager(domain, dofOrderingStrategy, reorderingAlgorithm);
 		}
 
 		~CholeskyCscSolver_v2()
@@ -53,7 +52,7 @@ namespace MGroup.Solvers.Direct
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISubdomainDofOrdering_v2 DofOrdering { get; }
+		public IMonolithicDofManager DofManager { get; }
 
 		public LinearSystem_v2 LinearSystem { get; }
 
@@ -63,18 +62,18 @@ namespace MGroup.Solvers.Direct
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new MonolithicAlgebraicModel_v2(physicalModel, DofOrdering);
+			return new MonolithicAlgebraicModel_v2(physicalModel, DofManager);
 		}
 
 		public void PrepareDofs()
 		{
-			DofOrdering.OrderDofs();
-			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
+			DofManager.PrepareDofs();
+			LinearSystem.RhsVector = Vector.CreateZero(DofManager.NumDomainDofs);
 		}
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofManager);
 		}
 
 		public void SolveLinearSystem()
@@ -118,6 +117,27 @@ namespace MGroup.Solvers.Direct
 			{
 				factorization.Dispose();
 				factorization = null;
+			}
+		}
+
+		public class Factory
+		{
+			public Factory()
+			{
+				ReorderingAlgorithm = new AmdSymmetricOrdering(AlgebraImplementation);
+			}
+
+			public IImplementationProvider AlgebraImplementation { get; set; } = new ManagedSequentialImplementationProvider();
+
+			public bool CacheElementDofs { get; set; } = true;
+
+			public IDofOrderingStrategy_v2 DofOrderingStrategy { get; set; } = new DefaultDofOrdering(sortNodes: true, sortDofs: true);
+
+			public IReorderingAlgorithm ReorderingAlgorithm { get; set; }
+
+			public CholeskyCscSolver_v2 CreateSolver(ISubdomain_v2 domain)
+			{
+				return new CholeskyCscSolver_v2(domain, AlgebraImplementation, DofOrderingStrategy, ReorderingAlgorithm, CacheElementDofs);
 			}
 		}
 	}

@@ -12,10 +12,8 @@ namespace MGroup.Solvers.DDM.Discretization
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
-	using MGroup.Solvers;
 	using MGroup.Solvers.DiscretizationExtensions;
-	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.DofOrdering.Reordering;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public class DefaultSubdomain_v2 : ISubdomain_v2
 	{
@@ -61,14 +59,7 @@ namespace MGroup.Solvers.DDM.Discretization
 
 		public ISuperElement GetElement(int elementID) => elements[elementID];
 
-		public IntDofTable OrderDofs_temp()
-		{
-			var freeDofOrderer = new DefaultFreeDofOrderer_v2(model);
-			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> dirichletBCs = FindDiricletBCs();
-			return freeDofOrderer.OrderFreeDofs(elements.Values.Select(e => e.ElementEntity), nodes, dirichletBCs);
-		}
-
-		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDiricletBCs()
+		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDirichletBCs()
 		{
 			return model.EnumerateBoundaryConditions()
 				.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements.Values.Select(e => e.ElementEntity)))

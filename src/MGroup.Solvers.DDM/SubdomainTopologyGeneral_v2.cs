@@ -16,6 +16,7 @@ namespace MGroup.Solvers.DDM
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DDM.Partitioning;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	/// <remarks>
 	/// In the current design, the subdomain neighbors and their common (boundary) nodes are supposed to remain constant 
@@ -38,7 +39,7 @@ namespace MGroup.Solvers.DDM
 
 		private IComputeEnvironment environment;
 		private IPartition_v2 partition;
-		private Func<int, ISubdomainDofOrdering_v2> getSubdomainDofs;
+		private Func<int, IMonolithicDofManager> getSubdomainDofs;
 		private Dictionary<int, SortedSet<int>> neighborsPerSubdomain;
 
 		public SubdomainTopologyGeneral_v2()
@@ -149,7 +150,7 @@ namespace MGroup.Solvers.DDM
 
 		public SortedSet<int> GetNeighborsOfSubdomain(int subdomainID) => neighborsPerSubdomain[subdomainID];
 
-		public void Initialize(IComputeEnvironment environment, IPartition_v2 partition, Func<int, ISubdomainDofOrdering_v2> getSubdomainDofs)
+		public void Initialize(IComputeEnvironment environment, IPartition_v2 partition, Func<int, IMonolithicDofManager> getSubdomainDofs)
 		{
 			this.environment = environment;
 			this.partition = partition;
@@ -189,7 +190,7 @@ namespace MGroup.Solvers.DDM
 		protected Dictionary<int, SortedDofSet> FindLocalSubdomainDofsAtCommonNodes(int subdomainID)
 		{
 			var commonDofsOfSubdomain = new Dictionary<int, SortedDofSet>();
-			IntDofTable subdomainDofs = getSubdomainDofs(subdomainID).DomainDofs;
+			IntDofTable subdomainDofs = getSubdomainDofs(subdomainID).DomainDofOrder;
 			foreach (int neighborID in GetNeighborsOfSubdomain(subdomainID))
 			{
 				var dofSet = new SortedDofSet();

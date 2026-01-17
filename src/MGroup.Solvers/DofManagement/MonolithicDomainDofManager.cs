@@ -1,34 +1,44 @@
-namespace MGroup.Solvers.DofOrdering
+namespace MGroup.Solvers.DofOrdering_v2
 {
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Xml.Linq;
 
 	using MGroup.LinearAlgebra.Reordering;
+	using MGroup.MSolve.Discretization;
+	using MGroup.MSolve.Discretization.BoundaryConditions;
+	using MGroup.MSolve.Discretization.Dofs;
+	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering_v2;
 
-	public class MonolithicDomainDofOrdering : ISubdomainDofOrdering_v2
+	public class MonolithicDomainDofManager : IMonolithicDofManager
 	{
 		protected readonly ISubdomain_v2 domain;
+		private readonly IDofOrderingStrategy_v2 orderingStrategy;
 		private readonly IReorderingAlgorithm? reorderingAlgorithm;
 
-		public MonolithicDomainDofOrdering(ISubdomain_v2 domain, IReorderingAlgorithm? reorderingAlgorithm)
+		public MonolithicDomainDofManager(ISubdomain_v2 domain, IDofOrderingStrategy_v2 orderingStrategy, IReorderingAlgorithm? reorderingAlgorithm)
 		{
 			this.domain = domain;
+			this.orderingStrategy = orderingStrategy;
 			this.reorderingAlgorithm = reorderingAlgorithm;
 		}
 
-		public IntDofTable DomainDofs { get; private set; }
+		public IntDofTable DomainDofOrder { get; private set; }
 
-		public int NumDofs { get; private set; }
+		public IntDofTable GetElementDofs(int elementID) => domain.GetElement(elementID).GetDofs();
+
+		public int NumDomainDofs { get; private set; }
 
 		public virtual int[] MapDofsElementToDomain(ISuperElement element) => MapElementDofs(element);
 
-		public virtual void OrderDofs()
+		public virtual void PrepareDofs()
 		{
 			// Domain dofs
-			DomainDofs = domain.OrderDofs_temp();
-			NumDofs = DomainDofs.NumEntries;
+			DomainDofOrder = orderingStrategy.OrderDomainDofs(domain, GetElementDofs);
+			NumDomainDofs = DomainDofOrder.NumEntries;
 			
 			// Reordering
 			if (reorderingAlgorithm != null)
@@ -36,21 +46,6 @@ namespace MGroup.Solvers.DofOrdering
 				ReorderDofs(reorderingAlgorithm);
 			}
 		}
-
-		//public void WriteLocalToGlobalMaps_temp()
-		//{
-		//	foreach (int elemID in elementToDomainDofIndices.Keys)
-		//	{
-		//		int[] localToGlobal = elementToDomainDofIndices[elemID];
-		//		Debug.Write($"Element {elemID}: local-to-global dofs =");
-		//		foreach (int index in localToGlobal)
-		//		{
-		//			Debug.Write(" ");
-		//			Debug.Write(index);
-		//		}
-		//		Debug.WriteLine("");
-		//	}
-		//}
 
 		protected int[] MapElementDofs(ISuperElement superElement)
 		{
@@ -60,16 +55,21 @@ namespace MGroup.Solvers.DofOrdering
 			var map = new int[numElementDofs];
 			foreach ((int nodeID, int dofID, int elementDofIdx) in elementDofs)
 			{
-				int domainDofIdx = DomainDofs[nodeID, dofID]; // If the element has dofs that do not exist in the domain, something has gone wrong. Let it throw an exception.
+				int domainDofIdx = DomainDofOrder[nodeID, dofID]; // If the element has dofs that do not exist in the domain, something has gone wrong. Let it throw an exception.
 				map[elementDofIdx] = domainDofIdx;
 			}
 
 			return map;
 		}
 
+		private void OrderDomainDofs()
+		{
+			
+		}
+
 		private void ReorderDofs(IReorderingAlgorithm reorderingAlgorithm)
 		{
-			var pattern = SparsityPatternSymmetric.CreateEmpty(NumDofs);
+			var pattern = SparsityPatternSymmetric.CreateEmpty(NumDomainDofs);
 			foreach (ISuperElement element in domain.EnumerateElements())
 			{
 				int[] elementToDomainDofs = MapElementDofs(element);
@@ -79,7 +79,7 @@ namespace MGroup.Solvers.DofOrdering
 			}
 
 			(int[] permutation, bool oldToNew) = reorderingAlgorithm.FindPermutation(pattern);
-			DomainDofs.Reorder(permutation, oldToNew);
+			DomainDofOrder.Reorder(permutation, oldToNew);
 		}
 	}
 }

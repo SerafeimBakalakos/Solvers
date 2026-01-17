@@ -12,16 +12,17 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
 	using MGroup.Solvers.MatrixFree.ElementMatrices;
 
 	public class ElementWiseMatrixMonolithic : DefaultMatrix
 	{
-		public ElementWiseMatrixMonolithic(IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
+		public ElementWiseMatrixMonolithic(IReadOnlyCollection<ISuperElement> elements, IMonolithicDofManager dofManager)
 		{
 			Elements = elements;
-			DofOrdering = dofOrdering;
-			NumColumns = dofOrdering.NumDofs;
+			DofManager = dofManager;
+			NumColumns = dofManager.NumDomainDofs;
 
 			ElementMatrices = new Dictionary<int, IReadOnlyMatrix>(elements.Count);
 			var converter = new FullRowMajorElementMatrixConverter();
@@ -38,7 +39,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			set => throw new NotImplementedException();
 		}
 
-		private ISubdomainDofOrdering_v2 DofOrdering { get; }
+		public IMonolithicDofManager DofManager { get; }
 
 		public IReadOnlyCollection<ISuperElement> Elements { get; }
 
@@ -55,7 +56,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 
 		public override IMatrix CreateZeroMatrixWithSameFormat()
 		{
-			var result = new ElementWiseMatrixMonolithic(Elements, DofOrdering);
+			var result = new ElementWiseMatrixMonolithic(Elements, DofManager);
 			return result;
 		}
 
@@ -63,7 +64,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 		{
 			if (otherMatrix is ElementWiseMatrixMonolithic casted)
 			{
-				if (casted.Elements == Elements && casted.DofOrdering == DofOrdering)
+				if (casted.Elements == Elements && casted.DofManager == DofManager)
 				{
 					return true;
 					//return DictionariesHaveSameKeys(this.elementMatrices, casted.elementMatrices);
@@ -85,7 +86,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			y.Clear();
 			foreach (ISuperElement element in Elements)
 			{
-				int[] elementToDomainDofs = DofOrdering.MapDofsElementToDomain(element);
+				int[] elementToDomainDofs = DofManager.MapDofsElementToDomain(element);
 				Vector xe = x.GetSubvector(elementToDomainDofs);
 				var ye = Vector.CreateZero(elementToDomainDofs.Length);
 				ElementMatrices[element.ID].MultiplyIntoResult(xe, ye);

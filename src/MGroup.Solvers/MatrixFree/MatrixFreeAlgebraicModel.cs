@@ -17,6 +17,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.MatrixFree.Dofs;
@@ -26,18 +27,18 @@ namespace MGroup.Solvers.MatrixFree
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly LinearSystem_v2 linearSystem;
-		private readonly DistributedDofOrdering dofOrdering;
+		private readonly IDistributedDofManager dofManager;
 		private readonly IModel_v2 model;
 		private readonly ISubdomain_v2 domain;
 
 		public MatrixFreeAlgebraicModel(IComputeEnvironment environment, IModel_v2 model, ISubdomain_v2 domain,
-			LinearSystem_v2 linearSystem, DistributedDofOrdering dofOrdering)
+			LinearSystem_v2 linearSystem, IDistributedDofManager dofManager)
 		{
 			this.environment = environment;
 			this.model = model;
 			this.domain = domain;
 			this.linearSystem = linearSystem;
-			this.dofOrdering = dofOrdering;
+			this.dofManager = dofManager;
 		}
 
 		public void AddToGlobalVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector)
@@ -47,7 +48,7 @@ namespace MGroup.Solvers.MatrixFree
 			{
 				ISuperElement element = domain.GetElement(elementID);
 				var elementVector = distributedVector.LocalVectors[elementID];
-				IntDofTable elementFreeDofs = dofOrdering.GetElementDofs(elementID);
+				IntDofTable elementFreeDofs = dofManager.GetElementDofs(elementID);
 				foreach (INodalModelQuantity<IDofType> load in FilterElementData(nodalLoads, element))
 				{
 					int dofID = model.DofTypes.GetIdOfDof(load.DOF);
@@ -69,7 +70,7 @@ namespace MGroup.Solvers.MatrixFree
 				// Free dofs
 				ISuperElement element = domain.GetElement(elementID);
 				Vector elementVector = distributedVector.LocalVectors[elementID];
-				IntDofTable elementFreeDofs = dofOrdering.GetElementDofs(elementID);
+				IntDofTable elementFreeDofs = dofManager.GetElementDofs(elementID);
 				foreach ((int node, int dofID, int dofIdx) in elementFreeDofs)
 				{
 					// Race condition, but there is no need for sync, since all local vectors will overwrite the same value

@@ -1,19 +1,16 @@
-using MGroup.Solvers.DiscretizationExtensions;
-
-namespace MGroup.Solvers.DofOrdering
+namespace MGroup.Solvers.DofOrdering_v2
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Text;
 
-	using MGroup.LinearAlgebra.Reordering;
-	using MGroup.Solvers;
+	using MGroup.Solvers.DiscretizationExtensions;
 
-	public interface ISubdomainDofOrdering_v2
+	public interface IMonolithicDofManager : IDomainDofManager
 	{
-		IntDofTable DomainDofs { get; }
+		IntDofTable DomainDofOrder { get; }
 
-		int NumDofs { get; }
+		int NumDomainDofs { get; }
 
 		/// <summary>
 		/// </summary>
@@ -23,7 +20,5 @@ namespace MGroup.Solvers.DofOrdering
 		/// </remarks>
 		/// <returns></returns>
 		int[] MapDofsElementToDomain(ISuperElement element);
-
-		void OrderDofs();
 	}
 }

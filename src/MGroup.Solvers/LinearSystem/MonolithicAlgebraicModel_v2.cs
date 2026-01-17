@@ -16,17 +16,18 @@ namespace MGroup.Solvers.LinearSystem
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.Results;
 
 	public class MonolithicAlgebraicModel_v2 : IAlgebraicModel_v2
 	{
-		private readonly ISubdomainDofOrdering_v2 dofOrdering;
+		private readonly IMonolithicDofManager dofManager;
 		private readonly IModel_v2 model;
 
-		public MonolithicAlgebraicModel_v2(IModel_v2 model, ISubdomainDofOrdering_v2 dofOrdering)
+		public MonolithicAlgebraicModel_v2(IModel_v2 model, IMonolithicDofManager dofManager)
 		{
 			this.model = model;
-			this.dofOrdering = dofOrdering;
+			this.dofManager = dofManager;
 		}
 
 		public void AddToGlobalVector(IEnumerable<INodalModelQuantity<IDofType>> nodalModelQuantities, IVector vector)
@@ -35,7 +36,7 @@ namespace MGroup.Solvers.LinearSystem
 			foreach (INodalModelQuantity<IDofType> nodalQuantity in nodalModelQuantities)
 			{
 				int dofID = model.DofTypes.GetIdOfDof(nodalQuantity.DOF);
-				int dofIdx = dofOrdering.DomainDofs[nodalQuantity.Node.ID, dofID];
+				int dofIdx = dofManager.DomainDofOrder[nodalQuantity.Node.ID, dofID];
 				subdomainVector[dofIdx] += nodalQuantity.Amount;
 			}
 		}
@@ -46,7 +47,7 @@ namespace MGroup.Solvers.LinearSystem
 			var results = new Table<int, int, double>();
 
 			// Free dofs
-			foreach ((int node, int dof, int freeDofIdx) in dofOrdering.DomainDofs)
+			foreach ((int node, int dof, int freeDofIdx) in dofManager.DomainDofOrder)
 			{
 				results[node, dof] = solutionFreeDofs[freeDofIdx];
 			}
@@ -65,7 +66,7 @@ namespace MGroup.Solvers.LinearSystem
 		internal Vector CheckCompatibleVector(IVector vector)
 		{
 			// Casting inside here is usually safe since all global vectors should be created by this object
-			if ((vector is Vector casted) && (vector.Length == dofOrdering.NumDofs))
+			if ((vector is Vector casted) && (vector.Length == dofManager.NumDomainDofs))
 			{
 				return casted;
 			}

@@ -16,12 +16,13 @@ namespace MGroup.Solvers.Iterative
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Solution;
-	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.Direct;
+	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearSystem;
+	using MGroup.Solvers.Logging;
 
 	public class PcgSolver_v2 : ISolver_v2
 	{
@@ -32,25 +33,20 @@ namespace MGroup.Solvers.Iterative
 
 		private bool mustUpdatePreconditioner = true;
 
-		public PcgSolver_v2(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner, bool cacheElementDofs = true)
+		public PcgSolver_v2(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner, IDofOrderingStrategy_v2 dofOrderingStrategy,  bool cacheElementDofs = true)
 		{
 			Domain = domain;
 			this.pcgAlgorithm = pcgAlgorithm;
 			this.preconditioner = preconditioner;
 			LinearSystem = new LinearSystem_v2();
-			if (cacheElementDofs)
-			{
-				DofOrdering = new MonolithicDomainDofOrderingCaching(domain, null);
-			}
-			else
-			{
-				DofOrdering = new MonolithicDomainDofOrdering(domain, null);
-			}
+			DofManager = cacheElementDofs
+				? new MonolithicDomainDofManagerCaching(domain, dofOrderingStrategy, null)
+				: new MonolithicDomainDofManager(domain, dofOrderingStrategy, null);
 		}
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISubdomainDofOrdering_v2 DofOrdering { get; }
+		public IMonolithicDofManager DofManager { get; }
 
 		public LinearSystem_v2 LinearSystem { get; }
 
@@ -60,18 +56,18 @@ namespace MGroup.Solvers.Iterative
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new MonolithicAlgebraicModel_v2(physicalModel, DofOrdering);
+			return new MonolithicAlgebraicModel_v2(physicalModel, DofManager);
 		}
 
 		public void PrepareDofs()
 		{
-			DofOrdering.OrderDofs();
-			LinearSystem.RhsVector = Vector.CreateZero(DofOrdering.NumDofs);
+			DofManager.PrepareDofs();
+			LinearSystem.RhsVector = Vector.CreateZero(DofManager.NumDomainDofs);
 		}
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofOrdering);
+			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofManager);
 		}
 
 		public void SolveLinearSystem()
@@ -110,6 +106,26 @@ namespace MGroup.Solvers.Iterative
 			Logger.LogTaskDuration("Iterative algorithm", watch.ElapsedMilliseconds);
 			Logger.LogIterativeAlgorithm(stats.NumIterationsRequired, stats.ResidualNormRatioEstimation);
 			Logger.IncrementAnalysisStep();
+		}
+
+		public class Factory
+		{
+			public Factory()
+			{
+			}
+
+			public bool CacheElementDofs { get; set; } = true;
+
+			public IDofOrderingStrategy_v2 DofOrderingStrategy { get; set; } = new DefaultDofOrdering(sortNodes: true, sortDofs: true);
+
+			public PcgAlgorithm PcgAlgorithm { get; set; } = (new PcgAlgorithm.Factory()).Build();
+
+			public IPreconditioner Preconditioner { get; set; } = new JacobiPreconditioner();
+
+			public PcgSolver_v2 CreateSolver(ISubdomain_v2 domain)
+			{
+				return new PcgSolver_v2(domain, PcgAlgorithm, Preconditioner, DofOrderingStrategy, CacheElementDofs);
+			}
 		}
 	}
 }

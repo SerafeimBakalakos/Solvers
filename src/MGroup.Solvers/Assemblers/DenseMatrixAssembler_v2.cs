@@ -11,18 +11,19 @@ namespace MGroup.Solvers.Assemblers
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public class DenseMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<Matrix>
 	{
-		public Matrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering)
+		public Matrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, IMonolithicDofManager dofManager)
 		{
-			int numDofs = dofOrdering.DomainDofs.NumEntries;
+			int numDofs = dofManager.NumDomainDofs;
 			var subdomainMatrix = Matrix.CreateZero(numDofs, numDofs);
 
 			// Process the stiffness of each element
 			foreach (ISuperElement element in subdomain.EnumerateElements())
 			{
-				int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
+				int[] elementToDomainDofs = dofManager.MapDofsElementToDomain(element);
 				IMatrix elementMatrix = element.BuildMatrix();
 				AddElementToSubdomainMatrix(subdomainMatrix, elementMatrix, elementToDomainDofs);
 			}

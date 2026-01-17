@@ -241,12 +241,15 @@ namespace MGroup.Solvers.DDM.Tests._temp
 		{
 			if (solverName == SolverName.DenseMatrixSolver)
 			{
-				return new DenseMatrixSolver_v2(domain, isMatrixPositiveDefinite: true, cacheElementDofs);
+				var solverFactory = new DenseMatrixSolver_v2.Factory();
+				solverFactory.IsMatrixPositiveDefinite = true;
+				return solverFactory.CreateSolver(domain);
 			}
 			else if (solverName == SolverName.CholeskyCscSolver)
 			{
-				IImplementationProvider laProviderForSolver = new ManagedSequentialImplementationProvider();
-				return new CholeskyCscSolver_v2(domain, laProviderForSolver, reorderingAlgorithm: null, cacheElementDofs);
+				var solverFactory = new CholeskyCscSolver_v2.Factory();
+				solverFactory.CacheElementDofs = cacheElementDofs;
+				return solverFactory.CreateSolver(domain);
 			}
 			else if (solverName == SolverName.PcgSolver)
 			{
@@ -254,9 +257,13 @@ namespace MGroup.Solvers.DDM.Tests._temp
 				pcgAlgorithmFactory.MaxIterationsProvider = new FixedMaxIterationsProvider(100);
 				pcgAlgorithmFactory.ResidualTolerance = 1E-10;
 				//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
-				//var preconditioner = new IdentityPreconditioner();
-				var preconditioner = new JacobiPreconditioner();
-				return new PcgSolver_v2(domain, pcgAlgorithmFactory.Build(), preconditioner, cacheElementDofs);
+
+				var solverFactory = new PcgSolver_v2.Factory();
+				solverFactory.PcgAlgorithm = pcgAlgorithmFactory.Build();
+				//solverFactory.Preconditioner = new IdentityPreconditioner();
+				solverFactory.Preconditioner = new JacobiPreconditioner();
+				solverFactory.CacheElementDofs = cacheElementDofs;
+				return solverFactory.CreateSolver(domain);
 			}
 			else
 			{

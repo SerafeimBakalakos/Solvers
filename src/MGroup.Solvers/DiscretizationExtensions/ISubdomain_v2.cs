@@ -16,7 +16,5 @@ namespace MGroup.Solvers.DiscretizationExtensions
 		IEnumerable<ISuperElement> EnumerateElements();
 
 		ISuperElement GetElement(int elementID);
-
-		IntDofTable OrderDofs_temp();
 	}
 }

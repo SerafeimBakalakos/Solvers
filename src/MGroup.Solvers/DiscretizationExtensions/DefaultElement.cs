@@ -11,7 +11,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers;
-	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearAlgebraExtensions.Views;
 
 	public class DefaultElement : ISuperElement

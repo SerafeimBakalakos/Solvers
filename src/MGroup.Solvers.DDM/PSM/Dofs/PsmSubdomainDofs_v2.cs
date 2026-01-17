@@ -11,21 +11,22 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public class PsmSubdomainDofs_v2
 	{
 		private readonly IPartition_v2 partition;
 		private readonly ISubdomain_v2 subdomain;
-		private readonly ISubdomainDofOrdering_v2 dofOrdering;
+		private readonly IMonolithicDofManager allSubdomainDofs;
 
 		//TODO: This is essential for testing and very useful for debugging, but not production code. Should I remove it?
 		private readonly bool sortDofsWhenPossible;
 
-		public PsmSubdomainDofs_v2(IPartition_v2 partition, ISubdomain_v2 subdomain, ISubdomainDofOrdering_v2 dofOrdering, bool sortDofsWhenPossible = false)
+		public PsmSubdomainDofs_v2(IPartition_v2 partition, ISubdomain_v2 subdomain, IMonolithicDofManager allSubdomainDofs, bool sortDofsWhenPossible = false)
 		{
 			this.partition = partition;
 			this.subdomain = subdomain;
-			this.dofOrdering = dofOrdering;
+			this.allSubdomainDofs = allSubdomainDofs;
 			this.sortDofsWhenPossible = sortDofsWhenPossible;
 		}
 
@@ -54,7 +55,7 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 			var internalToAll = new HashSet<int>();
 			int subdomainBoundaryIdx = 0;
 
-			IntDofTable allDofs = dofOrdering.DomainDofs;
+			IntDofTable allDofs = allSubdomainDofs.DomainDofOrder;
 			IEnumerable<int> nodes = allDofs.GetRows();
 			if (sortDofsWhenPossible)
 			{

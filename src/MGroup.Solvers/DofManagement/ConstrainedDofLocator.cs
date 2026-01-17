@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DofOrdering
+namespace MGroup.Solvers.DofOrdering_v2
 {
 	using System;
 	using System.Collections.Generic;

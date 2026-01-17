@@ -15,8 +15,8 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers.DiscretizationExtensions;
-	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public class FullDomain_v2 : ISubdomain_v2
 	{
@@ -58,11 +58,5 @@ namespace MGroup.Solvers.DiscretizationExtensions
 		public IEnumerable<ISuperElement> EnumerateElements() => elements.Values;
 
 		public ISuperElement GetElement(int id) => elements[id];
-
-		public IntDofTable OrderDofs_temp()
-		{
-			var freeDofOrderer = new DefaultFreeDofOrderer_v2(Model);
-			return freeDofOrderer.OrderFreeDofs(Model.EnumerateElements(), Model.EnumerateNodes(), Model.GetDirichletBCs());
-		}
 	}
 }

@@ -9,20 +9,20 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.MatrixFree.Dofs;
 
 	public class HomogeneousDofScalingMonolithic : IDofScaling
 	{
-		private readonly ISubdomainDofOrdering_v2 dofOrdering;
+		private readonly IMonolithicDofManager dofManager;
 		private readonly IReadOnlyCollection<ISuperElement> elements;
 		private readonly IElementPartition partition;
 
 		private Dictionary<int, DiagonalMatrix> elementScalingMatrices;
 
-		public HomogeneousDofScalingMonolithic(IElementPartition partition, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering)
+		public HomogeneousDofScalingMonolithic(IElementPartition partition, IReadOnlyCollection<ISuperElement> elements)
 		{
 			this.partition = partition;
-			this.dofOrdering = dofOrdering;
 			this.elements = elements;
 		}
 

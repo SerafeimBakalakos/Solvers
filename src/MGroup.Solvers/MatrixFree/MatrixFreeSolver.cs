@@ -24,6 +24,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
@@ -42,7 +43,6 @@ namespace MGroup.Solvers.MatrixFree
 		private readonly IPreconditioner preconditioner;
 		private readonly IElementMatrixConverter elementMatrixConverter;
 		private bool mustUpdatePreconditioner = true;
-		private DistributedOverlappingIndexer dofIndexer;
 
 		public MatrixFreeSolver(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm iterativeAlgorithm, IMatrixFreePreconditionerFactory preconditionerFactory, IElementMatrixConverter elementMatrixConverter, bool isHomogeneous)
 		{
@@ -51,13 +51,13 @@ namespace MGroup.Solvers.MatrixFree
 			this.partition = partition;
 			this.pcgAlgorithm = iterativeAlgorithm;
 			this.elementMatrixConverter = elementMatrixConverter;
-			DofOrdering = new DistributedDofOrdering(environment, domain, partition);
+			DofManager = new DistributedDofManager(environment, domain, partition);
 			LinearSystem = new LinearSystem_v2();
 
 			IDofScaling dofScaling;
 			if (isHomogeneous)
 			{
-				dofScaling = new HomogeneousDofScaling(environment, Domain, partition, DofOrdering);
+				dofScaling = new HomogeneousDofScaling(environment, Domain, partition, DofManager);
 			}
 			else
 			{
@@ -69,7 +69,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public DistributedDofOrdering DofOrdering { get; }
+		public IDistributedDofManager DofManager { get; }
 
 		public LinearSystem_v2 LinearSystem { get; }
 
@@ -81,21 +81,21 @@ namespace MGroup.Solvers.MatrixFree
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new MatrixFreeAlgebraicModel(environment, physicalModel, Domain, LinearSystem, DofOrdering);
+			return new MatrixFreeAlgebraicModel(environment, physicalModel, Domain, LinearSystem, DofManager);
 		}
 
 		public void PrepareDofs()
 		{
 			// Indexer for distributed vectors and matrices
 			partition.FindElementNeighbors();
-			dofIndexer = DofOrdering.CreateIndexer();
+			DofManager.PrepareDofs();
 
-			LinearSystem.RhsVector = new DistributedOverlappingVector(dofIndexer);
+			LinearSystem.RhsVector = new DistributedOverlappingVector(DofManager.DistributedIndexer);
 		}
 
 		public void BuildSystemMatrix()
 		{
-			var distributedMatrix = new DistributedOverlappingMatrix<IMatrix>(dofIndexer);
+			var distributedMatrix = new DistributedOverlappingMatrix<IMatrix>(DofManager.DistributedIndexer);
 			environment.DoPerNode(elementID =>
 			{
 				ISuperElement element = Domain.GetElement(elementID);

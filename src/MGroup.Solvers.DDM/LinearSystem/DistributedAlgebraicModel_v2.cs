@@ -20,6 +20,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Results;
 
@@ -29,18 +30,18 @@ namespace MGroup.Solvers.DDM.LinearSystem
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly LinearSystem_v2 linearSystem;
-		private readonly IReadOnlyDictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings;
+		private readonly IReadOnlyDictionary<int, IMonolithicDofManager> subdomainFreeDofs;
 		private readonly IModel_v2 model;
 		private readonly IPartition_v2 partition;
 
 		public DistributedAlgebraicModel_v2(IComputeEnvironment environment, IModel_v2 model, IPartition_v2 partition,
-			LinearSystem_v2 linearSystem, IReadOnlyDictionary<int, ISubdomainDofOrdering_v2> freeDofOrderings)
+			LinearSystem_v2 linearSystem, IReadOnlyDictionary<int, IMonolithicDofManager> freeDofOrderings)
 		{
 			this.environment = environment;
 			this.model = model;
 			this.partition = partition;
 			this.linearSystem = linearSystem;
-			this.freeDofOrderings = freeDofOrderings;
+			this.subdomainFreeDofs = freeDofOrderings;
 		}
 
 		public void AddToGlobalVector(IEnumerable<INodalModelQuantity<IDofType>> nodalLoads, IVector vector)
@@ -48,14 +49,14 @@ namespace MGroup.Solvers.DDM.LinearSystem
 			DistributedOverlappingVector distributedVector = CheckCompatibleVector(vector);
 			environment.DoPerNode(subdomainID =>
 			{
-				IntDofTable subdomainFreeDofs = freeDofOrderings[subdomainID].DomainDofs;
+				IntDofTable freeDofs = subdomainFreeDofs[subdomainID].DomainDofOrder;
 				var subdomainVector = distributedVector.LocalVectors[subdomainID];
 
 				//TODO: This was optimized previously! ProblemStructural and Model provided only the loads that correspond to this subdomain
 				foreach (INodalModelQuantity<IDofType> load in FilterSubdomainData(nodalLoads, subdomainID))
 				{
 					int dofID = model.DofTypes.GetIdOfDof(load.DOF);
-					int dofIdx = subdomainFreeDofs[load.Node.ID, dofID];
+					int dofIdx = freeDofs[load.Node.ID, dofID];
 					subdomainVector[dofIdx] += load.Amount;
 				}
 
@@ -82,8 +83,8 @@ namespace MGroup.Solvers.DDM.LinearSystem
 			// Free dofs
 			DistributedOverlappingVector distributedVector = CheckCompatibleVector(solutionFreeDofs);
 			Vector subdomainVector = distributedVector.LocalVectors[subdomainID];
-			IntDofTable subdomainFreeDofs = freeDofOrderings[subdomainID].DomainDofs;
-			foreach ((int node, int dof, int freeDofIdx) in subdomainFreeDofs)
+			IntDofTable freeDofs = subdomainFreeDofs[subdomainID].DomainDofOrder;
+			foreach ((int node, int dof, int freeDofIdx) in freeDofs)
 			{
 				results[node, dof] = subdomainVector[freeDofIdx];
 			}
@@ -91,7 +92,7 @@ namespace MGroup.Solvers.DDM.LinearSystem
 			// Constrained dofs
 			ActiveDofs activeDofs = model.DofTypes;
 			var subdomain = (DefaultSubdomain_v2)partition.GetSubdomain(subdomainID);
-			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = subdomain.FindDiricletBCs();
+			IEnumerable<INodalDirichletBoundaryCondition<IDofType>> constraints = subdomain.FindDirichletBCs();
 			foreach (INodalDirichletBoundaryCondition<IDofType> constraint in constraints)
 			{
 				results[constraint.Node.ID, activeDofs.GetIdOfDof(constraint.DOF)] = constraint.Amount;

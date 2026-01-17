@@ -30,6 +30,7 @@ namespace MGroup.Solvers.DDM.Psm
 	using MGroup.Solvers.DDM.PSM.Vectors;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
 
@@ -53,7 +54,7 @@ namespace MGroup.Solvers.DDM.Psm
 		protected readonly IImplementationProvider provider;
 		//protected readonly PsmReanalysisOptions reanalysis;
 		protected readonly IBoundaryDofScaling scaling;
-		protected readonly ConcurrentDictionary<int, ISubdomainDofOrdering_v2> subdomainDofOrderings;
+		protected readonly ConcurrentDictionary<int, IMonolithicDofManager> subdomainDofsAll;
 		protected readonly ConcurrentDictionary<int, PsmSubdomainDofs_v2> subdomainDofsPsm;
 		protected readonly ConcurrentDictionary<int, ISubdomainLinearSystem_v2> subdomainLinearSystems;
 		protected readonly ConcurrentDictionary<int, IPsmSubdomainMatrixManager_v2> subdomainMatricesPsm;
@@ -69,9 +70,8 @@ namespace MGroup.Solvers.DDM.Psm
 			IImplementationProvider provider, IPsmSubdomainMatrixManagerFactory_v2<TMatrix> matrixManagerFactory,
 			bool explicitSubdomainMatrices, IPsmPreconditioner preconditioner,
 			IPsmInterfaceProblemSolverFactory interfaceProblemSolverFactory, bool isHomogeneous, DdmLogger logger,
-			bool optimizedSubdomainTopology, /*PsmReanalysisOptions reanalysis,*/ bool cacheElementDofs)
+			bool optimizedSubdomainTopology, /*PsmReanalysisOptions reanalysis,*/ IDofOrderingStrategy_v2 dofOrderingStrategy, bool cacheElementDofs)
 		{
-			this.name = name;
 			this.environment = environment;
 			Domain = domain;
 			this.partition = partition;
@@ -80,7 +80,7 @@ namespace MGroup.Solvers.DDM.Psm
 			this.preconditioner = preconditioner;
 			//this.reanalysis = reanalysis;
 
-			this.subdomainDofOrderings = new ConcurrentDictionary<int, ISubdomainDofOrdering_v2>();
+			this.subdomainDofsAll = new ConcurrentDictionary<int, IMonolithicDofManager>();
 			this.subdomainDofsPsm = new ConcurrentDictionary<int, PsmSubdomainDofs_v2>();
 			this.subdomainLinearSystems = new ConcurrentDictionary<int, ISubdomainLinearSystem_v2>();
 			this.subdomainMatricesPsm = new ConcurrentDictionary<int, IPsmSubdomainMatrixManager_v2>();
@@ -92,22 +92,16 @@ namespace MGroup.Solvers.DDM.Psm
 				var subLinearSystem = new SubdomainLinearSystem_v2<TMatrix>(LinearSystem, subdomainID);
 				ISubdomainMatrixAssembler_v2<TMatrix> matrixAssembler = matrixManagerFactory.CreateAssembler();
 
-				ISubdomainDofOrdering_v2 dofOrdering; // No reordering for this, since no Kff matrices will be factorized
-				if (cacheElementDofs)
-				{
-					dofOrdering = new MonolithicDomainDofOrderingCaching(subdomain, null);
-				}
-				else
-				{
-					dofOrdering = new MonolithicDomainDofOrdering(subdomain, null);
-				}
+				var dofManager = cacheElementDofs
+					? new MonolithicDomainDofManagerCaching(subdomain, dofOrderingStrategy, null)
+					: new MonolithicDomainDofManager(subdomain, dofOrderingStrategy, null);
 
-				var psmDofs = new PsmSubdomainDofs_v2(partition, subdomain, dofOrdering, false);
+				var psmDofs = new PsmSubdomainDofs_v2(partition, subdomain, dofManager, false);
 				IPsmSubdomainMatrixManager_v2 psmMatrices = matrixManagerFactory.CreateMatrixManager(provider, subLinearSystem, psmDofs);
 				var psmVectors = new PsmSubdomainVectors_v2(subLinearSystem, psmDofs, psmMatrices);
 
 				subdomainLinearSystems[subdomainID] = subLinearSystem;
-				subdomainDofOrderings[subdomainID] = dofOrdering;
+				subdomainDofsAll[subdomainID] = dofManager;
 				subdomainMatrixAssemblers[subdomainID] = matrixAssembler;
 				subdomainDofsPsm[subdomainID] = psmDofs;
 				subdomainMatricesPsm[subdomainID] = psmMatrices;
@@ -133,7 +127,7 @@ namespace MGroup.Solvers.DDM.Psm
 			}
 			else
 			{
-				this.interfaceProblemMatrix = new PsmInterfaceProblemMatrixImplicit_v2(environment, 
+				this.interfaceProblemMatrix = new PsmInterfaceProblemMatrixImplicit_v2(environment,
 					s => subdomainDofsPsm[s], s => subdomainMatricesPsm[s]);
 			}
 
@@ -144,7 +138,7 @@ namespace MGroup.Solvers.DDM.Psm
 			//}
 			//else
 			//{
-				this.interfaceProblemVectors = new PsmInterfaceProblemVectors_v2(environment, subdomainVectorsPsm);
+			this.interfaceProblemVectors = new PsmInterfaceProblemVectors_v2(environment, subdomainVectorsPsm);
 			//}
 
 			//if (reanalysis.PreviousSolution)
@@ -155,7 +149,7 @@ namespace MGroup.Solvers.DDM.Psm
 			//}
 			//else
 			//{
-				this.initialSolutionGuessStrategy = new ZeroInitialSolutionGuess();
+			this.initialSolutionGuessStrategy = new ZeroInitialSolutionGuess();
 			//}
 
 			IPcgResidualConvergence convergenceCriterion;
@@ -191,7 +185,7 @@ namespace MGroup.Solvers.DDM.Psm
 			else
 			{
 				this.subdomainTopology = new SubdomainTopologyGeneral_v2();
-				this.subdomainTopology.Initialize(environment, partition, s => subdomainDofOrderings[s]);
+				this.subdomainTopology.Initialize(environment, partition, s => subdomainDofsAll[s]);
 			}
 
 			analysisIteration = 0;
@@ -213,7 +207,7 @@ namespace MGroup.Solvers.DDM.Psm
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
-			return new DistributedAlgebraicModel_v2(environment, physicalModel, partition, LinearSystem, subdomainDofOrderings);
+			return new DistributedAlgebraicModel_v2(environment, physicalModel, partition, LinearSystem, subdomainDofsAll);
 		}
 
 		public void BuildSystemMatrix()
@@ -222,7 +216,7 @@ namespace MGroup.Solvers.DDM.Psm
 			environment.DoPerNode(subdomainID =>
 			{
 				ISubdomain_v2 subdomain = partition.GetSubdomain(subdomainID);
-				ISubdomainDofOrdering_v2 subdomainDofs = subdomainDofOrderings[subdomainID];
+				IMonolithicDofManager subdomainDofs = subdomainDofsAll[subdomainID];
 				TMatrix matrix = subdomainMatrixAssemblers[subdomainID].BuildSubdomainMatrix(subdomain, subdomainDofs);
 				globalMatrix.LocalMatrices[subdomainID] = matrix;
 			});
@@ -235,14 +229,14 @@ namespace MGroup.Solvers.DDM.Psm
 			// Dofs of original linear system
 			environment.DoPerNode(subdomainID =>
 			{
-				subdomainDofOrderings[subdomainID].OrderDofs();
+				subdomainDofsAll[subdomainID].PrepareDofs();
 				subdomainMatrixAssemblers[subdomainID].HandleDofOrderingWasModified();
 			});
 
 			subdomainTopology.FindCommonNodesBetweenSubdomains();
 			subdomainTopology.FindCommonDofsBetweenSubdomains();
 
-			allDofIndexer = subdomainTopology.CreateDistributedVectorIndexer(s => subdomainDofOrderings[s].DomainDofs);
+			allDofIndexer = subdomainTopology.CreateDistributedVectorIndexer(s => subdomainDofsAll[s].DomainDofOrder);
 			LinearSystem.RhsVector = new DistributedOverlappingVector(allDofIndexer);
 			LinearSystem.Solution = new DistributedOverlappingVector(allDofIndexer);
 		}
@@ -287,7 +281,7 @@ namespace MGroup.Solvers.DDM.Psm
 			bool guessIsZero;
 			if (analysisIteration == 0)
 			{
-				(interfaceProblemVectors.InterfaceProblemSolution, guessIsZero) = 
+				(interfaceProblemVectors.InterfaceProblemSolution, guessIsZero) =
 					initialSolutionGuessStrategy.GuessFirstSolution(boundaryDofIndexer);
 			}
 			else
@@ -462,7 +456,9 @@ namespace MGroup.Solvers.DDM.Psm
 				PsmMatricesFactory = matrixManagerFactory; //new PsmSubdomainMatrixManagerSymmetricCSparse.Factory();
 			}
 
-			public bool CacheElementDofs = true;
+			public bool CacheElementDofs { get; set; } = true;
+
+			public IDofOrderingStrategy_v2 DofOrderingStrategy { get; set; } = new DefaultDofOrdering(sortNodes: true, sortDofs: true);
 
 			public bool EnableLogging { get; set; } = false;
 
@@ -486,7 +482,7 @@ namespace MGroup.Solvers.DDM.Psm
 				DdmLogger logger = null;
 				return new PsmSolver_v2<TMatrix>(environment, domain, partition, laProvider, PsmMatricesFactory,
 					ExplicitSubdomainMatrices, Preconditioner, InterfaceProblemSolverFactory, IsHomogeneousProblem,
-					logger, OptimizedSubdomainTopology, CacheElementDofs);
+					logger, OptimizedSubdomainTopology, DofOrderingStrategy, CacheElementDofs);
 			}
 		}
 	}

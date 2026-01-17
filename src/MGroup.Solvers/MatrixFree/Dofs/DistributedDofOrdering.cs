@@ -1,124 +1,124 @@
-namespace MGroup.Solvers.MatrixFree.Dofs
-{
-	using System;
-	using System.Collections.Concurrent;
-	using System.Collections.Generic;
-	using System.Text;
+//namespace MGroup.Solvers.MatrixFree.Dofs
+//{
+//	using System;
+//	using System.Collections.Concurrent;
+//	using System.Collections.Generic;
+//	using System.Text;
 
-	using MGroup.Environments;
-	using MGroup.LinearAlgebra.Distributed.Overlapping;
-	using MGroup.Solvers.DiscretizationExtensions;
-	using MGroup.Solvers.LinearAlgebraExtensions;
+//	using MGroup.Environments;
+//	using MGroup.LinearAlgebra.Distributed.Overlapping;
+//	using MGroup.Solvers.DiscretizationExtensions;
+//	using MGroup.Solvers.LinearAlgebraExtensions;
 
-	public class DistributedDofOrdering
-	{
-		private readonly IComputeEnvironment environment;
-		private readonly ISubdomain_v2 domain;
-		private readonly IElementPartition partition;
+//	public class DistributedDofOrdering
+//	{
+//		private readonly IComputeEnvironment environment;
+//		private readonly ISubdomain_v2 domain;
+//		private readonly IElementPartition partition;
 
-		private Dictionary<int, IntDofTable> elementDofs;
+//		private Dictionary<int, IntDofTable> elementDofs;
 
-		public DistributedDofOrdering(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition)
-		{
-			this.environment = environment;
-			this.domain = domain;
-			this.partition = partition;
-		}
+//		public DistributedDofOrdering(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition)
+//		{
+//			this.environment = environment;
+//			this.domain = domain;
+//			this.partition = partition;
+//		}
 
-		public DistributedOverlappingIndexer CreateIndexer()
-		{
-			elementDofs = environment.CalcNodeData(elementID => domain.GetElement(elementID).GetDofs()); // cache them for repeated use
-			ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> commonDofsBetweenElements = FindAllCommonDofs();
-			var indexer = new DistributedOverlappingIndexer(environment);
-			indexer.Initialize(elementID => InitializeIndexer(elementID, commonDofsBetweenElements[elementID]));
-			return indexer;
-		}
+//		public DistributedOverlappingIndexer CreateIndexer()
+//		{
+//			elementDofs = environment.CalcNodeData(elementID => domain.GetElement(elementID).GetDofs()); // cache them for repeated use
+//			ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> commonDofsBetweenElements = FindAllCommonDofs();
+//			var indexer = new DistributedOverlappingIndexer(environment);
+//			indexer.Initialize(elementID => InitializeIndexer(elementID, commonDofsBetweenElements[elementID]));
+//			return indexer;
+//		}
 
-		public IntDofTable GetElementDofs(int elementID) => elementDofs[elementID];
+//		public IntDofTable GetElementDofs(int elementID) => elementDofs[elementID];
 
-		private ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> FindAllCommonDofs()
-		{
-			var commonDofsBetweenElements = new ConcurrentDictionary<int, Dictionary<int, SortedDofSet>>();
+//		private ConcurrentDictionary<int, Dictionary<int, SortedDofSet>> FindAllCommonDofs()
+//		{
+//			var commonDofsBetweenElements = new ConcurrentDictionary<int, Dictionary<int, SortedDofSet>>();
 
-			// Find all dofs of each element at the common nodes.
-			environment.DoPerNode(elementID =>
-			{
-				commonDofsBetweenElements[elementID] = FindCommonDofsOfElement(elementID);
-			});
+//			// Find all dofs of each element at the common nodes.
+//			environment.DoPerNode(elementID =>
+//			{
+//				commonDofsBetweenElements[elementID] = FindCommonDofsOfElement(elementID);
+//			});
 
-			// Send these dofs to the corresponding neighbors and receive theirs.
-			Dictionary<int, AllToAllNodeData<int>> transferDataPerElement = environment.CalcNodeData(elementID =>
-			{
-				var transferData = new AllToAllNodeData<int>();
-				transferData.sendValues = new ConcurrentDictionary<int, int[]>();
-				foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
-				{
-					SortedDofSet commonDofs = commonDofsBetweenElements[elementID][neighborID];
+//			// Send these dofs to the corresponding neighbors and receive theirs.
+//			Dictionary<int, AllToAllNodeData<int>> transferDataPerElement = environment.CalcNodeData(elementID =>
+//			{
+//				var transferData = new AllToAllNodeData<int>();
+//				transferData.sendValues = new ConcurrentDictionary<int, int[]>();
+//				foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
+//				{
+//					SortedDofSet commonDofs = commonDofsBetweenElements[elementID][neighborID];
 
-					//TODOMPI: Serialization & deserialization should be done by the environment, if necessary.
-					transferData.sendValues[neighborID] = commonDofs.Serialize();
-				}
+//					//TODOMPI: Serialization & deserialization should be done by the environment, if necessary.
+//					transferData.sendValues[neighborID] = commonDofs.Serialize();
+//				}
 
-				// No buffers for receive values yet, since their lengths are unknown. 
-				// Let the environment create them, by using extra communication.
-				transferData.recvValues = new ConcurrentDictionary<int, int[]>();
-				return transferData;
-			});
-			environment.NeighborhoodAllToAll(transferDataPerElement, false);
+//				// No buffers for receive values yet, since their lengths are unknown. 
+//				// Let the environment create them, by using extra communication.
+//				transferData.recvValues = new ConcurrentDictionary<int, int[]>();
+//				return transferData;
+//			});
+//			environment.NeighborhoodAllToAll(transferDataPerElement, false);
 
-			// Find the intersection between the dofs of an element and the ones received by its neighbor.
-			environment.DoPerNode(elementID =>
-			{
-				AllToAllNodeData<int> transferData = transferDataPerElement[elementID];
-				foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
-				{
-					SortedDofSet receivedDofs = SortedDofSet.Deserialize(transferData.recvValues[neighborID]);
-					commonDofsBetweenElements[elementID][neighborID] =
-						commonDofsBetweenElements[elementID][neighborID].IntersectionWith(receivedDofs);
-				}
-			});
+//			// Find the intersection between the dofs of an element and the ones received by its neighbor.
+//			environment.DoPerNode(elementID =>
+//			{
+//				AllToAllNodeData<int> transferData = transferDataPerElement[elementID];
+//				foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
+//				{
+//					SortedDofSet receivedDofs = SortedDofSet.Deserialize(transferData.recvValues[neighborID]);
+//					commonDofsBetweenElements[elementID][neighborID] =
+//						commonDofsBetweenElements[elementID][neighborID].IntersectionWith(receivedDofs);
+//				}
+//			});
 
-			return commonDofsBetweenElements;
-		}
+//			return commonDofsBetweenElements;
+//		}
 
-		private Dictionary<int, SortedDofSet> FindCommonDofsOfElement(int elementID)
-		{
-			IntDofTable elementDofs = this.elementDofs[elementID];
-			var commonDofsOfElement = new Dictionary<int, SortedDofSet>();
-			foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
-			{
-				var dofSet = new SortedDofSet();
-				foreach (int nodeID in partition.GetCommonNodesOfElements(elementID, neighborID))
-				{
-					dofSet.AddDofs(nodeID, elementDofs.GetColumnsOfRow(nodeID));
-				}
-				commonDofsOfElement[neighborID] = dofSet;
-			}
-			return commonDofsOfElement;
-		}
+//		private Dictionary<int, SortedDofSet> FindCommonDofsOfElement(int elementID)
+//		{
+//			IntDofTable elementDofs = this.elementDofs[elementID];
+//			var commonDofsOfElement = new Dictionary<int, SortedDofSet>();
+//			foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
+//			{
+//				var dofSet = new SortedDofSet();
+//				foreach (int nodeID in partition.GetCommonNodesOfElements(elementID, neighborID))
+//				{
+//					dofSet.AddDofs(nodeID, elementDofs.GetColumnsOfRow(nodeID));
+//				}
+//				commonDofsOfElement[neighborID] = dofSet;
+//			}
+//			return commonDofsOfElement;
+//		}
 
-		private LocalIndexerDto InitializeIndexer(int elementID, Dictionary<int, SortedDofSet> commonDofsWithNeighbors)
-		{
-			IntDofTable elementDofs = this.elementDofs[elementID];
+//		private LocalIndexerDto InitializeIndexer(int elementID, Dictionary<int, SortedDofSet> commonDofsWithNeighbors)
+//		{
+//			IntDofTable elementDofs = this.elementDofs[elementID];
 
-			var allCommonDofIndices = new Dictionary<int, int[]>();
-			foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
-			{
-				SortedDofSet commonDofs = commonDofsWithNeighbors[neighborID];
-				var commonDofIndices = new List<int>(commonDofs.Count());
-				foreach ((int nodeID, int dofID) in commonDofs.EnumerateOrderedNodesDofs())
-				{
-					//TODO: It would be faster to iterate each node and then its dofs. Same for DofTable. 
-					//		Even better let DofTable take DofSet as argument and return the indices.
-					commonDofIndices.Add(elementDofs[nodeID, dofID]);
+//			var allCommonDofIndices = new Dictionary<int, int[]>();
+//			foreach (int neighborID in partition.GetNeighborsOfElement(elementID))
+//			{
+//				SortedDofSet commonDofs = commonDofsWithNeighbors[neighborID];
+//				var commonDofIndices = new List<int>(commonDofs.Count());
+//				foreach ((int nodeID, int dofID) in commonDofs.EnumerateOrderedNodesDofs())
+//				{
+//					//TODO: It would be faster to iterate each node and then its dofs. Same for DofTable. 
+//					//		Even better let DofTable take DofSet as argument and return the indices.
+//					commonDofIndices.Add(elementDofs[nodeID, dofID]);
 					
-				}
+//				}
 
-				allCommonDofIndices[neighborID] = commonDofIndices.ToArray();
-			}
+//				allCommonDofIndices[neighborID] = commonDofIndices.ToArray();
+//			}
 
-			return LocalIndexerDto.CreateWithNewContent(elementDofs.NumEntries, allCommonDofIndices);
-		}
+//			return LocalIndexerDto.CreateWithNewContent(elementDofs.NumEntries, allCommonDofIndices);
+//		}
 
-	}
-}
+//	}
+//}

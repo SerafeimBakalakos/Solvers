@@ -12,7 +12,7 @@ namespace MGroup.Solvers.DDM.Discretization
 	using MGroup.Solvers;
 	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DiscretizationExtensions;
-	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 
 	public class DecomposedNonOverlappingDomain : ISubdomain_v2
 	{
@@ -53,7 +53,5 @@ namespace MGroup.Solvers.DDM.Discretization
 
 		public ISuperElement GetElement(int elementID)
 			=> subdomains[getSubdomainOfElement(elementID)].GetElement(elementID);
-
-		public IntDofTable OrderDofs_temp() => throw new NotImplementedException();
 	}
 }

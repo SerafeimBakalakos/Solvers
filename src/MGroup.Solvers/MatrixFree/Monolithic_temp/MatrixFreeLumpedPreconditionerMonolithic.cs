@@ -11,6 +11,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearAlgebraExtensions;
 	using MGroup.Solvers.MatrixFree.Dofs;
 	using MGroup.Solvers.MatrixFree.Preconditioning;
@@ -18,7 +19,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	public class MatrixFreeLumpedPreconditionerMonolithic : IMatrixFreePreconditionerMonolithic
 	{
 		private IDofScaling dofScaling;
-		private ISubdomainDofOrdering_v2 dofOrdering;
+		private IMonolithicDofManager dofManager;
 		private IReadOnlyCollection<ISuperElement> elements;
 		private Dictionary<int, DiagonalMatrix> elementInverseDiagonals;
 
@@ -36,7 +37,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			x.Clear();
 			foreach (ISuperElement element in elements)
 			{
-				int[] elementToDomainDofs = dofOrdering.MapDofsElementToDomain(element);
+				int[] elementToDomainDofs = dofManager.MapDofsElementToDomain(element);
 				DiagonalMatrix We = dofScaling.GetScalingMatrix(element.ID);
 				Vector ye = y.GetSubvector(elementToDomainDofs);
 				var xe = Vector.CreateZero(elementToDomainDofs.Length);
@@ -45,12 +46,12 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 			}
 		}
 
-		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, ISubdomainDofOrdering_v2 dofOrdering, IDofScaling dofScaling)
+		public void Update(IReadOnlyMatrix systemMatrix, IReadOnlyCollection<ISuperElement> elements, IMonolithicDofManager dofManager, IDofScaling dofScaling)
 		{
 			if (systemMatrix is ElementWiseMatrixMonolithic partitionedMatrix)
 			{
 				this.elements = elements;
-				this.dofOrdering = dofOrdering;
+				this.dofManager = dofManager;
 				this.dofScaling = dofScaling;
 				dofScaling.Update();
 
