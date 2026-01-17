@@ -5,13 +5,13 @@ namespace MGroup.Solvers.DofOrdering_v2
 
 	using MGroup.LinearAlgebra.Reordering;
 	using MGroup.Solvers;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 
 	public class MonolithicDomainDofManagerCaching : MonolithicDomainDofManager
 	{
 		private Dictionary<int, int[]> elementToDomainDofIndices;
 
-		public MonolithicDomainDofManagerCaching(ISubdomain_v2 domain, IDofOrderingStrategy_v2 orderingStrategy, IReorderingAlgorithm? reorderingAlgorithm)
+		public MonolithicDomainDofManagerCaching(IDomain domain, IDofOrderingStrategy_v2 orderingStrategy, IReorderingAlgorithm? reorderingAlgorithm)
 			: base(domain, orderingStrategy, reorderingAlgorithm)
 		{
 		}

@@ -4,7 +4,7 @@ namespace MGroup.Solvers.MatrixFree
 	using System.Collections.Generic;
 	using System.Text;
 
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 
 	public interface IElementPartition
 	{

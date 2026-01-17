@@ -10,11 +10,11 @@ namespace MGroup.Solvers.Assemblers
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.DofOrdering_v2;
+	using MGroup.Solvers.Discretization;
 
-	public class SymmetricCscMatrixAssembler_v2 : ISubdomainMatrixAssembler_v2<SymmetricCscMatrix>
+	public class SymmetricCscMatrixAssembler_v2 : IDomainMatrixAssembler_v2<SymmetricCscMatrix>
 	{
 		private readonly bool sortColsOfEachRow;
 
@@ -23,13 +23,13 @@ namespace MGroup.Solvers.Assemblers
 			this.sortColsOfEachRow = sortColsOfEachRow;
 		}
 
-		public SymmetricCscMatrix BuildSubdomainMatrix(ISubdomain_v2 subdomain, IMonolithicDofManager dofManager)
+		public SymmetricCscMatrix BuildDomainMatrix(IDomain domain, IMonolithicDofManager dofManager)
 		{
 			int numDofs = dofManager.NumDomainDofs;
 			var subdomainMatrix = DokSymmetric_v2.CreateEmpty(numDofs);
 
 			// Process the stiffness of each element
-			foreach (ISuperElement element in subdomain.EnumerateElements())
+			foreach (ISuperElement element in domain.EnumerateElements())
 			{
 				int[] elementToDomainDofs = dofManager.MapDofsElementToDomain(element);
 				IMatrix elementMatrix = element.BuildMatrix();

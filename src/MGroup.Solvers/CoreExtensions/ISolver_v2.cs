@@ -8,7 +8,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearSystem;
 
@@ -18,7 +18,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		LinearSystem_v2 LinearSystem { get; }
 
-		ISubdomain_v2 Domain { get; }
+		IDomain Domain { get; }
 
 		IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel);
 

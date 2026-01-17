@@ -10,19 +10,19 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 	using MGroup.LinearAlgebra.Distributed.Overlapping;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
 
 	public class HomogeneousDofScaling : IDofScaling
 	{
-		private readonly ISubdomain_v2 domain;
+		private readonly IDomain domain;
 		private readonly IComputeEnvironment environment;
 		private readonly IElementPartition partition;
 		private readonly IDistributedDofManager dofManager;
 		private Dictionary<int, DiagonalMatrix> elementScalingMatrices;
 
-		public HomogeneousDofScaling(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, IDistributedDofManager dofManager)
+		public HomogeneousDofScaling(IComputeEnvironment environment, IDomain domain, IElementPartition partition, IDistributedDofManager dofManager)
 		{
 			this.environment = environment;
 			this.domain = domain;

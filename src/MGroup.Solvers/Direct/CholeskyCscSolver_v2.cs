@@ -21,6 +21,7 @@ namespace MGroup.Solvers.Direct
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.LinearAlgebra.Implementations.Managed;
 	using MGroup.Solvers.DofOrdering_v2;
+	using MGroup.Solvers.Discretization;
 
 	public class CholeskyCscSolver_v2 : ISolver_v2, IDisposable
 	{
@@ -29,7 +30,7 @@ namespace MGroup.Solvers.Direct
 
 		private ICholeskySymmetricCsc factorization;
 
-		public CholeskyCscSolver_v2(ISubdomain_v2 domain, IImplementationProvider laImplementation, IDofOrderingStrategy_v2 dofOrderingStrategy, IReorderingAlgorithm reorderingAlgorithm, bool cacheElementDofs)
+		public CholeskyCscSolver_v2(IDomain domain, IImplementationProvider laImplementation, IDofOrderingStrategy_v2 dofOrderingStrategy, IReorderingAlgorithm reorderingAlgorithm, bool cacheElementDofs)
 		{
 			this.Domain = domain;
 			this.laImplementation = laImplementation;
@@ -58,7 +59,7 @@ namespace MGroup.Solvers.Direct
 
 		public ISolverLogger Logger { get; } = new SolverLogger(nameof(CholeskyCscSolver_v2));
 
-		public ISubdomain_v2 Domain { get; }
+		public IDomain Domain { get; }
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
@@ -73,7 +74,7 @@ namespace MGroup.Solvers.Direct
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofManager);
+			LinearSystem.Matrix = matrixAssembler.BuildDomainMatrix(Domain, DofManager);
 		}
 
 		public void SolveLinearSystem()
@@ -135,7 +136,7 @@ namespace MGroup.Solvers.Direct
 
 			public IReorderingAlgorithm ReorderingAlgorithm { get; set; }
 
-			public CholeskyCscSolver_v2 CreateSolver(ISubdomain_v2 domain)
+			public CholeskyCscSolver_v2 CreateSolver(IDomain domain)
 			{
 				return new CholeskyCscSolver_v2(domain, AlgebraImplementation, DofOrderingStrategy, ReorderingAlgorithm, CacheElementDofs);
 			}

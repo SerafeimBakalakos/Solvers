@@ -9,7 +9,7 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 	public interface IPsmSubdomainMatrixManagerFactory_v2<TMatrix>
 		where TMatrix : class, IMatrix
 	{
-		ISubdomainMatrixAssembler_v2<TMatrix> CreateAssembler();
+		IDomainMatrixAssembler_v2<TMatrix> CreateAssembler();
 
 		IPsmSubdomainMatrixManager_v2 CreateMatrixManager(
 			IImplementationProvider provider, SubdomainLinearSystem_v2<TMatrix> subLinearSystem, PsmSubdomainDofs_v2 subdomainDofs);

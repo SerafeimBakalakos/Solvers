@@ -4,10 +4,10 @@ namespace MGroup.Solvers.DofOrdering_v2
 	using System.Collections.Generic;
 	using System.Text;
 
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 
 	public interface IDofOrderingStrategy_v2
 	{
-		IntDofTable OrderDomainDofs(ISubdomain_v2 domain, Func<int, IntDofTable> getElementDofs);
+		IntDofTable OrderDomainDofs(IDomain domain, Func<int, IntDofTable> getElementDofs);
 	}
 }

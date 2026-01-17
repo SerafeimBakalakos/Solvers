@@ -10,7 +10,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.LinearAlgebra.Reduction;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;

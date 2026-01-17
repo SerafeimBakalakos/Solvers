@@ -10,7 +10,7 @@ namespace MGroup.Solvers.DofOrdering_v2
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 
 	public class DefaultDofOrdering : IDofOrderingStrategy_v2
 	{
@@ -23,7 +23,7 @@ namespace MGroup.Solvers.DofOrdering_v2
 			this.sortDofs = sortDofs;
 		}
 
-		public IntDofTable OrderDomainDofs(ISubdomain_v2 domain, Func<int, IntDofTable> getElementDofs)
+		public IntDofTable OrderDomainDofs(IDomain domain, Func<int, IntDofTable> getElementDofs)
 		{
 			// Gather dofs from elements
 			var dofsAtNodes = new Dictionary<int, HashSet<int>>();

@@ -22,6 +22,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Solution;
 	using MGroup.Solvers.Assemblers;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
@@ -44,7 +45,7 @@ namespace MGroup.Solvers.MatrixFree
 		private readonly IElementMatrixConverter elementMatrixConverter;
 		private bool mustUpdatePreconditioner = true;
 
-		public MatrixFreeSolver(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm iterativeAlgorithm, IMatrixFreePreconditionerFactory preconditionerFactory, IElementMatrixConverter elementMatrixConverter, bool isHomogeneous)
+		public MatrixFreeSolver(IComputeEnvironment environment, IDomain domain, IElementPartition partition, PcgAlgorithm iterativeAlgorithm, IMatrixFreePreconditionerFactory preconditionerFactory, IElementMatrixConverter elementMatrixConverter, bool isHomogeneous)
 		{
 			this.environment = environment;
 			Domain = domain;
@@ -75,7 +76,7 @@ namespace MGroup.Solvers.MatrixFree
 
 		public ISolverLogger Logger { get; } = new SolverLogger(typeof(PcgSolver_v2).Name);
 
-		public ISubdomain_v2 Domain { get; }
+		public IDomain Domain { get; }
 
 		public IterativeStatistics IterativeAlgorithmStats { get; private set; }
 
@@ -166,7 +167,7 @@ namespace MGroup.Solvers.MatrixFree
 			public IMatrixFreePreconditionerFactory PreconditionerFactory { get; set; }
 				= new MatrixFreeJacobiPreconditioner.Factory();
 
-			public MatrixFreeSolver CreateSolver(ISubdomain_v2 domain, IElementPartition partition)
+			public MatrixFreeSolver CreateSolver(IDomain domain, IElementPartition partition)
 			{
 				return new MatrixFreeSolver(environment, domain, partition, IterativeAlgorithm, PreconditionerFactory, ElementMatrixConverter, IsMaterialHomogeneous);
 			}

@@ -13,6 +13,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Solution;
 	using MGroup.Solvers.Assemblers;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
@@ -33,7 +34,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 
 		private bool mustUpdatePreconditioner = true;
 
-		public MatrixFreeSolverMonolithic(ISubdomain_v2 domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditionerMonolithic preconditioner, bool isHomogeneous, bool cacheElementDofs = true)
+		public MatrixFreeSolverMonolithic(IDomain domain, IElementPartition partition, PcgAlgorithm pcgAlgorithm, IMatrixFreePreconditionerMonolithic preconditioner, bool isHomogeneous, bool cacheElementDofs = true)
 		{
 			Domain = domain;
 			elements = Domain.EnumerateElements().ToList();
@@ -65,7 +66,7 @@ namespace MGroup.Solvers.MatrixFree.Monolithic
 
 		public ISolverLogger Logger { get; } = new SolverLogger(typeof(PcgSolver_v2).Name);
 
-		public ISubdomain_v2 Domain { get; }
+		public IDomain Domain { get; }
 
 		public IterativeStatistics IterativeAlgorithmStats { get; private set; }
 

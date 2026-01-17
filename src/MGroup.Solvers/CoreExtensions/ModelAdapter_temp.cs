@@ -26,6 +26,10 @@ namespace MGroup.Solvers.DiscretizationExtensions
 
 		public int NumSubdomains => model.NumSubdomains;
 
+		public int NumElements => model.ElementsDictionary.Count;
+
+		public int NumNodes => model.NodesDictionary.Count;
+
 		public void ConnectDataStructures()
 		{
 			model.ConnectDataStructures();

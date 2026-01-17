@@ -1,4 +1,6 @@
-namespace MGroup.Solvers.DiscretizationExtensions
+using MGroup.Solvers.DiscretizationExtensions;
+
+namespace MGroup.Solvers.Discretization
 {
 	using System;
 	using System.Collections.Generic;
@@ -25,7 +27,7 @@ namespace MGroup.Solvers.DiscretizationExtensions
 		{
 			ElementEntity = femElement;
 			this.model = model;
-			this.constrainedDofLocator = constrainedDofs;
+			constrainedDofLocator = constrainedDofs;
 			this.elementMatrixProvider = elementMatrixProvider;
 		}
 
@@ -46,8 +48,6 @@ namespace MGroup.Solvers.DiscretizationExtensions
 				return new SubmatrixView(matrix, freeToAllDofs);
 			}
 		}
-
-		public IVector BuildRhsVector_temp() => throw new NotImplementedException();
 
 		public IEnumerable<INode> EnumerateNodes() => ElementEntity.DofEnumerator.GetNodesForMatrixAssembly(ElementEntity);
 

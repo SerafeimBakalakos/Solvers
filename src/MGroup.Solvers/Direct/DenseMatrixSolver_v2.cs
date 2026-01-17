@@ -14,6 +14,7 @@ namespace MGroup.Solvers.Direct
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Solution;
 	using MGroup.Solvers.Assemblers;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
@@ -27,7 +28,7 @@ namespace MGroup.Solvers.Direct
 
 		private Matrix inverse;
 
-		public DenseMatrixSolver_v2(ISubdomain_v2 domain, IDofOrderingStrategy_v2 dofOrderingStrategy, bool isMatrixPositiveDefinite,  bool cacheElementDofs)
+		public DenseMatrixSolver_v2(IDomain domain, IDofOrderingStrategy_v2 dofOrderingStrategy, bool isMatrixPositiveDefinite,  bool cacheElementDofs)
 		{
 			this.Domain = domain;
 			this.isMatrixPositiveDefinite = isMatrixPositiveDefinite;
@@ -45,7 +46,7 @@ namespace MGroup.Solvers.Direct
 
 		public ISolverLogger Logger { get; } = new SolverLogger(typeof(DenseMatrixSolver_v2).Name);
 
-		public ISubdomain_v2 Domain { get; }
+		public IDomain Domain { get; }
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
@@ -60,7 +61,7 @@ namespace MGroup.Solvers.Direct
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofManager);
+			LinearSystem.Matrix = matrixAssembler.BuildDomainMatrix(Domain, DofManager);
 		}
 
 		public void SolveLinearSystem()
@@ -114,7 +115,7 @@ namespace MGroup.Solvers.Direct
 
 			public bool IsMatrixPositiveDefinite { get; set; } = false;
 
-			public DenseMatrixSolver_v2 CreateSolver(ISubdomain_v2 domain)
+			public DenseMatrixSolver_v2 CreateSolver(IDomain domain)
 			{
 				return new DenseMatrixSolver_v2(domain, DofOrderingStrategy, CacheElementDofs, IsMatrixPositiveDefinite);
 			}

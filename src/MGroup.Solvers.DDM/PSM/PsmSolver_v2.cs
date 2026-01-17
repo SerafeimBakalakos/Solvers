@@ -28,6 +28,7 @@ namespace MGroup.Solvers.DDM.Psm
 	using MGroup.Solvers.DDM.PSM.Scaling;
 	using MGroup.Solvers.DDM.PSM.StiffnessMatrices;
 	using MGroup.Solvers.DDM.PSM.Vectors;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
@@ -58,7 +59,7 @@ namespace MGroup.Solvers.DDM.Psm
 		protected readonly ConcurrentDictionary<int, PsmSubdomainDofs_v2> subdomainDofsPsm;
 		protected readonly ConcurrentDictionary<int, ISubdomainLinearSystem_v2> subdomainLinearSystems;
 		protected readonly ConcurrentDictionary<int, IPsmSubdomainMatrixManager_v2> subdomainMatricesPsm;
-		protected readonly ConcurrentDictionary<int, ISubdomainMatrixAssembler_v2<TMatrix>> subdomainMatrixAssemblers;
+		protected readonly ConcurrentDictionary<int, IDomainMatrixAssembler_v2<TMatrix>> subdomainMatrixAssemblers;
 		protected readonly ISubdomainTopology_v2 subdomainTopology;
 		protected readonly ConcurrentDictionary<int, PsmSubdomainVectors_v2> subdomainVectorsPsm;
 
@@ -66,7 +67,7 @@ namespace MGroup.Solvers.DDM.Psm
 		protected DistributedOverlappingIndexer allDofIndexer;
 		protected DistributedOverlappingIndexer boundaryDofIndexer;
 
-		protected PsmSolver_v2(IComputeEnvironment environment, ISubdomain_v2 domain, IPartition_v2 partition,
+		protected PsmSolver_v2(IComputeEnvironment environment, IDomain domain, IPartition_v2 partition,
 			IImplementationProvider provider, IPsmSubdomainMatrixManagerFactory_v2<TMatrix> matrixManagerFactory,
 			bool explicitSubdomainMatrices, IPsmPreconditioner preconditioner,
 			IPsmInterfaceProblemSolverFactory interfaceProblemSolverFactory, bool isHomogeneous, DdmLogger logger,
@@ -84,13 +85,13 @@ namespace MGroup.Solvers.DDM.Psm
 			this.subdomainDofsPsm = new ConcurrentDictionary<int, PsmSubdomainDofs_v2>();
 			this.subdomainLinearSystems = new ConcurrentDictionary<int, ISubdomainLinearSystem_v2>();
 			this.subdomainMatricesPsm = new ConcurrentDictionary<int, IPsmSubdomainMatrixManager_v2>();
-			this.subdomainMatrixAssemblers = new ConcurrentDictionary<int, ISubdomainMatrixAssembler_v2<TMatrix>>();
+			this.subdomainMatrixAssemblers = new ConcurrentDictionary<int, IDomainMatrixAssembler_v2<TMatrix>>();
 			this.subdomainVectorsPsm = new ConcurrentDictionary<int, PsmSubdomainVectors_v2>();
 			environment.DoPerNode(subdomainID =>
 			{
 				ISubdomain_v2 subdomain = partition.GetSubdomain(subdomainID);
 				var subLinearSystem = new SubdomainLinearSystem_v2<TMatrix>(LinearSystem, subdomainID);
-				ISubdomainMatrixAssembler_v2<TMatrix> matrixAssembler = matrixManagerFactory.CreateAssembler();
+				IDomainMatrixAssembler_v2<TMatrix> matrixAssembler = matrixManagerFactory.CreateAssembler();
 
 				var dofManager = cacheElementDofs
 					? new MonolithicDomainDofManagerCaching(subdomain, dofOrderingStrategy, null)
@@ -193,7 +194,7 @@ namespace MGroup.Solvers.DDM.Psm
 
 		public bool CanOverwriteSystemMatrices { get; set; } = true;
 
-		public ISubdomain_v2 Domain { get; }
+		public IDomain Domain { get; }
 
 		public IterativeStatistics InterfaceProblemSolutionStats { get; private set; }
 
@@ -217,7 +218,7 @@ namespace MGroup.Solvers.DDM.Psm
 			{
 				ISubdomain_v2 subdomain = partition.GetSubdomain(subdomainID);
 				IMonolithicDofManager subdomainDofs = subdomainDofsAll[subdomainID];
-				TMatrix matrix = subdomainMatrixAssemblers[subdomainID].BuildSubdomainMatrix(subdomain, subdomainDofs);
+				TMatrix matrix = subdomainMatrixAssemblers[subdomainID].BuildDomainMatrix(subdomain, subdomainDofs);
 				globalMatrix.LocalMatrices[subdomainID] = matrix;
 			});
 
@@ -476,7 +477,7 @@ namespace MGroup.Solvers.DDM.Psm
 
 			public bool OptimizedSubdomainTopology { get; set; } = false;
 
-			public virtual PsmSolver_v2<TMatrix> CreateSolver(ISubdomain_v2 domain, IPartition_v2 partition)
+			public virtual PsmSolver_v2<TMatrix> CreateSolver(IDomain domain, IPartition_v2 partition)
 			{
 				//DdmLogger logger = EnableLogging ? new DdmLogger(environment, "PSM Solver", model.NumSubdomains) : null;
 				DdmLogger logger = null;

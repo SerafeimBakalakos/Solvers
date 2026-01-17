@@ -9,7 +9,7 @@ namespace MGroup.Solvers.DDM.PSM.Dofs
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DDM.Commons;
 	using MGroup.Solvers.DDM.Partitioning;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
 

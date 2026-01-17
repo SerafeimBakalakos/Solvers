@@ -1,6 +1,5 @@
-using MGroup.Solvers.DiscretizationExtensions;
 
-namespace MGroup.Solvers.DiscretizationExtensions
+namespace MGroup.Solvers.Discretization
 {
 	using System;
 	using System.Collections.Generic;
@@ -18,17 +17,16 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.DofOrdering_v2;
 
-	public class FullDomain_v2 : ISubdomain_v2
+	public class GlobalDomain : IDomain
 	{
 		private readonly ConstrainedDofLocator constrainedDofLocator;
 		private readonly IElementMatrixProvider elementMatrixProvider;
 		private readonly Dictionary<int, DefaultElement> elements;
 
-		public FullDomain_v2(IModel_v2 model, IElementMatrixProvider elementMatrixProvider, bool cacheElementDofs = true)
+		public GlobalDomain(IModel_v2 model, IElementMatrixProvider elementMatrixProvider, bool cacheElementDofs = true)
 		{
 			this.Model = model;
 			this.elementMatrixProvider = elementMatrixProvider;
-			this.ID = 0;
 
 			constrainedDofLocator = new ConstrainedDofLocator(model);
 			
@@ -49,14 +47,18 @@ namespace MGroup.Solvers.DiscretizationExtensions
 			}
 		}
 
-		public int ID { get; }
-
 		public IModel_v2 Model { get; }
+
+		public int NumElements => Model.NumElements;
+
+		public int NumNodes => Model.NumNodes;
 
 		public IEnumerable<INode> EnumerateNodes() => Model.EnumerateNodes();
 
 		public IEnumerable<ISuperElement> EnumerateElements() => elements.Values;
 
 		public ISuperElement GetElement(int id) => elements[id];
+
+		public INode GetNode(int nodeID) => Model.GetNode(nodeID);
 	}
 }

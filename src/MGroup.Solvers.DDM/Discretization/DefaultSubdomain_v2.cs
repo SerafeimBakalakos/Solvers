@@ -12,6 +12,7 @@ namespace MGroup.Solvers.DDM.Discretization
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering_v2;
 
@@ -22,7 +23,7 @@ namespace MGroup.Solvers.DDM.Discretization
 		private readonly IElementMatrixProvider elementMatrixProvider;
 		private readonly IModel_v2 model;
 
-		private SortedSet<INode> nodes = new SortedSet<INode>(Comparer<INode>.Create((n1, n2) => n1.ID.CompareTo(n2.ID)));
+		private Dictionary<int, INode> nodes = new Dictionary<int, INode>();
 		private Dictionary<int, DefaultElement> elements = new Dictionary<int, DefaultElement>();
 
 		public DefaultSubdomain_v2(int id, IModel_v2 model, ConstrainedDofLocator constrainedDofLocator, IElementMatrixProvider elementMatrixProvider, bool cacheElementDofs = true)
@@ -35,6 +36,10 @@ namespace MGroup.Solvers.DDM.Discretization
 		}
 
 		public int ID { get; }
+
+		public int NumElements => elements.Count;
+
+		public int NumNodes => nodes.Count;
 
 		public void AddElement(IElementType element)
 		{
@@ -49,15 +54,13 @@ namespace MGroup.Solvers.DDM.Discretization
 
 			foreach (INode node in element.Nodes)
 			{
-				nodes.Add(node);
+				nodes.TryAdd(node.ID, node);
 			}
 		}
 
-		public IEnumerable<INode> EnumerateNodes() => nodes;
+		public IEnumerable<INode> EnumerateNodes() => nodes.Values;
 
 		public IEnumerable<ISuperElement> EnumerateElements() => elements.Values;
-
-		public ISuperElement GetElement(int elementID) => elements[elementID];
 
 		public IEnumerable<INodalDirichletBoundaryCondition<IDofType>> FindDirichletBCs()
 		{
@@ -65,5 +68,9 @@ namespace MGroup.Solvers.DDM.Discretization
 				.SelectMany(x => x.EnumerateNodalBoundaryConditions(elements.Values.Select(e => e.ElementEntity)))
 				.OfType<INodalDirichletBoundaryCondition<IDofType>>();
 		}
+
+		public ISuperElement GetElement(int elementID) => elements[elementID];
+
+		public INode GetNode(int nodeID) => throw new NotImplementedException();
 	}
 }

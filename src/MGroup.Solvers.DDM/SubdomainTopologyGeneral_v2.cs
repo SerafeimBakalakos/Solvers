@@ -13,10 +13,10 @@ namespace MGroup.Solvers.DDM
 	using MGroup.LinearAlgebra.Distributed.Overlapping;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DDM.Partitioning;
 	using MGroup.Solvers.DofOrdering_v2;
+	using MGroup.Solvers.Discretization;
 
 	/// <remarks>
 	/// In the current design, the subdomain neighbors and their common (boundary) nodes are supposed to remain constant 

@@ -7,7 +7,7 @@ namespace MGroup.Solvers.DDM.Partitioning
 	using System.Threading.Tasks;
 
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 
 	public interface IPartition_v2
 	{
@@ -20,6 +20,5 @@ namespace MGroup.Solvers.DDM.Partitioning
 		int FindMultiplicityOfNode(int nodeID);
 
 		ISubdomain_v2 GetSubdomain(int subdomainID);
-
 	}
 }

@@ -10,19 +10,19 @@ namespace MGroup.Solvers.MatrixFree.Dofs
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions.Distributed;
 	using MGroup.Solvers.LinearSystem;
 
 	public class HeterogeneousDofScaling : IDofScaling
 	{
-		private readonly ISubdomain_v2 domain;
+		private readonly IDomain domain;
 		private readonly IComputeEnvironment environment;
 		private readonly LinearSystem_v2 linearSystem;
 		private Dictionary<int, DiagonalMatrix> elementScalingMatrices;
 
-		public HeterogeneousDofScaling(IComputeEnvironment environment, ISubdomain_v2 domain, LinearSystem_v2 linearSystem)
+		public HeterogeneousDofScaling(IComputeEnvironment environment, IDomain domain, LinearSystem_v2 linearSystem)
 		{
 			this.environment = environment;
 			this.domain = domain;

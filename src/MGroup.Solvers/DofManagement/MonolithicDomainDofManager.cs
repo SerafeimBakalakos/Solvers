@@ -10,16 +10,16 @@ namespace MGroup.Solvers.DofOrdering_v2
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DofOrdering_v2;
 
 	public class MonolithicDomainDofManager : IMonolithicDofManager
 	{
-		protected readonly ISubdomain_v2 domain;
+		protected readonly IDomain domain;
 		private readonly IDofOrderingStrategy_v2 orderingStrategy;
 		private readonly IReorderingAlgorithm? reorderingAlgorithm;
 
-		public MonolithicDomainDofManager(ISubdomain_v2 domain, IDofOrderingStrategy_v2 orderingStrategy, IReorderingAlgorithm? reorderingAlgorithm)
+		public MonolithicDomainDofManager(IDomain domain, IDofOrderingStrategy_v2 orderingStrategy, IReorderingAlgorithm? reorderingAlgorithm)
 		{
 			this.domain = domain;
 			this.orderingStrategy = orderingStrategy;

@@ -110,7 +110,7 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 
 		public class Factory : IPsmSubdomainMatrixManagerFactory_v2<SymmetricCscMatrix>
 		{
-			public ISubdomainMatrixAssembler_v2<SymmetricCscMatrix> CreateAssembler() => new SymmetricCscMatrixAssembler_v2(true);
+			public IDomainMatrixAssembler_v2<SymmetricCscMatrix> CreateAssembler() => new SymmetricCscMatrixAssembler_v2(true);
 
 			public IPsmSubdomainMatrixManager_v2 CreateMatrixManager(
 				IImplementationProvider provider, SubdomainLinearSystem_v2<SymmetricCscMatrix> subLinearSystem, PsmSubdomainDofs_v2 subdomainDofs)

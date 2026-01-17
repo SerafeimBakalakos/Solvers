@@ -18,6 +18,7 @@ namespace MGroup.Solvers.Iterative
 	using MGroup.MSolve.Solution;
 	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.Direct;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
@@ -33,7 +34,7 @@ namespace MGroup.Solvers.Iterative
 
 		private bool mustUpdatePreconditioner = true;
 
-		public PcgSolver_v2(ISubdomain_v2 domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner, IDofOrderingStrategy_v2 dofOrderingStrategy,  bool cacheElementDofs = true)
+		public PcgSolver_v2(IDomain domain, PcgAlgorithm pcgAlgorithm, IPreconditioner preconditioner, IDofOrderingStrategy_v2 dofOrderingStrategy,  bool cacheElementDofs = true)
 		{
 			Domain = domain;
 			this.pcgAlgorithm = pcgAlgorithm;
@@ -52,7 +53,7 @@ namespace MGroup.Solvers.Iterative
 
 		public ISolverLogger Logger { get; } = new SolverLogger(typeof(PcgSolver_v2).Name);
 
-		public ISubdomain_v2 Domain { get; }
+		public IDomain Domain { get; }
 
 		public IAlgebraicModel_v2 CreateAlgebraicModel(IModel_v2 physicalModel)
 		{
@@ -67,7 +68,7 @@ namespace MGroup.Solvers.Iterative
 
 		public void BuildSystemMatrix()
 		{
-			LinearSystem.Matrix = matrixAssembler.BuildSubdomainMatrix(Domain, DofManager);
+			LinearSystem.Matrix = matrixAssembler.BuildDomainMatrix(Domain, DofManager);
 		}
 
 		public void SolveLinearSystem()
@@ -122,7 +123,7 @@ namespace MGroup.Solvers.Iterative
 
 			public IPreconditioner Preconditioner { get; set; } = new JacobiPreconditioner();
 
-			public PcgSolver_v2 CreateSolver(ISubdomain_v2 domain)
+			public PcgSolver_v2 CreateSolver(IDomain domain)
 			{
 				return new PcgSolver_v2(domain, PcgAlgorithm, Preconditioner, DofOrderingStrategy, CacheElementDofs);
 			}

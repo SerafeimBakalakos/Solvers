@@ -15,6 +15,10 @@ namespace MGroup.Solvers.DiscretizationExtensions
 	{
 		ActiveDofs DofTypes { get; }
 
+		int NumElements { get; }
+
+		int NumNodes { get; }
+
 		IEnumerable<IElementType> EnumerateElements();
 
 		IEnumerable<IBoundaryConditionSet<IDofType>> EnumerateBoundaryConditions();

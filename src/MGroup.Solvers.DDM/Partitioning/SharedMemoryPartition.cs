@@ -8,7 +8,7 @@ namespace MGroup.Solvers.DDM.Partitioning
 	using System.Threading.Tasks;
 
 	using MGroup.MSolve.Discretization.Entities;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 
 	public class SharedMemoryPartition : IPartition_v2
 	{

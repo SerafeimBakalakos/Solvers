@@ -10,17 +10,18 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.Environments;
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 
 	public class DefaultElementPartition : IElementPartition
 	{
 		private readonly IComputeEnvironment environment;
 		private readonly IModel_v2 model;
-		private readonly FullDomain_v2 fullDomain;
+		private readonly GlobalDomain fullDomain;
 
 		private ConcurrentDictionary<int, ISet<int>> elementNeighbors;
 
-		public DefaultElementPartition(IComputeEnvironment environment, IModel_v2 model, FullDomain_v2 fullDomain)
+		public DefaultElementPartition(IComputeEnvironment environment, IModel_v2 model, GlobalDomain fullDomain)
 		{
 			this.environment = environment;
 			this.model = model;

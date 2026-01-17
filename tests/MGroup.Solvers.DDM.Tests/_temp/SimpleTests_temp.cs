@@ -22,6 +22,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 	using MGroup.Solvers.DDM.PSM.StiffnessMatrices;
 	using MGroup.Solvers.DDM.Tests.ExampleModels;
 	using MGroup.Solvers.Direct;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.Iterative;
 	using MGroup.Solvers.MatrixFree;
@@ -121,7 +122,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			environment.Initialize(nodeTopology);
 
 			// Solver
-			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs);
+			var domain = new GlobalDomain(model, elementMatrixProvider, cacheElementDofs);
 			var partition = new DefaultElementPartition(environment, model, domain);
 			var solverFactory = new MatrixFreeSolver.Factory(environment);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
@@ -173,7 +174,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs);
+			var domain = new GlobalDomain(model, elementMatrixProvider, cacheElementDofs);
 			var partition = new DefaultElementPartition(environment, model, domain);
 			var pcgAlgorithmFactory = new PcgAlgorithm.Factory();
 			//pcgAlgorithmFactory.Logger = new PcgDebugLogger_v2();
@@ -220,7 +221,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
 
 			// Solver
-			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs);
+			var domain = new GlobalDomain(model, elementMatrixProvider, cacheElementDofs);
 			ISolver_v2 solver = CreateMonolithicSolver(solverName, domain);
 			IAlgebraicModel_v2 algebraicModel = solver.CreateAlgebraicModel(model);
 
@@ -237,7 +238,7 @@ namespace MGroup.Solvers.DDM.Tests._temp
 			Assert.True(expectedResults.IsSuperSetOf(computedResults, tolerance, out string msg), msg);
 		}
 
-		private static ISolver_v2 CreateMonolithicSolver(SolverName solverName, ISubdomain_v2 domain)
+		private static ISolver_v2 CreateMonolithicSolver(SolverName solverName, IDomain domain)
 		{
 			if (solverName == SolverName.DenseMatrixSolver)
 			{

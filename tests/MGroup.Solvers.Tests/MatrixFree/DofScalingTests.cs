@@ -17,6 +17,7 @@ namespace MGroup.Solvers.Tests.MatrixFree
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Providers;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering_v2;
 	using MGroup.Solvers.LinearSystem;
@@ -37,7 +38,7 @@ namespace MGroup.Solvers.Tests.MatrixFree
 			IModel_v2 model = CreateModel(isMaterialHomogeneous);
 			IComputeEnvironment environment = CreateEnvironment(model);
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
-			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs: true);
+			var domain = new GlobalDomain(model, elementMatrixProvider, cacheElementDofs: true);
 			var partition = new DefaultElementPartition(environment, model, domain);
 			var dofManager = new DistributedDofManager(environment, domain, partition);
 			var linearSystem = new LinearSystem_v2();
@@ -76,7 +77,7 @@ namespace MGroup.Solvers.Tests.MatrixFree
 			IModel_v2 model = CreateModel(isMaterialHomogeneous);
 			IComputeEnvironment environment = CreateEnvironment(model);
 			var elementMatrixProvider = new ElementStructuralStiffnessProvider();
-			var domain = new FullDomain_v2(model, elementMatrixProvider, cacheElementDofs: true);
+			var domain = new GlobalDomain(model, elementMatrixProvider, cacheElementDofs: true);
 			var partition = new DefaultElementPartition(environment, model, domain);
 			var dofManager = new DistributedDofManager(environment, domain, partition);
 			var dofScaling = new HomogeneousDofScaling(environment, domain, partition, dofManager);

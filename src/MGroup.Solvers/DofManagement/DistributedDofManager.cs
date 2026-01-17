@@ -7,18 +7,18 @@ namespace MGroup.Solvers.DofOrdering_v2
 
 	using MGroup.Environments;
 	using MGroup.LinearAlgebra.Distributed.Overlapping;
-	using MGroup.Solvers.DiscretizationExtensions;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.MatrixFree;
 
 	public class DistributedDofManager : IDistributedDofManager
 	{
 		private readonly IComputeEnvironment environment;
-		private readonly ISubdomain_v2 domain;
+		private readonly IDomain domain;
 		private readonly IElementPartition partition;
 
 		private Dictionary<int, IntDofTable> elementDofs;
 
-		public DistributedDofManager(IComputeEnvironment environment, ISubdomain_v2 domain, IElementPartition partition)
+		public DistributedDofManager(IComputeEnvironment environment, IDomain domain, IElementPartition partition)
 		{
 			this.environment = environment;
 			this.domain = domain;

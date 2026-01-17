@@ -1,4 +1,6 @@
-namespace MGroup.Solvers.DiscretizationExtensions
+using MGroup.Solvers.DiscretizationExtensions;
+
+namespace MGroup.Solvers.Discretization
 {
 	using System;
 	using System.Collections.Generic;

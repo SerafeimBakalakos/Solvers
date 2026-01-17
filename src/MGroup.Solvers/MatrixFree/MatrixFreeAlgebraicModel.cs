@@ -15,6 +15,7 @@ namespace MGroup.Solvers.MatrixFree
 	using MGroup.MSolve.Discretization.BoundaryConditions;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering_v2;
@@ -29,9 +30,9 @@ namespace MGroup.Solvers.MatrixFree
 		private readonly LinearSystem_v2 linearSystem;
 		private readonly IDistributedDofManager dofManager;
 		private readonly IModel_v2 model;
-		private readonly ISubdomain_v2 domain;
+		private readonly IDomain domain;
 
-		public MatrixFreeAlgebraicModel(IComputeEnvironment environment, IModel_v2 model, ISubdomain_v2 domain,
+		public MatrixFreeAlgebraicModel(IComputeEnvironment environment, IModel_v2 model, IDomain domain,
 			LinearSystem_v2 linearSystem, IDistributedDofManager dofManager)
 		{
 			this.environment = environment;

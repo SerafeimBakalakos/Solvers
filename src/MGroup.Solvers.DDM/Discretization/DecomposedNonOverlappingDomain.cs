@@ -11,10 +11,11 @@ namespace MGroup.Solvers.DDM.Discretization
 	using MGroup.MSolve.Discretization.Providers;
 	using MGroup.Solvers;
 	using MGroup.Solvers.DDM.Partitioning;
+	using MGroup.Solvers.Discretization;
 	using MGroup.Solvers.DiscretizationExtensions;
 	using MGroup.Solvers.DofOrdering_v2;
 
-	public class DecomposedNonOverlappingDomain : ISubdomain_v2
+	public class DecomposedNonOverlappingDomain : IDomain
 	{
 		private readonly IModel_v2 model;
 		private readonly ConstrainedDofLocator constrainedDofLocator;
@@ -42,9 +43,11 @@ namespace MGroup.Solvers.DDM.Discretization
 			this.Partition = new SharedMemoryPartition(subdomains);
 		}
 
-		public int ID => throw new NotImplementedException();
-
 		public IPartition_v2 Partition { get; }
+
+		public int NumElements => model.NumElements;
+
+		public int NumNodes => model.NumNodes;
 
 		public IEnumerable<ISuperElement> EnumerateElements()
 			=> model.EnumerateElements().Select(e => subdomains[getSubdomainOfElement(e.ID)].GetElement(e.ID));
@@ -53,5 +56,7 @@ namespace MGroup.Solvers.DDM.Discretization
 
 		public ISuperElement GetElement(int elementID)
 			=> subdomains[getSubdomainOfElement(elementID)].GetElement(elementID);
+
+		public INode GetNode(int nodeID) => model.GetNode(nodeID);
 	}
 }
