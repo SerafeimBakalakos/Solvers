@@ -364,6 +364,14 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 			}
 		}
 
+		public IEnumerable<(int col, double value)> EnumerateNonZerosOfRow(int rowIdx)
+		{
+			foreach (var colVal in rows[rowIdx])
+			{
+				yield return (colVal.Key, colVal.Value);
+			}
+		}
+
 		/// <summary>
 		/// See <see cref="IIndexable2D.Equals(IIndexable2D, double)"/>.
 		/// </summary>
