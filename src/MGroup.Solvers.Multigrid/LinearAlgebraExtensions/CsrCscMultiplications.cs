@@ -1,0 +1,155 @@
+namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
+{
+	using System;
+	using System.Collections.Generic;
+	using System.Text;
+
+	using MGroup.LinearAlgebra.Commons;
+	using MGroup.LinearAlgebra.Matrices;
+
+	public static class CsrCscMultiplications
+	{
+		/// <summary>
+		/// Caclulates C = A * B, where A is in CSR format, B in CSC format and C in CSC format.
+		/// </summary>
+		/// <param name="matrixA">Must be sorted.</param>
+		/// <param name="matrixB">Must be sorted.</param>
+		/// <returns></returns>
+		public static CscMatrix CsrTimesCscToCsc(CsrMatrix matrixA, CscMatrix matrixB)
+		{
+			Preconditions.CheckMultiplicationDimensions(matrixA, matrixB);
+
+			int numRowsC = matrixA.NumRows;
+			int numColsC = matrixB.NumColumns;
+
+			// First calculate every column and store the non zeros temporarily
+			var columns = new List<(int row, double value)>[numColsC];
+			int numNonZeros = 0;
+			for (int j = 0; j < numColsC; j++)
+			{
+				var column = new List<(int row, double value)>();
+				for (int i = 0; i < numRowsC; i++)
+				{
+					(double dotProduct, bool structuralZero) = DotProduct(matrixA, i, matrixB, j);
+					if (!structuralZero)
+					{
+						column.Add((i, dotProduct)); // If the dotProduct is zero due to terms cancelling out, we explicitly store it.
+						numNonZeros++;
+					}
+				}
+
+				columns[j] = column;
+			}
+
+			// Convert temporary columns to CSC.
+			var colOffsetsC = new int[numColsC + 1];
+			var rowIndicesC = new int[numNonZeros];
+			var valuesC = new double[numNonZeros];
+
+			int posC = 0;
+			for (int j = 0; j < numColsC; j++)
+			{
+				colOffsetsC[j] = posC;
+				foreach ((int row, double value) in columns[j])
+				{
+					rowIndicesC[posC] = row;
+					valuesC[posC] = value;
+					posC++;
+				}
+			}
+
+			colOffsetsC[numColsC] = posC;
+
+			return CscMatrix.CreateFromArrays(numRowsC, numColsC, valuesC, rowIndicesC, colOffsetsC, checkInput: false);
+		}
+
+		/// <summary>
+		/// Caclulates C = A * B, where A is in CSR format, B in CSC format and C in CSR format.
+		/// </summary>
+		/// <param name="matrixA">Must be sorted.</param>
+		/// <param name="matrixB">Must be sorted.</param>
+		/// <returns></returns>
+		public static CsrMatrix CsrTimesCscToCsr(CsrMatrix matrixA, CscMatrix matrixB)
+		{
+			Preconditions.CheckMultiplicationDimensions(matrixA, matrixB);
+
+			int numRowsC = matrixA.NumRows;
+			int numColsC = matrixB.NumColumns;
+
+			// First calculate every row and store the non zeros temporarily
+			var rows = new List<(int col, double value)>[numRowsC];
+			int numNonZeros = 0;
+			for (int i = 0; i < numRowsC; i++)
+			{
+				var row = new List<(int col, double value)>();
+				for (int j = 0; j < numColsC; j++)
+				{
+					(double dotProduct, bool structuralZero) = DotProduct(matrixA, i, matrixB, j);
+					if (!structuralZero)
+					{
+						row.Add((j, dotProduct)); // If the dotProduct is zero due to terms cancelling out, we explicitly store it.
+						numNonZeros++;
+					}
+				}
+
+				rows[i] = row;
+			}
+
+			// Convert temporary rows to CSR.
+			var rowOffsetsC = new int[numRowsC + 1];
+			var colIndicesC = new int[numNonZeros];
+			var valuesC = new double[numNonZeros];
+
+			int posC = 0;
+			for (int i = 0; i < numRowsC; i++)
+			{
+				rowOffsetsC[i] = posC;
+				foreach ((int col, double value) in rows[i])
+				{
+					colIndicesC[posC] = col;
+					valuesC[posC] = value;
+					posC++;
+				}
+			}
+
+			rowOffsetsC[numRowsC] = posC;
+
+			return CsrMatrix.CreateFromArrays(numRowsC, numColsC, valuesC, colIndicesC, rowOffsetsC, checkInput: false);
+		}
+
+		private static (double dotProduct, bool structuralZero) DotProduct(CsrMatrix matrixA, int rowA, CscMatrix matrixB, int colB)
+		{
+			int posA = matrixA.RawRowOffsets[rowA];
+			int endA = matrixA.RawRowOffsets[rowA + 1];
+
+			int posB = matrixB.RawColOffsets[colB];
+			int endB = matrixB.RawColOffsets[colB + 1];
+
+			double dotProduct = 0.0;
+			bool structuralZero = true;
+			while ((posA < endA) && (posB < endB))
+			{
+				int colA = matrixA.RawColIndices[posA];
+				int rowB = matrixB.RawRowIndices[posB];
+
+				if (colA < rowB)
+				{
+					posA++;
+				}
+				else if (colA > rowB)
+				{
+					posB++;
+				}
+				else // Found a matching structural entry in A and B.
+				{
+					structuralZero = false;
+					dotProduct += matrixA.RawValues[posA] * matrixB.RawValues[posB];
+					posA++;
+					posB++;
+				}
+			}
+
+			return (dotProduct, structuralZero);
+		}
+	}
+}

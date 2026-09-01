@@ -23,7 +23,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 		public DokRowMajor CreateRestrictionMatrix(DokRowMajor prolongation)
 		{
 			var coeff = 1.0 / Math.Pow(2, dimension);
-			var restriction = prolongation.Transpose();
+			DokRowMajor restriction = prolongation.Transpose();
 			restriction.ScaleIntoThis(coeff);
 			return restriction;
 		}
