@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
+namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Commons
 {
 	using System;
 	using System.Collections.Generic;
@@ -19,18 +19,18 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		{
 			Preconditions.CheckMultiplicationDimensions(matrixA, matrixB);
 
-			int numRowsC = matrixA.NumRows;
-			int numColsC = matrixB.NumColumns;
+			var numRowsC = matrixA.NumRows;
+			var numColsC = matrixB.NumColumns;
 
 			// First calculate every column and store the non zeros temporarily
 			var columns = new List<(int row, double value)>[numColsC];
-			int numNonZeros = 0;
-			for (int j = 0; j < numColsC; j++)
+			var numNonZeros = 0;
+			for (var j = 0; j < numColsC; j++)
 			{
 				var column = new List<(int row, double value)>();
-				for (int i = 0; i < numRowsC; i++)
+				for (var i = 0; i < numRowsC; i++)
 				{
-					(double dotProduct, bool structuralZero) = DotProduct(matrixA, i, matrixB, j);
+					(var dotProduct, var structuralZero) = DotProduct(matrixA, i, matrixB, j);
 					if (!structuralZero)
 					{
 						column.Add((i, dotProduct)); // If the dotProduct is zero due to terms cancelling out, we explicitly store it.
@@ -46,11 +46,11 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 			var rowIndicesC = new int[numNonZeros];
 			var valuesC = new double[numNonZeros];
 
-			int posC = 0;
-			for (int j = 0; j < numColsC; j++)
+			var posC = 0;
+			for (var j = 0; j < numColsC; j++)
 			{
 				colOffsetsC[j] = posC;
-				foreach ((int row, double value) in columns[j])
+				foreach ((var row, var value) in columns[j])
 				{
 					rowIndicesC[posC] = row;
 					valuesC[posC] = value;
@@ -73,18 +73,18 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		{
 			Preconditions.CheckMultiplicationDimensions(matrixA, matrixB);
 
-			int numRowsC = matrixA.NumRows;
-			int numColsC = matrixB.NumColumns;
+			var numRowsC = matrixA.NumRows;
+			var numColsC = matrixB.NumColumns;
 
 			// First calculate every row and store the non zeros temporarily
 			var rows = new List<(int col, double value)>[numRowsC];
-			int numNonZeros = 0;
-			for (int i = 0; i < numRowsC; i++)
+			var numNonZeros = 0;
+			for (var i = 0; i < numRowsC; i++)
 			{
 				var row = new List<(int col, double value)>();
-				for (int j = 0; j < numColsC; j++)
+				for (var j = 0; j < numColsC; j++)
 				{
-					(double dotProduct, bool structuralZero) = DotProduct(matrixA, i, matrixB, j);
+					(var dotProduct, var structuralZero) = DotProduct(matrixA, i, matrixB, j);
 					if (!structuralZero)
 					{
 						row.Add((j, dotProduct)); // If the dotProduct is zero due to terms cancelling out, we explicitly store it.
@@ -100,11 +100,11 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 			var colIndicesC = new int[numNonZeros];
 			var valuesC = new double[numNonZeros];
 
-			int posC = 0;
-			for (int i = 0; i < numRowsC; i++)
+			var posC = 0;
+			for (var i = 0; i < numRowsC; i++)
 			{
 				rowOffsetsC[i] = posC;
-				foreach ((int col, double value) in rows[i])
+				foreach ((var col, var value) in rows[i])
 				{
 					colIndicesC[posC] = col;
 					valuesC[posC] = value;
@@ -119,18 +119,18 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 
 		private static (double dotProduct, bool structuralZero) DotProduct(CsrMatrix matrixA, int rowA, CscMatrix matrixB, int colB)
 		{
-			int posA = matrixA.RawRowOffsets[rowA];
-			int endA = matrixA.RawRowOffsets[rowA + 1];
+			var posA = matrixA.RawRowOffsets[rowA];
+			var endA = matrixA.RawRowOffsets[rowA + 1];
 
-			int posB = matrixB.RawColOffsets[colB];
-			int endB = matrixB.RawColOffsets[colB + 1];
+			var posB = matrixB.RawColOffsets[colB];
+			var endB = matrixB.RawColOffsets[colB + 1];
 
-			double dotProduct = 0.0;
-			bool structuralZero = true;
-			while ((posA < endA) && (posB < endB))
+			var dotProduct = 0.0;
+			var structuralZero = true;
+			while (posA < endA && posB < endB)
 			{
-				int colA = matrixA.RawColIndices[posA];
-				int rowB = matrixB.RawRowIndices[posB];
+				var colA = matrixA.RawColIndices[posA];
+				var rowB = matrixB.RawRowIndices[posB];
 
 				if (colA < rowB)
 				{

@@ -5,7 +5,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 	using System.Text;
 
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions;
+	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Matrices.Builders;
 
 	public class IntergridTransfer
 	{

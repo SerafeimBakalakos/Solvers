@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
+namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Matrices.Builders
 {
 	using System;
 	using System.Collections.Generic;
@@ -30,8 +30,8 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		private DokRowMajor(int numRows, int numCols, Dictionary<int, double>[] rows)
 		{
 			this.rows = rows;
-			this.NumRows = numRows;
-			this.NumColumns = numCols;
+			NumRows = numRows;
+			NumColumns = numCols;
 		}
 
 		/// <summary>
@@ -42,7 +42,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// <summary>
 		/// See <see cref="IIndexable2D.MatrixSymmetry"/>.
 		/// </summary>
-		MatrixSymmetry IIndexable2D.MatrixSymmetry => this.MatrixSymmetry;
+		MatrixSymmetry IIndexable2D.MatrixSymmetry => MatrixSymmetry;
 
 		/// <summary>
 		/// The number of columns of the matrix.
@@ -68,7 +68,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 			get
 			{
 				Preconditions.CheckIndices(this, rowIdx, colIdx);
-				if (rows[rowIdx].TryGetValue(colIdx, out double val)) return val;
+				if (rows[rowIdx].TryGetValue(colIdx, out var val)) return val;
 				else return 0.0;
 			}
 			set //not thread safe
@@ -87,7 +87,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		public static DokRowMajor CreateEmpty(int numRows, int numCols)
 		{
 			var rows = new Dictionary<int, double>[numRows];
-			for (int i = 0; i < numRows; ++i) rows[i] = new Dictionary<int, double>(); //Initial capacity may be optimized.
+			for (var i = 0; i < numRows; ++i) rows[i] = new Dictionary<int, double>(); //Initial capacity may be optimized.
 			return new DokRowMajor(numRows, numCols, rows);
 		}
 
@@ -99,7 +99,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		public static DokRowMajor CreateIdentity(int order)
 		{
 			var rows = new Dictionary<int, double>[order];
-			for (int j = 0; j < order; ++j)
+			for (var j = 0; j < order; ++j)
 			{
 				var idenityRow = new Dictionary<int, double>(); //Initial capacity may be optimized.
 				idenityRow[j] = 1.0;
@@ -127,7 +127,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		public static DokRowMajor CreateFromSparsePattern(int numRows, int numColumns,
 			IEnumerable<(int row, int col, double value)> nonZeroEntries)
 		{
-			DokRowMajor dok = CreateEmpty(numRows, numColumns);
+			var dok = CreateEmpty(numRows, numColumns);
 			foreach (var (row, col, val) in nonZeroEntries) dok.rows[row].Add(col, val);
 			return dok;
 		}
@@ -137,7 +137,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// </summary>
 		public void AddToEntry(int rowIdx, int colIdx, double value)
 		{
-			if (rows[rowIdx].TryGetValue(colIdx, out double oldValue))
+			if (rows[rowIdx].TryGetValue(colIdx, out var oldValue))
 			{
 				rows[rowIdx][colIdx] = value + oldValue;
 			}
@@ -154,16 +154,16 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		{
 			foreach (var rowPair in subRowsToGlobalRows)
 			{
-				int subRow = rowPair.Key;
-				int globalRow = rowPair.Value;
+				var subRow = rowPair.Key;
+				var globalRow = rowPair.Value;
 				//Debug.Assert((globalRow >= 0) && (globalRow < NumRows));
 				foreach (var colPair in subColsToGlobalCols)
 				{
-					int subCol = colPair.Key;
-					int globalCol = colPair.Value;
+					var subCol = colPair.Key;
+					var globalCol = colPair.Value;
 					//Debug.Assert((globalCol >= 0) && (globalCol < NumColumns));
-					double subValue = subMatrix[subRow, subCol];
-					if (rows[globalRow].TryGetValue(globalCol, out double oldGlobalValue))
+					var subValue = subMatrix[subRow, subCol];
+					if (rows[globalRow].TryGetValue(globalCol, out var oldGlobalValue))
 					{
 						rows[globalRow][globalCol] = subValue + oldGlobalValue;
 					}
@@ -178,25 +178,25 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		public void AddSubmatrix(IIndexable2D subMatrix, int[] subMatrixRows, int[] globalMatrixRows,
 			int[] subMatrixCols, int[] globalMatrixCols)
 		{
-			int numRows = subMatrixRows.Length;
-			int numCols = subMatrixCols.Length;
+			var numRows = subMatrixRows.Length;
+			var numCols = subMatrixCols.Length;
 			Debug.Assert(numRows == globalMatrixRows.Length);
 			Debug.Assert(numCols == globalMatrixCols.Length);
 
-			for (int i = 0; i < numRows; ++i)
+			for (var i = 0; i < numRows; ++i)
 			{
-				int subRow = subMatrixRows[i];
-				int globalRow = globalMatrixRows[i];
-				Debug.Assert((globalRow >= 0) && (globalRow < NumRows));
+				var subRow = subMatrixRows[i];
+				var globalRow = globalMatrixRows[i];
+				Debug.Assert(globalRow >= 0 && globalRow < NumRows);
 
-				for (int j = 0; j < numCols; ++j)
+				for (var j = 0; j < numCols; ++j)
 				{
-					int subCol = subMatrixCols[j];
-					int globalCol = globalMatrixCols[j];
-					Debug.Assert((globalCol >= 0) && (globalCol < NumColumns));
+					var subCol = subMatrixCols[j];
+					var globalCol = globalMatrixCols[j];
+					Debug.Assert(globalCol >= 0 && globalCol < NumColumns);
 
-					double subVal = subMatrix[subRow, subCol];
-					rows[globalRow].TryGetValue(globalCol, out double oldGlobalVal); // default value = 0.0, if the entry is new
+					var subVal = subMatrix[subRow, subCol];
+					rows[globalRow].TryGetValue(globalCol, out var oldGlobalVal); // default value = 0.0, if the entry is new
 					rows[globalRow][globalCol] = subVal + oldGlobalVal;
 				}
 			}
@@ -209,25 +209,25 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		{
 			foreach (var rowPair in subIndicesToGlobalIndices)
 			{
-				int subRow = rowPair.Key;
-				int globalRow = rowPair.Value;
+				var subRow = rowPair.Key;
+				var globalRow = rowPair.Value;
 				foreach (var colPair in subIndicesToGlobalIndices)
 				{
-					int subCol = colPair.Key;
-					int globalCol = colPair.Value;
+					var subCol = colPair.Key;
+					var globalCol = colPair.Value;
 
 					if (globalCol > globalRow)
 					{
-						double subValue = subMatrix[subRow, subCol];
-						rows[globalRow].TryGetValue(globalCol, out double oldGlobalValue); // default value = 0.0
-						double newGlobalValue = oldGlobalValue + subValue;
+						var subValue = subMatrix[subRow, subCol];
+						rows[globalRow].TryGetValue(globalCol, out var oldGlobalValue); // default value = 0.0
+						var newGlobalValue = oldGlobalValue + subValue;
 						rows[globalRow][globalCol] = newGlobalValue;
 						rows[globalCol][globalRow] = newGlobalValue;
 					}
 					else if (globalCol == globalRow)
 					{
-						double subValue = subMatrix[subRow, subCol];
-						rows[globalRow].TryGetValue(globalCol, out double oldGlobalValue); // default value = 0.0
+						var subValue = subMatrix[subRow, subCol];
+						rows[globalRow].TryGetValue(globalCol, out var oldGlobalValue); // default value = 0.0
 						rows[globalRow][globalCol] = oldGlobalValue + subValue;
 					}
 				}
@@ -242,28 +242,28 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 			Debug.Assert(subMatrix.NumRows == subMatrix.NumColumns);
 			Debug.Assert(globalIndices.Length == subMatrixIndices.Length);
 
-			int numRelevantRows = subMatrixIndices.Length;
-			for (int i = 0; i < numRelevantRows; ++i)
+			var numRelevantRows = subMatrixIndices.Length;
+			for (var i = 0; i < numRelevantRows; ++i)
 			{
-				int subRow = subMatrixIndices[i];
-				int globalRow = globalIndices[i];
-				for (int j = 0; j < numRelevantRows; ++j)
+				var subRow = subMatrixIndices[i];
+				var globalRow = globalIndices[i];
+				for (var j = 0; j < numRelevantRows; ++j)
 				{
-					int subCol = subMatrixIndices[j];
-					int globalCol = globalIndices[j];
+					var subCol = subMatrixIndices[j];
+					var globalCol = globalIndices[j];
 
 					if (globalCol > globalRow)
 					{
-						double subValue = subMatrix[subRow, subCol];
-						rows[globalRow].TryGetValue(globalCol, out double oldGlobalValue); // default value = 0.0
-						double newGlobalValue = oldGlobalValue + subValue;
+						var subValue = subMatrix[subRow, subCol];
+						rows[globalRow].TryGetValue(globalCol, out var oldGlobalValue); // default value = 0.0
+						var newGlobalValue = oldGlobalValue + subValue;
 						rows[globalRow][globalCol] = newGlobalValue;
 						rows[globalCol][globalRow] = newGlobalValue;
 					}
 					else if (globalCol == globalRow)
 					{
-						double subValue = subMatrix[subRow, subCol];
-						rows[globalRow].TryGetValue(globalCol, out double oldGlobalValue); // default value = 0.0
+						var subValue = subMatrix[subRow, subCol];
+						rows[globalRow].TryGetValue(globalCol, out var oldGlobalValue); // default value = 0.0
 						rows[globalRow][globalCol] = oldGlobalValue + subValue;
 					}
 				}
@@ -281,9 +281,9 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// <exception cref="EmptyMatrixBuilderException">Thrown if no non-zero entries have been defined yet.</exception>
 		public (double[] values, int[] colIndices, int[] rowOffsets) BuildCsrArrays(bool sortColsOfEachCol)
 		{
-			int[] rowOffsets = new int[NumRows + 1];
-			int nnz = 0;
-			for (int i = 0; i < NumRows; ++i)
+			var rowOffsets = new int[NumRows + 1];
+			var nnz = 0;
+			for (var i = 0; i < NumRows; ++i)
 			{
 				rowOffsets[i] = nnz;
 				nnz += rows[i].Count;
@@ -291,10 +291,10 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 			if (nnz == 0) throw new EmptyMatrixBuilderException("Cannot build CSR arrays from a DOK with nnz = 0.");
 			rowOffsets[NumRows] = nnz; //The last CSR entry is nnz.
 
-			int[] colIndices = new int[nnz];
-			double[] values = new double[nnz];
-			int counter = 0;
-			for (int i = 0; i < NumRows; ++i)
+			var colIndices = new int[nnz];
+			var values = new double[nnz];
+			var counter = 0;
+			for (var i = 0; i < NumRows; ++i)
 			{
 				if (sortColsOfEachCol)
 				{
@@ -330,7 +330,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// <exception cref="EmptyMatrixBuilderException">Thrown if no non-zero entries have been defined yet.</exception>
 		public CsrMatrix BuildCsrMatrix(bool sortColsOfEachRow)
 		{
-			(double[] values, int[] colIndices, int[] rowOffsets) = BuildCsrArrays(sortColsOfEachRow);
+			(var values, var colIndices, var rowOffsets) = BuildCsrArrays(sortColsOfEachRow);
 			return CsrMatrix.CreateFromArrays(NumRows, NumColumns, values, colIndices, rowOffsets, false);
 		}
 
@@ -345,8 +345,8 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// </summary>
 		public int CountNonZeros()
 		{
-			int count = 0;
-			for (int i = 0; i < NumRows; ++i) count += rows[i].Count;
+			var count = 0;
+			for (var i = 0; i < NumRows; ++i) count += rows[i].Count;
 			return count;
 		}
 
@@ -355,7 +355,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// </summary>
 		public IEnumerable<(int row, int col, double value)> EnumerateNonZeros()
 		{
-			for (int i = 0; i < NumRows; ++i)
+			for (var i = 0; i < NumRows; ++i)
 			{
 				foreach (var colVal in rows[i])
 				{
@@ -387,7 +387,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// <exception cref="NonMatchingDimensionsException">Thrown if the matrix is not square.</exception>
 		public (Vector diagonal, int firstZeroIdx) GetDiagonal()
 		{
-			(double[] diagonal, int firstZeroIdx) = GetDiagonalAsArray();
+			(var diagonal, var firstZeroIdx) = GetDiagonalAsArray();
 			return (Vector.CreateFromArray(diagonal, false), firstZeroIdx);
 		}
 
@@ -399,11 +399,11 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		public (double[] diagonal, int firstZeroIdx) GetDiagonalAsArray() //TODO: the -1 sentinel value should be a constant somewhere
 		{
 			Preconditions.CheckSquare(this);
-			double[] diag = new double[NumRows];
-			int firstZeroIdx = -1;
-			for (int i = 0; i < NumRows; ++i)
+			var diag = new double[NumRows];
+			var firstZeroIdx = -1;
+			for (var i = 0; i < NumRows; ++i)
 			{
-				bool isStored = rows[i].TryGetValue(i, out double val);
+				var isStored = rows[i].TryGetValue(i, out var val);
 				if (isStored) diag[i] = val;
 				else
 				{
@@ -419,7 +419,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// </summary>
 		public SparseFormat GetSparseFormat()
 		{
-			(double[] values, int[] colIndices, int[] rowOffsets) = BuildCsrArrays(false);
+			(var values, var colIndices, var rowOffsets) = BuildCsrArrays(false);
 			var format = new SparseFormat();
 			format.RawValuesTitle = "Values";
 			format.RawValuesArray = values;
@@ -431,36 +431,36 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		public DokRowMajor GetSubmatrix(int[] rowsToKeep, int[] colsToKeep)
 		{
 			var oldToNewRows = new Dictionary<int, int>();
-			for (int i = 0; i < rowsToKeep.Length; ++i)
+			for (var i = 0; i < rowsToKeep.Length; ++i)
 			{
 				oldToNewRows[rowsToKeep[i]] = i;
 			}
 
 			var oldToNewCols = new Dictionary<int, int>();
-			for (int j = 0; j < colsToKeep.Length; ++j)
+			for (var j = 0; j < colsToKeep.Length; ++j)
 			{
 				oldToNewCols[colsToKeep[j]] = j;
 			}
 
 			var result = CreateEmpty(rowsToKeep.Length, colsToKeep.Length);
-			for (int I = 0; I < this.NumRows; ++I) // Traverse the existing DOK matrix and copy only the requested entries
+			for (var I = 0; I < NumRows; ++I) // Traverse the existing DOK matrix and copy only the requested entries
 			{
-				bool keepRow = oldToNewRows.TryGetValue(I, out int i);
+				var keepRow = oldToNewRows.TryGetValue(I, out var i);
 				if (!keepRow)
 				{
 					continue;
 				}
 
-				foreach (var colValPair in this.rows[I])
+				foreach (var colValPair in rows[I])
 				{
-					int J = colValPair.Key;
-					bool keepCol = oldToNewCols.TryGetValue(J, out int j);
+					var J = colValPair.Key;
+					var keepCol = oldToNewCols.TryGetValue(J, out var j);
 					if (!keepCol)
 					{
 						continue;
 					}
 
-					double val = colValPair.Value;
+					var val = colValPair.Value;
 					result[i, j] = val;
 				}
 			}
@@ -471,48 +471,48 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		//TODO: Diff this with the existing one. I made changes elsewhere
 		public DokRowMajor KroneckerProduct(DokRowMajor other)
 		{
-			int mA = this.NumRows;
-			int nA = this.NumColumns;
-			int mB = other.NumRows;
-			int nB = other.NumColumns;
-			int mC = mA * mB;
-			int nC = nA * nB;
+			var mA = NumRows;
+			var nA = NumColumns;
+			var mB = other.NumRows;
+			var nB = other.NumColumns;
+			var mC = mA * mB;
+			var nC = nA * nB;
 
 			// Preallocate data structures for the resulting matrix
 			var resultRows = new Dictionary<int, double>[mC];
 			var nnzRowB = new int[mB];
-			for (int iB = 0; iB < mB; iB++)
+			for (var iB = 0; iB < mB; iB++)
 			{
 				nnzRowB[iB] = other.rows[iB].Count;
 			}
 
-			for (int iA = 0; iA < mA; iA++)
+			for (var iA = 0; iA < mA; iA++)
 			{
-				int rowOffset = iA * mB;
-				int nnzRowA = this.rows[iA].Count;
-				for (int iB = 0; iB < mB; iB++)
+				var rowOffset = iA * mB;
+				var nnzRowA = rows[iA].Count;
+				for (var iB = 0; iB < mB; iB++)
 				{
-					int iC = rowOffset + iB;
-					int nnzRowC = nnzRowA * nnzRowB[iB];
+					var iC = rowOffset + iB;
+					var nnzRowC = nnzRowA * nnzRowB[iB];
 					resultRows[iC] = new Dictionary<int, double>(nnzRowC);
 				}
 			}
 
 			// Perform the tensor product
-			for (int iA = 0; iA < mA; iA++)
+			for (var iA = 0; iA < mA; iA++)
 			{
-				Dictionary<int, double> rowA = this.rows[iA];
-				int rowOffset = iA * mB;
-				foreach ((int jA, double a) in rowA)
+				var rowA = rows[iA];
+				var rowOffset = iA * mB;
+				foreach ((var jA, var a) in rowA)
 				{
-					int colOffset = jA * nB;
-					for (int iB = 0; iB < mB; iB++)
+					var colOffset = jA * nB;
+					for (var iB = 0; iB < mB; iB++)
 					{
-						Dictionary<int, double> rowB = other.rows[iB];
-						int iC = rowOffset + iB;
-						foreach ((int jB, double b) in rowB)
+						var rowB = other.rows[iB];
+						var iC = rowOffset + iB;
+						foreach ((var jB, var b) in rowB)
 						{
-							int jC = colOffset + jB;
+							var jC = colOffset + jB;
 							resultRows[iC].Add(jC, a * b);
 						}
 					}
@@ -529,37 +529,37 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 				throw new ArgumentOutOfRangeException(nameof(identityMatrixOrder), "The identity matrix order must be 1 or greater");
 			}
 
-			int mA = identityMatrixOrder;
-			int mB = this.NumRows;
-			int nB = this.NumColumns;
-			int mC = mA * mB;
-			int nC = mA * nB;
+			var mA = identityMatrixOrder;
+			var mB = NumRows;
+			var nB = NumColumns;
+			var mC = mA * mB;
+			var nC = mA * nB;
 			var resultRows = new Dictionary<int, double>[mC];
 
 			// Optimized case: first block can just be copied
-			for (int iB = 0; iB < mB; iB++)
+			for (var iB = 0; iB < mB; iB++)
 			{
-				Dictionary<int, double> rowB = this.rows[iB];
+				var rowB = rows[iB];
 				var rowC = new Dictionary<int, double>(rowB);
 				resultRows[iB] = rowC;
 			}
 
-			for (int iA = 1; iA < mA; iA++)
+			for (var iA = 1; iA < mA; iA++)
 			{
 				// Copy the original DOK to this block
-				int rowOffset = iA * mB;
-				int colOffset = iA * nB;
-				for (int iB = 0; iB < mB; iB++)
+				var rowOffset = iA * mB;
+				var colOffset = iA * nB;
+				for (var iB = 0; iB < mB; iB++)
 				{
-					Dictionary<int, double> rowB = this.rows[iB];
+					var rowB = rows[iB];
 					var rowC = new Dictionary<int, double>(rowB.Count);
-					foreach ((int jB, double b) in rowB)
+					foreach ((var jB, var b) in rowB)
 					{
-						int jC = colOffset + jB;
+						var jC = colOffset + jB;
 						rowC.Add(jC, b);
 					}
 
-					int iC = rowOffset + iB;
+					var iC = rowOffset + iB;
 					resultRows[iC] = rowC;
 				}
 			}
@@ -574,37 +574,37 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 				throw new ArgumentOutOfRangeException(nameof(identityMatrixOrder), "The identity matrix order must be 1 or greater");
 			}
 
-			int mA = this.NumRows;
-			int nA = this.NumColumns;
-			int mB = identityMatrixOrder;
-			int mC = mA * mB;
-			int nC = nA * mB;
+			var mA = NumRows;
+			var nA = NumColumns;
+			var mB = identityMatrixOrder;
+			var mC = mA * mB;
+			var nC = nA * mB;
 
 			// Preallocate data structures for the resulting matrix
 			var resultRows = new Dictionary<int, double>[mC];
-			for (int iA = 0; iA < mA; iA++)
+			for (var iA = 0; iA < mA; iA++)
 			{
-				int rowOffset = iA * mB;
-				int nnzRowA = this.rows[iA].Count;
-				for (int iB = 0; iB < mB; iB++)
+				var rowOffset = iA * mB;
+				var nnzRowA = rows[iA].Count;
+				for (var iB = 0; iB < mB; iB++)
 				{
-					int iC = rowOffset + iB;
+					var iC = rowOffset + iB;
 					resultRows[iC] = new Dictionary<int, double>(nnzRowA);
 				}
 			}
 
 			// Perform the tensor product
-			for (int iA = 0; iA < mA; iA++)
+			for (var iA = 0; iA < mA; iA++)
 			{
-				Dictionary<int, double> rowA = this.rows[iA];
-				int rowOffset = iA * mB;
-				foreach ((int jA, double a) in rowA)
+				var rowA = rows[iA];
+				var rowOffset = iA * mB;
+				foreach ((var jA, var a) in rowA)
 				{
-					int colOffset = jA * mB;
-					for (int iB = 0; iB < mB; iB++)
+					var colOffset = jA * mB;
+					for (var iB = 0; iB < mB; iB++)
 					{
-						int iC = rowOffset + iB;
-						int jC = colOffset + iB; // jB=iB
+						var iC = rowOffset + iB;
+						var jC = colOffset + iB; // jB=iB
 						resultRows[iC].Add(jC, a); // a*b = a*1
 					}
 				}
@@ -631,10 +631,10 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 			if (!avoidBuilding) return BuildCsrMatrix(false).Multiply(vector);
 
 			Preconditions.CheckMultiplicationDimensions(NumColumns, vector.Length);
-			var result = new double[this.NumRows];
-			for (int i = 0; i < NumRows; ++i)
+			var result = new double[NumRows];
+			for (var i = 0; i < NumRows; ++i)
 			{
-				double dot = 0.0;
+				var dot = 0.0;
 				foreach (var colValPair in rows[i]) dot += colValPair.Value * vector[colValPair.Key];
 				result[i] = dot;
 			}
@@ -643,12 +643,12 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 
 		public void ScaleIntoThis(double scalar)
 		{
-			for (int i = 0; i < NumRows; i++)
+			for (var i = 0; i < NumRows; i++)
 			{
-				Dictionary<int, double> wholeRow = rows[i];
+				var wholeRow = rows[i];
 				foreach (var colValPair in wholeRow)
 				{
-					int j = colValPair.Key;
+					var j = colValPair.Key;
 					wholeRow[j] *= scalar;
 				}
 			}
@@ -656,13 +656,13 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 
 		public DokRowMajor Transpose()
 		{
-			DokRowMajor result = CreateEmpty(NumColumns, NumRows); //TODO: Preallocate the dictionaries
-			for (int i = 0; i < NumRows; i++)
+			var result = CreateEmpty(NumColumns, NumRows); //TODO: Preallocate the dictionaries
+			for (var i = 0; i < NumRows; i++)
 			{
-				foreach (var colValPair in this.rows[i])
+				foreach (var colValPair in rows[i])
 				{
-					int j = colValPair.Key;
-					double val = colValPair.Value;
+					var j = colValPair.Key;
+					var val = colValPair.Value;
 					result.rows[j][i] = val;
 				}
 			}
@@ -684,27 +684,27 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		///     pairs of (elementDofs[i], elementDofs[j]) will be added to (globalDofs[i], globalDofs[j]).</param>
 		private void AddSubmatrixSymmetricOLD(IIndexable2D subMatrix, int[] subDofs, int[] globalDofs) //TODO: this should be reworked
 		{
-			int n = subDofs.Length;
-			for (int i = 0; i < n; ++i)
+			var n = subDofs.Length;
+			for (var i = 0; i < n; ++i)
 			{
-				int subRow = subDofs[i];
-				int globalRow = globalDofs[i];
+				var subRow = subDofs[i];
+				var globalRow = globalDofs[i];
 
 				//Diagonal entry
-				if (rows[globalRow].TryGetValue(globalRow, out double oldGlobalDiagValue))
+				if (rows[globalRow].TryGetValue(globalRow, out var oldGlobalDiagValue))
 				{
 					rows[globalRow][globalRow] = subMatrix[subRow, subRow] + oldGlobalDiagValue;
 				}
 				else rows[globalRow][globalRow] = subMatrix[subRow, subRow];
 
 				//Non diagonal entries
-				for (int j = 0; j < i; ++j)
+				for (var j = 0; j < i; ++j)
 				{
-					int subCol = subDofs[j];
-					int globalCol = globalDofs[j];
-					double newGlobalValue = subMatrix[subRow, subRow];
+					var subCol = subDofs[j];
+					var globalCol = globalDofs[j];
+					var newGlobalValue = subMatrix[subRow, subRow];
 					// Only check the lower triangle. If the DOK matrix is not symmetric, this will cause errors
-					if (rows[globalRow].TryGetValue(globalCol, out double oldGlobalValue))
+					if (rows[globalRow].TryGetValue(globalCol, out var oldGlobalValue))
 					{
 						newGlobalValue += oldGlobalValue;
 					}

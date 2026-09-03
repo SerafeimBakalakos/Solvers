@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
+namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Commons
 {
 	using System;
 	using System.Collections.Generic;
@@ -10,7 +10,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 	{
 		public static CscMatrix CsrToCsc(CsrMatrix csr)
 		{
-			int nnz = csr.NumNonZeros;
+			var nnz = csr.NumNonZeros;
 			var cscValues = new double[nnz];
 			var cscRowIndices = new int[nnz];
 			var cscColOffsets = new int[csr.NumColumns + 1];
@@ -39,12 +39,12 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 		/// <param name="Bx">Preallocated ouput argument. Non-zero values. Size = nnz(A).</param>
 		internal static void CsrToCsc(int n_row, int n_col, int[] Ap, int[] Aj, double[] Ax, int[] Bp, int[] Bi, double[] Bx)
 		{
-			int nnz = Ap[n_row];
+			var nnz = Ap[n_row];
 
 			//compute number of non-zero entries per column of A 
 			//std::fill(Bp, Bp + n_col, 0); //In C# the array is initilized to 0.0 by default
 
-			for (int n = 0; n < nnz; n++)
+			for (var n = 0; n < nnz; n++)
 			{
 				Bp[Aj[n]]++;
 			}
@@ -52,18 +52,18 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 			//cumsum the nnz per column to get Bp[]
 			for (int col = 0, cumsum = 0; col < n_col; col++)
 			{
-				int temp = Bp[col];
+				var temp = Bp[col];
 				Bp[col] = cumsum;
 				cumsum += temp;
 			}
 			Bp[n_col] = nnz;
 
-			for (int row = 0; row < n_row; row++)
+			for (var row = 0; row < n_row; row++)
 			{
-				for (int jj = Ap[row]; jj < Ap[row + 1]; jj++)
+				for (var jj = Ap[row]; jj < Ap[row + 1]; jj++)
 				{
-					int col = Aj[jj];
-					int dest = Bp[col];
+					var col = Aj[jj];
+					var dest = Bp[col];
 
 					Bi[dest] = row;
 					Bx[dest] = Ax[jj];
@@ -74,7 +74,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions
 
 			for (int col = 0, last = 0; col <= n_col; col++)
 			{
-				int temp = Bp[col];
+				var temp = Bp[col];
 				Bp[col] = last;
 				last = temp;
 			}

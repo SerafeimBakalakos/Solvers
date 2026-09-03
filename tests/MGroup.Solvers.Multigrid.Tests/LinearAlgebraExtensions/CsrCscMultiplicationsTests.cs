@@ -7,7 +7,7 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions
 	using System.Threading.Tasks;
 
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions;
+	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Commons;
 
 	using Xunit;
 
