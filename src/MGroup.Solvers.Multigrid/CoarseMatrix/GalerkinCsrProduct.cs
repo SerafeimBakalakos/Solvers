@@ -4,6 +4,7 @@ namespace MGroup.Solvers.Multigrid.CoarseMatrix
 	using System.Collections.Generic;
 	using System.Text;
 
+	using MGroup.LinearAlgebra.Exceptions;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions;
 
@@ -16,15 +17,15 @@ namespace MGroup.Solvers.Multigrid.CoarseMatrix
 		{
 			if (restriction is not CsrMatrix)
 			{
-				throw new ArgumentException($"Restriction matrix must be a {nameof(CsrMatrix)}.");
+				throw new InvalidSparsityPatternException($"Restriction matrix must be a {nameof(CsrMatrix)}.");
 			}
 			if (fineGridMatrix is not CsrMatrix)
 			{
-				throw new ArgumentException($"Fine grid matrix matrix must be a {nameof(CsrMatrix)}.");
+				throw new InvalidSparsityPatternException($"Fine grid matrix matrix must be a {nameof(CsrMatrix)}.");
 			}
 			if (prolongation is not CsrMatrix)
 			{
-				throw new ArgumentException($"Prolongation matrix must be a {nameof(CsrMatrix)}.");
+				throw new InvalidSparsityPatternException($"Prolongation matrix must be a {nameof(CsrMatrix)}.");
 			}
 
 			var restrictionCsr = (CsrMatrix)restriction;
