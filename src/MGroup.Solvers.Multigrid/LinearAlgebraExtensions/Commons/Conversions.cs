@@ -4,19 +4,84 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Commons
 	using System.Collections.Generic;
 	using System.Text;
 
+	using MGroup.LinearAlgebra.Commons;
 	using MGroup.LinearAlgebra.Matrices;
 
 	public static class Conversions
 	{
 		public static CscMatrix CsrToCsc(CsrMatrix csr)
 		{
-			var nnz = csr.NumNonZeros;
+			int nnz = csr.NumNonZeros;
 			var cscValues = new double[nnz];
 			var cscRowIndices = new int[nnz];
 			var cscColOffsets = new int[csr.NumColumns + 1];
 			CsrToCsc(csr.NumRows, csr.NumColumns, csr.RawRowOffsets, csr.RawColIndices, csr.RawValues, cscColOffsets, cscRowIndices, cscValues);
 
 			return CscMatrix.CreateFromArrays(csr.NumRows, csr.NumColumns, cscValues, cscRowIndices, cscColOffsets, false);
+		}
+
+		public static SymmetricCscMatrix CsrToSymmetricCsc(CsrMatrix csr)
+		{
+			Preconditions.CheckSquare(csr);
+
+			int numRows = csr.NumRows;
+			int numColumns = csr.NumColumns;
+			double[] valuesA = csr.RawValues;
+			int[] colIndicesA = csr.RawColIndices;
+			int[] rowOffsetsA = csr.RawRowOffsets;
+
+			// Count the number of non-zero entries per column of A
+			int[] upperOffsetsA = FindUpperTriangleOffsetsCsr(numRows, rowOffsetsA, colIndicesA);
+			var colOffsetsB = new int[numColumns + 1];
+			for (int row = 0; row < numRows; row++)
+			{
+				int start = upperOffsetsA[row];
+				int end = rowOffsetsA[row + 1];
+				for (int t = start; t < end; t++)
+				{
+					int col = colIndicesA[t];
+					colOffsetsB[col]++;
+				}
+			}
+
+			// Find colOffsetsB by accumulating the nnz of the upper triangle per column
+			int nnzUpper = 0;
+			for (int col = 0; col < numColumns; col++)
+			{
+				int temp = colOffsetsB[col];
+				colOffsetsB[col] = nnzUpper;
+				nnzUpper += temp;
+			}
+			colOffsetsB[numColumns] = nnzUpper;
+
+			// Find rowIndicesB and valuesB
+			var rowIndicesB = new int[nnzUpper];
+			var valuesB = new double[nnzUpper];
+			for (int row = 0; row < numRows; row++)
+			{
+				int start = upperOffsetsA[row];
+				int end = rowOffsetsA[row + 1];
+				for (int t = start; t < end; t++)
+				{
+					int col = colIndicesA[t];
+					int dest = colOffsetsB[col];
+
+					rowIndicesB[dest] = row;
+					valuesB[dest] = valuesA[t];
+
+					colOffsetsB[col]++; // This will point dest to the next entry of the column, but it changes colOffsetsB
+				}
+			}
+
+			// Each entry of colOffsetsB now points to the start of the next column. Shift them back.
+			for (int col = 0, last = 0; col <= numColumns; col++)
+			{
+				int temp = colOffsetsB[col];
+				colOffsetsB[col] = last;
+				last = temp;
+			}
+
+			return SymmetricCscMatrix.CreateFromArrays(numRows, valuesB, rowIndicesB, colOffsetsB, false);
 		}
 
 		/// <summary>
@@ -27,57 +92,77 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Commons
 		///   - compute B = A ^ t for CSR matrix A, CSR matrix B
 		///   - compute B = A ^ t for CSC matrix A, CSC matrix B
 		///   - convert CSC->CSR
-		/// Complexity: Linear.  Specifically O(nnz(A) + max(n_row,n_col))
+		/// Complexity: Linear.  Specifically O(nnz(A) + max(numRows,numColumns))
 		/// </summary>
-		/// <param name="n_row">Number of rows in A.</param>
-		/// <param name="n_col">Number of columns in A.</param>
-		/// <param name="Ap">Row pointers. Size = n_row+1.</param>
-		/// <param name="Aj">Column indices. Size = nnz(A). They are not assumed to be in sorted order.</param>
-		/// <param name="Ax">Non-zero values. Size = nnz(A).</param>
-		/// <param name="Bp">Preallocated ouput argument. Column pointers. Size = n_col+1</param>
-		/// <param name="Bi">Preallocated ouput argument. Row indices. Size = nnz(A). They will be in sorted order.</param>
-		/// <param name="Bx">Preallocated ouput argument. Non-zero values. Size = nnz(A).</param>
-		internal static void CsrToCsc(int n_row, int n_col, int[] Ap, int[] Aj, double[] Ax, int[] Bp, int[] Bi, double[] Bx)
+		/// <param name="numRows">Number of rows in A.</param>
+		/// <param name="numColumns">Number of columns in A.</param>
+		/// <param name="rowOffsetsA">Row pointers. Size = numRows+1.</param>
+		/// <param name="colIndicesA">Column indices. Size = nnz(A). They are not assumed to be in sorted order.</param>
+		/// <param name="valuesA">Non-zero values. Size = nnz(A).</param>
+		/// <param name="colOffsetsB">Preallocated ouput argument. Column pointers. Size = numColumns+1</param>
+		/// <param name="rowIndicesB">Preallocated ouput argument. Row indices. Size = nnz(A). They will be in sorted order.</param>
+		/// <param name="valuesB">Preallocated ouput argument. Non-zero values. Size = nnz(A).</param>
+		internal static void CsrToCsc(int numRows, int numColumns, int[] rowOffsetsA, int[] colIndicesA, double[] valuesA, int[] colOffsetsB, int[] rowIndicesB, double[] valuesB)
 		{
-			var nnz = Ap[n_row];
+			int nnz = rowOffsetsA[numRows];
 
-			//compute number of non-zero entries per column of A 
-			//std::fill(Bp, Bp + n_col, 0); //In C# the array is initilized to 0.0 by default
-
-			for (var n = 0; n < nnz; n++)
+			// Count the number of non-zero entries per column of A
+			for (int n = 0; n < nnz; n++)
 			{
-				Bp[Aj[n]]++;
+				colOffsetsB[colIndicesA[n]]++;
 			}
 
-			//cumsum the nnz per column to get Bp[]
-			for (int col = 0, cumsum = 0; col < n_col; col++)
+			// Find colOffsetsB by accumulating the nnz per column
+			for (int col = 0, cumsum = 0; col < numColumns; col++)
 			{
-				var temp = Bp[col];
-				Bp[col] = cumsum;
+				int temp = colOffsetsB[col];
+				colOffsetsB[col] = cumsum;
 				cumsum += temp;
 			}
-			Bp[n_col] = nnz;
+			colOffsetsB[numColumns] = nnz;
 
-			for (var row = 0; row < n_row; row++)
+			// Find rowIndicesB and valuesB
+			for (int row = 0; row < numRows; row++)
 			{
-				for (var jj = Ap[row]; jj < Ap[row + 1]; jj++)
+				int start = rowOffsetsA[row];
+				int end = rowOffsetsA[row + 1];
+				for (int t = start; t < end; t++)
 				{
-					var col = Aj[jj];
-					var dest = Bp[col];
+					int col = colIndicesA[t];
+					int dest = colOffsetsB[col];
 
-					Bi[dest] = row;
-					Bx[dest] = Ax[jj];
+					rowIndicesB[dest] = row;
+					valuesB[dest] = valuesA[t];
 
-					Bp[col]++;
+					colOffsetsB[col]++; // This will point dest to the next entry of the column, but it changes colOffsetsB
 				}
 			}
 
-			for (int col = 0, last = 0; col <= n_col; col++)
+			// Each entry of colOffsetsB now points to the start of the next column. Shift them back.
+			for (int col = 0, last = 0; col <= numColumns; col++)
 			{
-				var temp = Bp[col];
-				Bp[col] = last;
+				int temp = colOffsetsB[col];
+				colOffsetsB[col] = last;
 				last = temp;
 			}
+		}
+
+		private static int[] FindUpperTriangleOffsetsCsr(int numRows, int[] rowOffsets, int[] colIndices)
+		{
+			var upperOffsets = new int[numRows];
+			for (int row = 0; row < numRows; row++)
+			{
+				for (int k = rowOffsets[row]; k < rowOffsets[row + 1]; k++)
+				{
+					int col = colIndices[k];
+					if (col >= row)
+					{
+						upperOffsets[row] = k;
+						break;
+					}
+				}
+			}
+			return upperOffsets;
 		}
 	}
 }

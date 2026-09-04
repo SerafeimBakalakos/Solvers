@@ -17,8 +17,8 @@ namespace MGroup.Solvers.Multigrid.Smoothing
 		public MultigridSmoothers(int numLevels)
 		{
 			this.numLevels = numLevels;
-			preSmoothers = new IMultigridSmoother[numLevels];
-			postSmoothers = new IMultigridSmoother[numLevels];
+			preSmoothers = new IMultigridSmoother[numLevels - 1];
+			postSmoothers = new IMultigridSmoother[numLevels - 1];
 		}
 
 		public void ApplyPreSmoothing(int level, Vector rhs, Vector solution) => preSmoothers[level].Apply(rhs, solution);
