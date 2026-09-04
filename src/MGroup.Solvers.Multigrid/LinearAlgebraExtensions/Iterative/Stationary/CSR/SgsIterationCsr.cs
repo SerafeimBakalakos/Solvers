@@ -10,7 +10,7 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary.
 	/// </summary>
 	public class SgsIterationCsr : CsrStationaryIterationBase
 	{
-		public override string Name => "SSOR";
+		public override string Name => "Symmetric Gauss-Seidel";
 
 		public override IStationaryIteration CopyWithInitialSettings() => new SgsIterationCsr();
 

@@ -48,14 +48,8 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary.
 				}
 
 				this.matrix = csrMatrix;
-				diagonalOffsets = cache.TryGetDiagOffsetsFor(csrMatrix);
-
-				if (diagonalOffsets is null)
-				{
-					diagonalOffsets = provider.LocateDiagonalOffsetsCsr(matrix.NumRows, csrMatrix.RawRowOffsets, csrMatrix.RawColIndices);
-					cache.StoreDiagOffsets(csrMatrix, diagonalOffsets);
-				}
-
+				diagonalOffsets = cache.GetOrCreateDiagOffsets(csrMatrix, 
+					() => provider.LocateDiagonalOffsetsCsr(csrMatrix.NumRows, csrMatrix.RawRowOffsets, csrMatrix.RawColIndices));
 				cache.Register(csrMatrix, this);
 			}
 			else

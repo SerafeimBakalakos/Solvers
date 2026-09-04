@@ -11,25 +11,25 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary.
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary;
 
-	public class JacobiWeightedIterationCsr : CsrStationaryIterationBase
+	public class WeightedJacobiIterationCsr : CsrStationaryIterationBase
 	{
 		private readonly double relaxationFactor;
 		private double[]? workArray;
 
 		/// <summary>
-		/// Initializes a new <see cref="JacobiWeightedIterationCsr"/> with the specified settings.
+		/// Initializes a new <see cref="WeightedJacobiIterationCsr"/> with the specified settings.
 		/// </summary>
 		/// <param name="relaxationFactor">
 		/// The scalar factor ω that enforces over-relaxation: x(t+1) = (1-ω)*x(t) + ω*x_J(t), where x_J(t) would be the Jacobi update at iteration t.
 		/// </param>
-		public JacobiWeightedIterationCsr(double relaxationFactor)
+		public WeightedJacobiIterationCsr(double relaxationFactor)
 		{
 			this.relaxationFactor = relaxationFactor;
 		}
 
-		public override string Name => "Jacobi";
+		public override string Name => "Weighted Jacobi";
 
-		public override IStationaryIteration CopyWithInitialSettings() => new JacobiWeightedIterationCsr(relaxationFactor);
+		public override IStationaryIteration CopyWithInitialSettings() => new WeightedJacobiIterationCsr(relaxationFactor);
 
 		public override void Execute(Vector rhs, Vector solution)
 		{

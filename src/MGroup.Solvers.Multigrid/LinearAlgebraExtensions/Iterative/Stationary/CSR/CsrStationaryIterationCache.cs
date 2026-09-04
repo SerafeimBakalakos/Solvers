@@ -8,54 +8,64 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary.
 
 	public class CsrStationaryIterationCache
 	{
+		private readonly object syncLock = new();
+
 		private readonly Dictionary<CsrPatternKey, int[]> cachedDiagOffsets = new();
 		private readonly Dictionary<CsrPatternKey, HashSet<CsrStationaryIterationBase>> allClients = new();
+
+		public int[]? GetOrCreateDiagOffsets(CsrMatrix matrix, Func<int[]> createDiagOffsets)
+		{
+			var key = new CsrPatternKey(matrix);
+			lock (syncLock)
+			{
+				if (cachedDiagOffsets.TryGetValue(key, out int[] diagOffsets))
+				{
+					return diagOffsets;
+				}
+				else
+				{
+					diagOffsets = createDiagOffsets(); // Potentially slow operation
+					cachedDiagOffsets[key] = diagOffsets;
+					return diagOffsets;
+				}
+			}
+		}
 
 		public void Register(CsrMatrix matrix, CsrStationaryIterationBase client)
 		{
 			var key = new CsrPatternKey(matrix);
-			if (!cachedDiagOffsets.ContainsKey(key))
+
+			lock (syncLock)
 			{
-				throw new ArgumentException("Cannot register a client for a matrix whose diagonal offsets are not cached.");
+				if (!cachedDiagOffsets.ContainsKey(key))
+				{
+					throw new ArgumentException("Cannot register a client for a matrix whose diagonal offsets are not cached.");
+				}
+
+				if (!allClients.TryGetValue(key, out HashSet<CsrStationaryIterationBase> clients))
+				{
+					clients = new HashSet<CsrStationaryIterationBase>();
+					allClients.Add(key, clients);
+				}
+
+				clients.Add(client);
 			}
-
-			if (!allClients.TryGetValue(key, out HashSet<CsrStationaryIterationBase> clients))
-			{
-				clients = new HashSet<CsrStationaryIterationBase>();
-				allClients.Add(key, clients);
-			}
-
-			clients.Add(client);
-		}
-
-		public void StoreDiagOffsets(CsrMatrix matrix, int[] diagonalOffsets)
-		{
-			var key = new CsrPatternKey(matrix);
-			bool isNew = cachedDiagOffsets.TryAdd(key, diagonalOffsets);
-			if (!isNew)
-			{
-				throw new ArgumentException("The diagonal offsets for this matrix are already stored.");
-			}
-		}
-
-		public int[]? TryGetDiagOffsetsFor(CsrMatrix matrix)
-		{
-			var key = new CsrPatternKey(matrix);
-			cachedDiagOffsets.TryGetValue(key, out int[] diagOffsets);
-			return diagOffsets;
 		}
 
 		public void Unregister(CsrMatrix matrix, CsrStationaryIterationBase client)
 		{
 			var key = new CsrPatternKey(matrix);
-			if (allClients.TryGetValue(key, out HashSet<CsrStationaryIterationBase> clients))
+			lock (syncLock)
 			{
-				clients.Remove(client);
-
-				if (clients.Count == 0)
+				if (allClients.TryGetValue(key, out HashSet<CsrStationaryIterationBase> clients))
 				{
-					cachedDiagOffsets.Remove(key);
-					allClients.Remove(key);
+					clients.Remove(client);
+
+					if (clients.Count == 0)
+					{
+						cachedDiagOffsets.Remove(key);
+						allClients.Remove(key);
+					}
 				}
 			}
 		}
