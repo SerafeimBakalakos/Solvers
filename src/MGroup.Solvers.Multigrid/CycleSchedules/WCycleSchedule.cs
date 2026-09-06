@@ -8,18 +8,9 @@ namespace MGroup.Solvers.Multigrid.CycleSchedules
 	/// <summary>
 	/// Implements the level progression for W-cycles.
 	/// </summary>
-	public class WCycleSchedule : CycleScheduleBase
+	public class WCycleSchedule : ICycleSchedule
 	{
-		private WCycleSchedule(int numLevels, int[] path)
-			: base(numLevels, path)
-		{
-		}
-
-		/// <summary>
-		/// Constructs an instance of this class.
-		/// </summary>
-		/// <param name="numLevels">The total number of multigrid levels, including the finest and coarsest grids.</param>
-		public static WCycleSchedule Create(int numLevels)
+		public LevelProgression CreateProgression(int numLevels)
 		{
 			//int stepsUpperBound = (int)Math.Pow(2, numLevels + 1); // This is huge and too strict
 			//var paths = new List<int>(stepsUpperBound);
@@ -54,7 +45,7 @@ namespace MGroup.Solvers.Multigrid.CycleSchedules
 				}
 			}
 
-			return new WCycleSchedule(numLevels, path.ToArray());
+			return new LevelProgression(numLevels, path.ToArray());
 		}
 	}
 }

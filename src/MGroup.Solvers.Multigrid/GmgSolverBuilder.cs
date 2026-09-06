@@ -62,7 +62,7 @@ namespace MGroup.Solvers.Multigrid
 
 		public int[]? CoarseningRatioPerAxis { get; set; } = null;
 
-		public CycleSchedule Cycle { get; set; }
+		public ICycleSchedule CycleSchedule { get; set; } = new VCycleSchedule();
 
 		public IRestrictionStrategy Restriction { get; }
 
@@ -77,7 +77,7 @@ namespace MGroup.Solvers.Multigrid
 				Array.Fill(CoarseningRatioPerAxis, 2);
 			}
 
-			return new MultigridSolver(model, numLevels, finestGrid, CoarseningRatioPerAxis, prolongation, Restriction, smoothers, CoarsestSystemSolver, Cycle, useGalerkinCoarseMatrices);
+			return new MultigridSolver(model, numLevels, finestGrid, CoarseningRatioPerAxis, prolongation, Restriction, smoothers, CoarsestSystemSolver, CycleSchedule, useGalerkinCoarseMatrices);
 		}
 
 		public void ConfigCoarseMatricesGalerkin()

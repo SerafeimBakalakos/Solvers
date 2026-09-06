@@ -7,25 +7,16 @@ namespace MGroup.Solvers.Multigrid.CycleSchedules
 	/// <summary>
 	/// Implements the level progression for V-cycles.
 	/// </summary>
-	public class VCycleSchedule : CycleScheduleBase
+	public class VCycleSchedule : ICycleSchedule
 	{
-		private VCycleSchedule(int numLevels, int[] path)
-			: base(numLevels, path)
-		{
-		}
-
-		/// <summary>
-		/// Constructs an instance of this class.
-		/// </summary>
-		/// <param name="numLevels">The total number of multigrid levels, including the finest and coarsest grids.</param>
-		public static VCycleSchedule Create(int numLevels)
+		public LevelProgression CreateProgression(int numLevels)
 		{
 			int numSteps = 2 * numLevels - 1; // 1 pass of the coarsest grid, 2 passes for the rest.
 
 			// Top level (finest)
 			var path = new int[numSteps];
 			int s = 0;
-			path[s] = 0; 
+			path[s] = 0;
 
 			for (int lvl = 1; lvl < numLevels; lvl++) // Downward sweep: (finest, coarsest]
 			{
@@ -39,7 +30,7 @@ namespace MGroup.Solvers.Multigrid.CycleSchedules
 				path[s] = lvl;
 			}
 
-			return new VCycleSchedule(numLevels, path);
+			return new LevelProgression(numLevels, path);
 		}
 	}
 }

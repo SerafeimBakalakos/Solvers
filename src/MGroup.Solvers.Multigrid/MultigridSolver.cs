@@ -26,14 +26,14 @@ namespace MGroup.Solvers.Multigrid
 	public class MultigridSolver : ISolver
 	{
 		private readonly ICoarseSystemSolver coarsestSystemSolver;
-		private readonly ICycleSchedule cycleSchedule;
 		private readonly IGrid[] grids;
 		private readonly IntergridTransfer[] intergridTransfers;
+		private readonly LevelProgression levelProgression;
 		private readonly GlobalAlgebraicModel<CsrMatrix> model; // Perhaps I need a dedicated algebraic model for multigrid
 		private readonly int numLevels;
 		private readonly MultigridSmoothers smoothers;
 
-		internal MultigridSolver(GlobalAlgebraicModel<CsrMatrix> model, int numLevels, IGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, CycleSchedule cycle, bool useGalerkinCoarseMatrices)
+		internal MultigridSolver(GlobalAlgebraicModel<CsrMatrix> model, int numLevels, IGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, bool useGalerkinCoarseMatrices)
 		{
 			Name = "MultigridSolver";
 			Logger = new SolverLogger(Name);
@@ -61,18 +61,7 @@ namespace MGroup.Solvers.Multigrid
 			}
 
 			// Cycle schedule
-			if (cycle == CycleSchedule.VCycle)
-			{
-				this.cycleSchedule = VCycleSchedule.Create(numLevels);
-			}
-			else if (cycle == CycleSchedule.WCycle)
-			{
-				this.cycleSchedule = WCycleSchedule.Create(numLevels);
-			}
-			else
-			{
-				this.cycleSchedule = FCycleSchedule.Create(numLevels);
-			}
+			levelProgression = cycleSchedule.CreateProgression(numLevels);
 		}
 
 		IGlobalLinearSystem ISolver.LinearSystem => LinearSystem;

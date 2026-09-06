@@ -20,8 +20,9 @@ namespace MGroup.Solvers.Multigrid.Tests.CycleSchedules
 			{ 
 				0, 1, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 1, 2, 3, 4, 3, 4, 3, 2, 3, 4, 3, 4, 3, 2, 1, 0
 			};
-			var schedule = WCycleSchedule.Create(numLevels);
-			Utilities.AssertCycleSchedule(expectedPath, schedule, 10);
+			var schedule = new WCycleSchedule();
+			LevelProgression progression = schedule.CreateProgression(numLevels);
+			Utilities.AssertCycleSchedule(expectedPath, progression, 10);
 		}
 	}
 }

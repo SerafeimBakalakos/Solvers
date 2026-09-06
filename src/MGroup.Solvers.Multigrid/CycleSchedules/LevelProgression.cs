@@ -4,26 +4,26 @@ namespace MGroup.Solvers.Multigrid.CycleSchedules
 	using System.Collections.Generic;
 	using System.Text;
 
-	public abstract class CycleScheduleBase : ICycleSchedule
+	public class LevelProgression
 	{
 		/// <summary>
 		/// The total number of multigrid levels
 		/// </summary>
-		protected readonly int numLevels;
+		private readonly int numLevels;
 
 		/// <summary>
 		/// The total number of grids visited during one cycle
 		/// </summary>
-		protected readonly int numSteps;
+		private readonly int numSteps;
 
 		/// <summary>
 		/// Contains the full progression of levels
 		/// </summary>
-		protected readonly int[] path;
+		private readonly int[] path;
 
-		protected int currentStep;
+		private int currentStep;
 
-		protected CycleScheduleBase(int numLevels, int[] path)
+		public LevelProgression(int numLevels, int[] path)
 		{
 			this.numLevels = numLevels;
 			this.path = path;
@@ -31,6 +31,12 @@ namespace MGroup.Solvers.Multigrid.CycleSchedules
 			currentStep = 0;
 		}
 
+		/// <summary>
+		/// Finds the direction for the next level in the schedule or the end of the current cycle. 
+		/// </summary>
+		/// <returns>
+		/// +1 for moving to lvl+1 (coarser) OR -1 for moving to lvl-1 (finer) OR 0 if the current level is the final one of the cycle.
+		/// </returns>
 		public int MoveNext()
 		{
 			if (currentStep < numSteps - 1)
@@ -49,6 +55,10 @@ namespace MGroup.Solvers.Multigrid.CycleSchedules
 			}
 		}
 
+		/// <summary>
+		/// Reset to the start of the first cycle.
+		/// </summary>
 		public void Reset() => currentStep = 0;
+
 	}
 }

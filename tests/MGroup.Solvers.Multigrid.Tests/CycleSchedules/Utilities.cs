@@ -12,7 +12,7 @@ namespace MGroup.Solvers.Multigrid.Tests.CycleSchedules
 
 	internal class Utilities
 	{
-		internal static void AssertCycleSchedule(int[] expectedPath, ICycleSchedule schedule, int numCycles = 2)
+		internal static void AssertCycleSchedule(int[] expectedPath, LevelProgression progression, int numCycles = 2)
 		{
 			int numSteps = expectedPath.Length;
 			for (int c = 0; c < numCycles; c++)
@@ -24,13 +24,13 @@ namespace MGroup.Solvers.Multigrid.Tests.CycleSchedules
 				for (int s = 0; s < numSteps - 1; s++)
 				{
 					expectedMove = expectedPath[s + 1] - expectedPath[s];
-					computedMove = schedule.MoveNext();
+					computedMove = progression.MoveNext();
 					Assert.Equal(expectedMove, computedMove);
 				}
 
 				// Last step
 				expectedMove = 0;
-				computedMove = schedule.MoveNext();
+				computedMove = progression.MoveNext();
 				Assert.Equal(expectedMove, computedMove);
 			}
 		}

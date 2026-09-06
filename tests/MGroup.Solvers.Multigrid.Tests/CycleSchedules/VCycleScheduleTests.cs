@@ -17,8 +17,9 @@ namespace MGroup.Solvers.Multigrid.Tests.CycleSchedules
 		{
 			int numLevels = 5;
 			int[] expectedPath = { 0, 1, 2, 3, 4, 3, 2, 1, 0 };
-			var schedule = VCycleSchedule.Create(numLevels);
-			Utilities.AssertCycleSchedule(expectedPath, schedule, 10);
+			var schedule = new VCycleSchedule();
+			LevelProgression progression = schedule.CreateProgression(numLevels);
+			Utilities.AssertCycleSchedule(expectedPath, progression, 10);
 		}
 	}
 }

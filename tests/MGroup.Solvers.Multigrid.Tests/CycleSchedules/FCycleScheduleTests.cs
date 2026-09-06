@@ -24,8 +24,9 @@ namespace MGroup.Solvers.Multigrid.Tests.CycleSchedules
 				3, 2, 1, 2, 3, 4, 
 				3, 2, 1, 0 
 			};
-			var schedule = FCycleSchedule.Create(numLevels);
-			Utilities.AssertCycleSchedule(expectedPath, schedule, 10);
+			var schedule = new FCycleSchedule();
+			LevelProgression progression = schedule.CreateProgression(numLevels);
+			Utilities.AssertCycleSchedule(expectedPath, progression, 10);
 		}
 	}
 }
