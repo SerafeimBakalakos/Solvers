@@ -28,7 +28,6 @@ namespace MGroup.Solvers
 		where TMatrix : class, IMatrix
 	{
 		protected readonly GlobalAlgebraicModel<TMatrix> model;
-		protected readonly string name; // for error messages
 
 		protected SingleSubdomainSolverBase(GlobalAlgebraicModel<TMatrix> model, string name)
 		{
@@ -37,6 +36,7 @@ namespace MGroup.Solvers
 			this.LinearSystem = model.LinearSystem;
 			LinearSystem.Observers.Add(this);
 
+			this.Name = name;
 			this.Logger = new SolverLogger(name);
 		}
 

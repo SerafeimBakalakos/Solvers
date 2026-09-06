@@ -6,6 +6,8 @@ namespace MGroup.Solvers.Multigrid.Tests
 	using System.Text;
 	using System.Threading.Tasks;
 
+	using MGroup.Solvers.Multigrid.GridDefinition;
+
 	using Xunit;
 
 	public static class GridDimensionsTests

@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid
+namespace MGroup.Solvers.Multigrid.GridDefinition
 {
 	using System;
 	using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace MGroup.Solvers.Multigrid
 	{
 		private readonly List<int[]> gridNodes;
 
-		private GridDimensions(int dimension, int numLevels, int[] numNodesFine, int[] coarsenRatios)
+		public GridDimensions(int dimension, int numLevels, int[] numNodesFine, int[] coarsenRatios)
 		{
 			CheckInput(dimension, numLevels, numNodesFine, coarsenRatios);
 
@@ -135,14 +135,29 @@ namespace MGroup.Solvers.Multigrid
 		/// Returns the number of nodes per axis for the grid at <paramref name="level"/>.
 		/// </summary>
 		/// <param name="level">
-		/// The level at which the grid is located at. Use 0 for the finest grid. Use <see cref="NumLevels-1"/> for the coarsest grid.
+		/// The level at which the grid is located at. Use 0 for the finest grid. Use <see cref="NumLevels"/>-1 for the coarsest grid.
 		/// </param>
 		/// <returns>Array with the number of nodes along each axis.</returns>
 		public int[] GetNumNodesAtLevel(int level) => gridNodes[level];
 
+		/// <summary>
+		/// Creates an <see cref="IGrid"/> to represent the grid at <paramref name="level"/>.
+		/// </summary>
+		/// <param name="level">
+		/// The level at which the grid is located at. Use 0 for the finest grid. Use <see cref="NumLevels"/>-1 for the coarsest grid.
+		/// </param>
+		/// <returns>An <see cref="IGrid"/>.</returns>
+		public IGrid MakeGridForLevel(int level)
+		{
+			int[] numNodes = gridNodes[level];
+			if (Dimension == 1) return new Grid1D(numNodes);
+			else if (Dimension == 2) return new Grid2D(numNodes);
+			else return new Grid3D(numNodes);
+		}
+
 		private void CheckInput(int dimension, int numLevels, int[] numNodesFine, int[] coarsenRatios)
 		{
-			if ((dimension != 1) && (dimension != 2) && (dimension != 3))
+			if (dimension != 1 && dimension != 2 && dimension != 3)
 			{
 				throw new ArgumentException("The dimension must be 1, 2 or 3.");
 			}

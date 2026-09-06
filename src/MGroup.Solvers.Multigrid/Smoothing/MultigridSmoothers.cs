@@ -10,16 +10,17 @@ namespace MGroup.Solvers.Multigrid.Smoothing
 
 	public class MultigridSmoothers
 	{
-		private readonly int numLevels;
 		private readonly IMultigridSmoother[] preSmoothers;
 		private readonly IMultigridSmoother[] postSmoothers;
 
-		public MultigridSmoothers(int numLevels)
+		public MultigridSmoothers(int numLevelsTotal)
 		{
-			this.numLevels = numLevels;
-			preSmoothers = new IMultigridSmoother[numLevels - 1];
-			postSmoothers = new IMultigridSmoother[numLevels - 1];
+			this.NumLevelsTotal = numLevelsTotal;
+			preSmoothers = new IMultigridSmoother[numLevelsTotal - 1];
+			postSmoothers = new IMultigridSmoother[numLevelsTotal - 1];
 		}
+		
+		public int NumLevelsTotal { get; }
 
 		public void ApplyPreSmoothing(int level, Vector rhs, Vector solution) => preSmoothers[level].Apply(rhs, solution);
 
@@ -27,7 +28,7 @@ namespace MGroup.Solvers.Multigrid.Smoothing
 
 		public void DefineSmoother(IMultigridSmoother smoother)
 		{
-			for (int lvl = 0; lvl < numLevels; lvl++)
+			for (int lvl = 0; lvl < NumLevelsTotal; lvl++)
 			{
 				IMultigridSmoother lvlSmoother = smoother.DeepCopy();
 				preSmoothers[lvl] = lvlSmoother;
