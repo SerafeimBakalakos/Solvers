@@ -10,7 +10,7 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 	/// <summary>
 	/// Solves the linear systems at the coarsest grid. Optimized for multiple solutions with the same matrix, but different right hand side vectors.
 	/// </summary>
-	public interface ICoarseSystemSolver
+	public interface ICoarseSystemSolver : IDisposable
 	{
 		void Solve(Vector rhs, Vector solution);
 

@@ -26,7 +26,7 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 		private Vector rhsPermuted;
 		private Vector solutionPermuted;
 
-		public CholeskyCscCoarseSolver(IImplementationProvider provider, IReorderingAlgorithm reorderingAlgorithm = null)
+		public CholeskyCscCoarseSolver(IImplementationProvider provider, IReorderingAlgorithm? reorderingAlgorithm = null, double? factorizationTolerance = null)
 		{
 			this.provider = provider;
 			
@@ -37,6 +37,11 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 			else
 			{
 				this.reorderingAlgorithm = new AmdSymmetricOrdering(provider);
+			}
+
+			if (factorizationTolerance is not null)
+			{
+				throw new NotImplementedException();
 			}
 		}
 
@@ -70,7 +75,7 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 				SymmetricCscMatrix reorderedMatrix = symCscMatrix.PermuteRowsAndCols(permutation);
 
 				// Factorization
-				factorization = provider.CreateCholeskyTriangulation();
+				factorization = provider.CreateCholeskyTriangulation(); //TODO: there must be a way to control the factorization tolerance
 				factorization.Factorize(reorderedMatrix);
 
 				// Work arrays/vectors
