@@ -8,7 +8,7 @@ namespace MGroup.Solvers.Multigrid.CoarseMatrix
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Commons;
 
-	public class GalerkinCsrProduct : IGalerkinProduct
+	public class GalerkinProductCsr : IGalerkinProduct
 	{
 		private CsrMatrix prolongationCsr;
 		private CscMatrix prolongationCsc;

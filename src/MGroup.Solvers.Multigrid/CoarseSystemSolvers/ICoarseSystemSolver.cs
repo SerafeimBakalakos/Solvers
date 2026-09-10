@@ -12,8 +12,10 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 	/// </summary>
 	public interface ICoarseSystemSolver : IDisposable
 	{
-		void Solve(Vector rhs, Vector solution);
+		void Clear();
 
-		void Update(IReadOnlyMatrix coarseMatrix, bool areDofsModified);
+		void Initialize(IReadOnlyMatrix coarseMatrix);
+		
+		void Solve(Vector rhs, Vector solution);
 	}
 }

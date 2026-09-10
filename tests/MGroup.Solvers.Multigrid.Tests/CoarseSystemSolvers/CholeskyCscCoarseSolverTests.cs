@@ -28,7 +28,7 @@ namespace MGroup.Solvers.Multigrid.Tests.CoarseSystemSolvers
 			var provider = new ManagedSequentialImplementationProvider();
 			var reordering = new AmdSymmetricOrdering(provider);
 			using var solver = new CholeskyCscCoarseSolver(provider, reordering);
-			solver.Update(matrix, areDofsModified:true);
+			solver.Initialize(matrix);
 
 			var solutionComputed = Vector.CreateZero(rhs.Length);
 			solver.Solve(rhs, solutionComputed);

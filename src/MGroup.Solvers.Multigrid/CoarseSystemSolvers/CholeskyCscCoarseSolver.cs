@@ -2,6 +2,7 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Text;
 
 
@@ -20,11 +21,11 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 		private readonly IImplementationProvider provider;
 		private readonly IReorderingAlgorithm reorderingAlgorithm;
 
-		private ICholeskySymmetricCsc factorization;
-		private Permutation permutation;
-		private Permutation permutationInverse;
-		private Vector rhsPermuted;
-		private Vector solutionPermuted;
+		private ICholeskySymmetricCsc? factorization;
+		private Permutation? permutation;
+		private Permutation? permutationInverse;
+		private Vector? rhsPermuted;
+		private Vector? solutionPermuted;
 
 		public CholeskyCscCoarseSolver(IImplementationProvider provider, IReorderingAlgorithm? reorderingAlgorithm = null, double? factorizationTolerance = null)
 		{
@@ -50,20 +51,22 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 			ReleaseResources();
 		}
 
+		public void Clear()
+		{
+			ReleaseResources();
+			permutation = null;
+			permutationInverse = null;
+			rhsPermuted = null;
+			solutionPermuted = null;
+		}
+
 		public void Dispose()
 		{
 			ReleaseResources();
 			GC.SuppressFinalize(this);
 		}
 
-		public void Solve(Vector rhs, Vector solution)
-		{
-			rhs.PermuteIntoResult(permutation, rhsPermuted);
-			factorization.SolveLinearSystem(rhsPermuted, solutionPermuted);
-			solutionPermuted.PermuteIntoResult(permutationInverse, solution);
-		}
-
-		public void Update(IReadOnlyMatrix coarseMatrix, bool areDofsModified)
+		public void Initialize(IReadOnlyMatrix coarseMatrix)
 		{
 			if (coarseMatrix is CsrMatrix csrMatrix)
 			{
@@ -86,6 +89,14 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 			{
 				throw new InvalidSparsityPatternException("The coarse linear system matrix must be in CSR format.");
 			}
+		}
+
+		public void Solve(Vector rhs, Vector solution)
+		{
+			Debug.Assert((factorization != null) && (permutation != null) && (permutationInverse != null) && (rhsPermuted != null) && (solutionPermuted != null));
+			rhs.PermuteIntoResult(permutation, rhsPermuted);
+			factorization.SolveLinearSystem(rhsPermuted, solutionPermuted);
+			solutionPermuted.PermuteIntoResult(permutationInverse, solution);
 		}
 
 		private void ReleaseResources()

@@ -29,12 +29,13 @@ namespace MGroup.Solvers.Multigrid
 		private readonly IGrid finestGrid;
 		private readonly IDofOrderer dofOrderer;
 		private readonly IImplementationProvider linearAlgebraProvider;
+		private readonly int maxCycles;
 		private readonly IProlongationStrategy prolongation;
-
+		
 		private MultigridSmoothers smoothers;
 		private bool useGalerkinCoarseMatrices = true;
 
-		public GmgSolverBuilder(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation, IImplementationProvider? linearAlgebraProvider = null)
+		public GmgSolverBuilder(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation,int maxCycles, IImplementationProvider? linearAlgebraProvider = null)
 		{
 			this.finestGrid = finestGrid;
 
@@ -51,6 +52,7 @@ namespace MGroup.Solvers.Multigrid
 			CoarsestSystemSolver = new CholeskyCscCoarseSolver(linearAlgebraProvider, new AmdSymmetricOrdering(linearAlgebraProvider));
 
 			this.prolongation = prolongation;
+			this.maxCycles = maxCycles;
 			Restriction = new FullWeightingRestrictionStrategy(finestGrid.Dimension);
 
 			//TODO: Here is where I can enforce that Nodes are numbered in the same way prolongation matrices expect them to.
@@ -63,6 +65,8 @@ namespace MGroup.Solvers.Multigrid
 		public int[]? CoarseningRatioPerAxis { get; set; } = null;
 
 		public ICycleSchedule CycleSchedule { get; set; } = new VCycleSchedule();
+
+		public double ResidualTolerance = 1E-7;
 
 		public IRestrictionStrategy Restriction { get; }
 
@@ -77,7 +81,7 @@ namespace MGroup.Solvers.Multigrid
 				Array.Fill(CoarseningRatioPerAxis, 2);
 			}
 
-			return new MultigridSolver(model, numLevels, finestGrid, CoarseningRatioPerAxis, prolongation, Restriction, smoothers, CoarsestSystemSolver, CycleSchedule, useGalerkinCoarseMatrices);
+			return new MultigridSolver(model, numLevels, finestGrid, CoarseningRatioPerAxis, prolongation, Restriction, smoothers, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance, useGalerkinCoarseMatrices);
 		}
 
 		public void ConfigCoarseMatricesGalerkin()

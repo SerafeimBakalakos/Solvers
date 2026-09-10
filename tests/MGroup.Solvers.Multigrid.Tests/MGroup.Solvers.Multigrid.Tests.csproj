@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -19,6 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MGroup.Solvers.Multigrid\MGroup.Solvers.Multigrid.csproj" />
+    <ProjectReference Include="..\MGroup.Solvers.Tests\MGroup.Solvers.Tests.csproj" />
   </ItemGroup>
-
 </Project>

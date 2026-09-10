@@ -8,6 +8,10 @@ namespace MGroup.Solvers.Multigrid.CoarseMatrix
 
 	public interface ICoarseMatrixStrategy
 	{
-		IMatrix CalcCoarseGridMatrix();
+		void CalcCoarseSystemMatrices();
+		
+		void Clear();
+
+		IReadOnlyMatrix GetLinearSystemMatrix(int lvl);
 	}
 }

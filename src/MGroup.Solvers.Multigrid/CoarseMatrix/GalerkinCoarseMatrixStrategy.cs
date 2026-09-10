@@ -11,21 +11,39 @@ namespace MGroup.Solvers.Multigrid.CoarseMatrix
 	{
 		private readonly IGalerkinProduct galerkinProduct;
 		private readonly Func<IReadOnlyMatrix> getFineGridMatrix;
-		private readonly IntergridTransfer intergridTransfer;
+		private readonly IntergridTransfers intergridTransfers;
+		private readonly int numLevels;
 
-		public GalerkinCoarseMatrixStrategy(IGalerkinProduct galerkinProduct, IntergridTransfer intergridTransfer, Func<IReadOnlyMatrix> getFineGridMatrix)
+		private IReadOnlyMatrix[] allSystemMatrices;
+
+		public GalerkinCoarseMatrixStrategy(int numLevels, IGalerkinProduct galerkinProduct, IntergridTransfers intergridTransfers, Func<IReadOnlyMatrix> getFineGridMatrix)
 		{
+			this.numLevels = numLevels;
 			this.galerkinProduct = galerkinProduct;
-			this.intergridTransfer = intergridTransfer;
+			this.intergridTransfers = intergridTransfers;
 			this.getFineGridMatrix = getFineGridMatrix;
+
+			allSystemMatrices = new IReadOnlyMatrix[numLevels];
 		}
 
-		public IMatrix CalcCoarseGridMatrix()
+		public void CalcCoarseSystemMatrices()
 		{
-			IReadOnlyMatrix P = intergridTransfer.Prolongation;
-			IReadOnlyMatrix R = intergridTransfer.Restriction;
-			IReadOnlyMatrix Kf = getFineGridMatrix();
-			return galerkinProduct.CalcProduct(R, Kf, P);
+			allSystemMatrices[0] = getFineGridMatrix();
+
+			for (int lvl = 0; lvl < numLevels; lvl++)
+			{
+				IReadOnlyMatrix P = intergridTransfers.GetProlongation(lvl);
+				IReadOnlyMatrix R = intergridTransfers.GetRestriction(lvl);
+				IReadOnlyMatrix Kf = allSystemMatrices[lvl];
+				allSystemMatrices[lvl + 1] = galerkinProduct.CalcProduct(R, Kf, P);
+			}
 		}
+		
+		public void Clear()
+		{
+			Array.Clear(allSystemMatrices, 0, allSystemMatrices.Length);
+		}
+		
+		public IReadOnlyMatrix GetLinearSystemMatrix(int lvl) => allSystemMatrices[lvl];
 	}
 }
