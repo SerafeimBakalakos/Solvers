@@ -430,38 +430,30 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Matrices.Builders
 
 		public DokRowMajor GetSubmatrix(int[] rowsToKeep, int[] colsToKeep)
 		{
-			var oldToNewRows = new Dictionary<int, int>();
-			for (var i = 0; i < rowsToKeep.Length; ++i)
+			int numRowsResult = rowsToKeep.Length;
+			int numColsResult = colsToKeep.Length;
+			var oldToNewCols = new int[NumColumns];
+			Array.Fill(oldToNewCols, -1);
+			for (int j = 0; j < numColsResult; j++)
 			{
-				oldToNewRows[rowsToKeep[i]] = i;
+				int J = colsToKeep[j];
+				oldToNewCols[J] = j;
 			}
-
-			var oldToNewCols = new Dictionary<int, int>();
-			for (var j = 0; j < colsToKeep.Length; ++j)
+			
+			DokRowMajor result = CreateEmpty(numRowsResult, numColsResult);
+			for (int i = 0; i < rowsToKeep.Length; i++)
 			{
-				oldToNewCols[colsToKeep[j]] = j;
-			}
-
-			var result = CreateEmpty(rowsToKeep.Length, colsToKeep.Length);
-			for (var I = 0; I < NumRows; ++I) // Traverse the existing DOK matrix and copy only the requested entries
-			{
-				var keepRow = oldToNewRows.TryGetValue(I, out var i);
-				if (!keepRow)
+				int I = rowsToKeep[i];
+				Dictionary<int, double> resultRows = result.rows[i];
+				foreach (var colValPair in this.rows[I])
 				{
-					continue;
-				}
-
-				foreach (var colValPair in rows[I])
-				{
-					var J = colValPair.Key;
-					var keepCol = oldToNewCols.TryGetValue(J, out var j);
-					if (!keepCol)
+					int J = colValPair.Key;
+					int j = oldToNewCols[J];
+					if (j >= 0)
 					{
-						continue;
+						double val = colValPair.Value;
+						resultRows[j] = val;
 					}
-
-					var val = colValPair.Value;
-					result[i, j] = val;
 				}
 			}
 
@@ -669,6 +661,9 @@ namespace MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Matrices.Builders
 
 			return result;
 		}
+
+		public DokRowMajor_SubmatrixView ViewSubmatrix(int[] rowsToKeep)
+			=> new DokRowMajor_SubmatrixView(rows, rowsToKeep, NumColumns);
 
 		/// <summary>
 		/// Use this method if 1) both the global DOK and the element matrix are symmetric and 2) the rows and columns correspond
