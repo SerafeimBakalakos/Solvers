@@ -28,7 +28,7 @@ namespace MGroup.Solvers.Multigrid.Smoothing
 
 		public void DefineSmoother(IMultigridSmoother smoother)
 		{
-			for (int lvl = 0; lvl < NumLevelsTotal; lvl++)
+			for (int lvl = 0; lvl < NumLevelsTotal - 1; lvl++)
 			{
 				IMultigridSmoother lvlSmoother = smoother.DeepCopy();
 				preSmoothers[lvl] = lvlSmoother;

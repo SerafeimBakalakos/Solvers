@@ -13,7 +13,7 @@ namespace MGroup.Solvers.Multigrid.GridDefinition
 
 		public Grid3D(int[] numNodesPerAxis)
 		{
-			if (numNodesPerAxis.Length == 3) throw new ArgumentException();
+			if (numNodesPerAxis.Length != 3) throw new ArgumentException();
 			NumNodesPerAxis = new int[] { numNodesPerAxis[0], numNodesPerAxis[1], numNodesPerAxis[2] };
 		}
 
