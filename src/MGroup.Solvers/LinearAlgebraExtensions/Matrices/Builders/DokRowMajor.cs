@@ -351,6 +351,42 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders
 		}
 
 		/// <summary>
+		/// Removes all entries Aij with |Aij| &lt;= <paramref name="tolerance"/>. Diagonal entries will be retained.
+		/// </summary>
+		/// <param name="tolerance">Must be positive or 0.</param>
+		/// <param name="canDropDiagonalEntries">
+		/// If false, entries that would fall bellow <paramref name="tolerance"/> will not be dropped.
+		/// </param>
+		public void DropEntriesBelowMagnitude(double tolerance, bool canDropDiagonalEntries)
+		{
+			if (tolerance < 0) throw new ArgumentException("Tolerance must be positive or 0");
+
+			var colsToDrop = new List<int>(); 
+			for (int row = 0; row < NumRows; row++)
+			{
+				colsToDrop.Clear();
+				Dictionary<int, double> wholeRow = rows[row];
+				foreach (var entry in wholeRow)
+				{
+					double abs = Math.Abs(entry.Value);
+					if (abs <= tolerance)
+					{
+						int col = entry.Key;
+						if (canDropDiagonalEntries || (col != row))
+						{
+							colsToDrop.Add(entry.Key);
+						}
+					}
+				}
+
+				foreach (int col in colsToDrop)
+				{
+					wholeRow.Remove(col);
+				}
+			}
+		}
+
+		/// <summary>
 		/// See <see cref="ISparseMatrix.EnumerateNonZeros"/>.
 		/// </summary>
 		public IEnumerable<(int row, int col, double value)> EnumerateNonZeros()
@@ -631,6 +667,20 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders
 				result[i] = dot;
 			}
 			return Vector.CreateFromArray(result, false);
+		}
+
+		public double ReduceMaxAbs()
+		{
+			double max = -1;
+			foreach (Dictionary<int, double> wholeRow in rows)
+			{
+				foreach (double val in wholeRow.Values)
+				{
+					double abs = Math.Abs(val);
+					if (abs > max) max = abs;
+				}
+			}
+			return max;
 		}
 
 		public void ScaleIntoThis(double scalar)

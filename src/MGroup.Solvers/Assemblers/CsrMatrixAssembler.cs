@@ -57,6 +57,7 @@ namespace MGroup.Solvers.Assemblers
             int numFreeDofs = dofOrdering.NumFreeDofs;
             var subdomainMatrix = DokRowMajor.CreateEmpty(numFreeDofs, numFreeDofs);
 
+			// Assemnle element matrices
 			if (isMatrixSymmetric)
 			{
 				foreach (IElementType element in elements)
@@ -76,6 +77,19 @@ namespace MGroup.Solvers.Assemblers
 				}
 			}
 
+			// Possibly drop negligible entries
+			if (DropEntryTolerance >= 0)
+			{
+				double tol = 0.0;
+				if (DropEntryTolerance > 0)
+				{
+					tol = DropEntryTolerance * subdomainMatrix.ReduceMaxAbs();
+				}
+
+				subdomainMatrix.DropEntriesBelowMagnitude(tol, canDropDiagonalEntries: false);
+			}
+
+			// Convert to CSR
 			(double[] values, int[] colIndices, int[] rowOffsets) = subdomainMatrix.BuildCsrArrays(SortColsOfEachRow);
             if (!isIndexerCached)
             {
