@@ -151,7 +151,12 @@ namespace MGroup.Solvers.Iterative
 					MatrixPatternWillNotBeModified);
 
 			public GlobalAlgebraicModel<CsrMatrix> BuildAlgebraicModel(IModel model)
-				=> new GlobalAlgebraicModel<CsrMatrix>(model, DofOrderer, new CsrMatrixAssembler(true));
+			{
+				var assembler = new CsrMatrixAssembler(isMatrixSymmetric: false);
+				assembler.SortColsOfEachRow = true;
+				assembler.DropEntryTolerance = -1;
+				return new GlobalAlgebraicModel<CsrMatrix>(model, DofOrderer, assembler);
+			}
 		}
 	}
 }

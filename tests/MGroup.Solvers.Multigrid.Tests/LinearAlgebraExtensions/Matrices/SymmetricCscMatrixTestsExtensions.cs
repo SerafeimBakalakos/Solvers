@@ -7,8 +7,8 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Matrices
 	using System.Threading.Tasks;
 
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Matrices;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Reordering;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
+	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 
 	using Newtonsoft.Json.Linq;

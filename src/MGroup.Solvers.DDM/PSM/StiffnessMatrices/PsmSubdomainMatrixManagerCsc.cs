@@ -103,7 +103,13 @@ namespace MGroup.Solvers.DDM.PSM.StiffnessMatrices
 			{
 			}
 
-			public ISubdomainMatrixAssembler<CsrMatrix> CreateAssembler() => new CsrMatrixAssembler(false);
+			public ISubdomainMatrixAssembler<CsrMatrix> CreateAssembler()
+			{
+				var assembler = new CsrMatrixAssembler(isMatrixSymmetric: false);
+				assembler.SortColsOfEachRow = false;
+				assembler.DropEntryTolerance = -1;
+				return assembler;
+			}
 
 			public IPsmSubdomainMatrixManager CreateMatrixManager(IImplementationProvider provider,
 				SubdomainLinearSystem<CsrMatrix> linearSystem, PsmSubdomainDofs subdomainDofs)

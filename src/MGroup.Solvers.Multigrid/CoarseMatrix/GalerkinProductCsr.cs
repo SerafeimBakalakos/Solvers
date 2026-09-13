@@ -6,7 +6,7 @@ namespace MGroup.Solvers.Multigrid.CoarseMatrix
 
 	using MGroup.LinearAlgebra.Exceptions;
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Commons;
+	using MGroup.Solvers.LinearAlgebraExtensions.Commons;
 
 	public class GalerkinProductCsr : IGalerkinProduct
 	{

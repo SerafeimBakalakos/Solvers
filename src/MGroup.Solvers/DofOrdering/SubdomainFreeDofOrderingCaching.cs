@@ -11,7 +11,6 @@ namespace MGroup.Solvers.DofOrdering
 {
 	public class SubdomainFreeDofOrderingCaching : ISubdomainFreeDofOrdering
     {
-        private readonly ActiveDofs allDofs;
         private readonly Dictionary<IElementType, (int numAllDofs, int[] elementDofIndices, int[] subdomainDofIndices)> 
             elementDofsCache = new Dictionary<IElementType, (int numAllDofs, int[] elementDofIndices, int[] subdomainDofIndices)>();
 
@@ -19,8 +18,10 @@ namespace MGroup.Solvers.DofOrdering
 		{
             this.NumFreeDofs = numFreeDofs;
             this.FreeDofs = subdomainFreeDofs;
-			this.allDofs = allDofs;
+			this.AllDofs = allDofs;
         }
+
+		public ActiveDofs AllDofs { get; }
 
 		public IntDofTable FreeDofs { get; }
 
@@ -113,7 +114,7 @@ namespace MGroup.Solvers.DofOrdering
             {
                 for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
                 {
-					int dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
+					int dofID = AllDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
 					bool isFree = FreeDofs.TryGetValue(elementNodes[nodeIdx].ID, dofID, out int subdomainDofIdx);
                     if (isFree)
                     {

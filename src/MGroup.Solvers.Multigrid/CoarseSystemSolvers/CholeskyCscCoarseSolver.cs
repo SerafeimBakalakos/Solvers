@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.DirectSolver
+namespace MGroup.Solvers.Multigrid.CoarseSystemSolvers
 {
 	using System;
 	using System.Collections.Generic;
@@ -11,10 +11,10 @@ namespace MGroup.Solvers.Multigrid.DirectSolver
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Triangulation;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Commons;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Matrices;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Reordering;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Vectors;
+	using MGroup.Solvers.LinearAlgebraExtensions.Commons;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
+	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
+	using MGroup.Solvers.LinearAlgebraExtensions.Vectors;
 
 	public class CholeskyCscCoarseSolver : ICoarseSystemSolver
 	{

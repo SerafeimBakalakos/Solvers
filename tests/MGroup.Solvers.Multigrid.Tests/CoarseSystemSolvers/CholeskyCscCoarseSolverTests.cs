@@ -9,8 +9,8 @@ namespace MGroup.Solvers.Multigrid.Tests.CoarseSystemSolvers
 	using MGroup.LinearAlgebra.Implementations.Managed;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Solvers.Multigrid.DirectSolver;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Reordering;
+	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
+	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 
 	using Xunit;

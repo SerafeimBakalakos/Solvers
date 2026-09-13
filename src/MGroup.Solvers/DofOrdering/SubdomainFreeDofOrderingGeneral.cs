@@ -10,18 +10,18 @@ namespace MGroup.Solvers.DofOrdering
 {
 	public class SubdomainFreeDofOrderingGeneral: ISubdomainFreeDofOrdering
     {
-        private readonly ActiveDofs allDofs;
-
 		public SubdomainFreeDofOrderingGeneral(int numFreeDofs, IntDofTable subdomainFreeDofs, ActiveDofs allDofs)
 		{
             this.NumFreeDofs = numFreeDofs;
             this.FreeDofs = subdomainFreeDofs;
-			this.allDofs = allDofs;
+			this.AllDofs = allDofs;
         }
+
+        public ActiveDofs AllDofs { get; }
 
 		public IntDofTable FreeDofs { get; }
 
-        public int NumFreeDofs { get; }
+		public int NumFreeDofs { get; }
 
         public void AddVectorElementToSubdomain(IElementType element, double[] elementVector, IVector subdomainVector)
         {
@@ -33,7 +33,7 @@ namespace MGroup.Solvers.DofOrdering
             {
                 for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
                 {
-					int dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
+					int dofID = AllDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
 					bool isFree = FreeDofs.TryGetValue(elementNodes[nodeIdx].ID, dofID, out int subdomainDofIdx);
                     if (isFree)
                     {
@@ -67,7 +67,7 @@ namespace MGroup.Solvers.DofOrdering
             {
                 for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
                 {
-					int dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
+					int dofID = AllDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
 					bool isFree = FreeDofs.TryGetValue(elementNodes[nodeIdx].ID, dofID, out int subdomainDofIdx);
                     if (isFree) elementVector[elementDofIdx] = subdomainVector[subdomainDofIdx];
                     // Else, the quantity of interest is 0.0 at all constrained dofs.
@@ -90,7 +90,7 @@ namespace MGroup.Solvers.DofOrdering
             {
                 for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
                 {
-					int dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
+					int dofID = AllDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
 					bool isFree = FreeDofs.TryGetValue(elementNodes[nodeIdx].ID, dofID, out int subdomainDofIdx);
                     if (isFree) elementVector.Set(elementDofIdx, subdomainVector[subdomainDofIdx]);
                     // Else, the quantity of interest is 0.0 at all constrained dofs.
@@ -115,7 +115,7 @@ namespace MGroup.Solvers.DofOrdering
             {
                 for (int dofIdx = 0; dofIdx < elementDofs[nodeIdx].Count; ++dofIdx)
                 {
-					int dofID = allDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
+					int dofID = AllDofs.GetIdOfDof(elementDofs[nodeIdx][dofIdx]);
 					bool isFree = FreeDofs.TryGetValue(elementNodes[nodeIdx].ID, dofID, out int subdomainDofIdx);
                     if (isFree)
                     {

@@ -6,7 +6,7 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Reordering
 	using System.Text;
 	using System.Threading.Tasks;
 
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Reordering;
+	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 
 	using Xunit;
 

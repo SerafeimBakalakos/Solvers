@@ -7,17 +7,18 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.LinearAlgebra;
 	using MGroup.LinearAlgebra.Implementations;
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.LinearSystem;
+	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
-	using MGroup.Solvers.Multigrid.DirectSolver;
 	using MGroup.Solvers.Multigrid.GridDefinition;
 	using MGroup.Solvers.Multigrid.GridTransfer;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary.CSR;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Reordering;
+	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
+	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.Multigrid.Smoothing;
 
 	/// <summary>
@@ -35,7 +36,7 @@ namespace MGroup.Solvers.Multigrid
 		private MultigridSmoothers smoothers;
 		private bool useGalerkinCoarseMatrices = true;
 
-		public GmgSolverBuilder(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation,int maxCycles, IImplementationProvider? linearAlgebraProvider = null)
+		public GmgSolverBuilder(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation, int maxCycles, IImplementationProvider? linearAlgebraProvider = null)
 		{
 			this.finestGrid = finestGrid;
 
@@ -64,16 +65,23 @@ namespace MGroup.Solvers.Multigrid
 
 		public int[]? CoarseningRatioPerAxis { get; set; } = null;
 
+		public double DropToleranceForSmallEntriesOfSystemMatrix { get; set; } = -1;
+
 		public ICycleSchedule CycleSchedule { get; set; } = new VCycleSchedule();
 
 		public double ResidualTolerance = 1E-7;
 
 		public IRestrictionStrategy Restriction { get; }
 
-		public GlobalAlgebraicModel<CsrMatrix> BuildAlgebraicModel(IModel model)
-			=> new GlobalAlgebraicModel<CsrMatrix>(model, dofOrderer, new CsrMatrixAssembler());
+		public GlobalAlgebraicModel<CsrMatrix> BuildAlgebraicModel(Model model)
+		{
+			var assembler = new CsrMatrixAssembler(isMatrixSymmetric: true);
+			assembler.SortColsOfEachRow = true;
+			assembler.DropEntryTolerance = DropToleranceForSmallEntriesOfSystemMatrix;
+			return new GlobalAlgebraicModel<CsrMatrix>(model, dofOrderer, assembler);
+		}
 
-		public MultigridSolver BuildSolver(GlobalAlgebraicModel<CsrMatrix> model)
+		public MultigridSolver BuildSolver(Model model, IDofType[] dofsPerNode, GlobalAlgebraicModel<CsrMatrix> algebraicModel)
 		{
 			if (CoarseningRatioPerAxis is null)
 			{
@@ -81,7 +89,7 @@ namespace MGroup.Solvers.Multigrid
 				Array.Fill(CoarseningRatioPerAxis, 2);
 			}
 
-			return new MultigridSolver(model, numLevels, finestGrid, CoarseningRatioPerAxis, prolongation, Restriction, smoothers, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance, useGalerkinCoarseMatrices);
+			return new MultigridSolver(algebraicModel, model, dofsPerNode, numLevels, finestGrid, CoarseningRatioPerAxis, prolongation, Restriction, smoothers, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance, useGalerkinCoarseMatrices);
 		}
 
 		public void ConfigCoarseMatricesGalerkin()

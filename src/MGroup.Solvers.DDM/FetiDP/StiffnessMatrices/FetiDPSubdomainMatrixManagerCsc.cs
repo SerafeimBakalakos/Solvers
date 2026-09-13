@@ -6,10 +6,13 @@ namespace MGroup.Solvers.DDM.FetiDP.StiffnessMatrices
 	using MGroup.LinearAlgebra.SchurComplements.SubmatrixExtractors;
 	using MGroup.LinearAlgebra.Triangulation;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.DDM.Commons;
 	using MGroup.Solvers.DDM.FetiDP.Dofs;
 	using MGroup.Solvers.DDM.LinearSystem;
+	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.LinearSystem;
 
 	public class FetiDPSubdomainMatrixManagerCsc : IFetiDPSubdomainMatrixManager
 	{
@@ -199,7 +202,13 @@ namespace MGroup.Solvers.DDM.FetiDP.StiffnessMatrices
 				this.clearKrrAfterFactorization = clearKrrAfterFactorization;
 			}
 
-			public ISubdomainMatrixAssembler<CsrMatrix> CreateAssembler() => new CsrMatrixAssembler(false);
+			public ISubdomainMatrixAssembler<CsrMatrix> CreateAssembler()
+			{
+				var assembler = new CsrMatrixAssembler(isMatrixSymmetric: false);
+				assembler.SortColsOfEachRow = false;
+				assembler.DropEntryTolerance = -1;
+				return assembler;
+			}
 
 			public IFetiDPSubdomainMatrixManager CreateMatrixManager(IImplementationProvider provider,
 				SubdomainLinearSystem<CsrMatrix> linearSystem, FetiDPSubdomainDofs subdomainDofs)

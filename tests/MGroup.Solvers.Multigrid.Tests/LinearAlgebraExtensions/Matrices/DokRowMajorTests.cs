@@ -9,7 +9,7 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Matrices
 	using CSparse;
 
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 
 	using Xunit;

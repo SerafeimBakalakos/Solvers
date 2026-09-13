@@ -14,6 +14,8 @@ namespace MGroup.Solvers.DofOrdering
 {
     public interface ISubdomainFreeDofOrdering
     {
+		ActiveDofs AllDofs { get; }
+
 		IntDofTable FreeDofs { get; }
 
         int NumFreeDofs { get; }

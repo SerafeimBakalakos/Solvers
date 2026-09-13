@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using MGroup.LinearAlgebra.Matrices;
-using MGroup.LinearAlgebra.Matrices.Builders;
 using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Discretization.Providers;
 using MGroup.Solvers.Commons;
 using MGroup.Solvers.DofOrdering;
+using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
 //TODO: Instead of storing the raw CSR arrays, use a reusable DOK or CsrIndexer class. That class should provide methods to 
 //      assemble the values part of the global matrix more efficiently than the general purpose DOK. The general purpose DOK 
@@ -23,23 +23,30 @@ namespace MGroup.Solvers.Assemblers
     public class CsrMatrixAssembler : ISubdomainMatrixAssembler<CsrMatrix>
     {
         private const string name = "CsrAssembler"; // for error messages
-        private readonly bool sortColsOfEachRow;
-        //private ConstrainedMatricesAssembler constrainedAssembler = new ConstrainedMatricesAssembler();
+		private readonly bool isMatrixSymmetric;
+		//private ConstrainedMatricesAssembler constrainedAssembler = new ConstrainedMatricesAssembler();
 
-        bool isIndexerCached = false;
+		private bool isIndexerCached = false;
         private int[] cachedColIndices, cachedRowOffsets;
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="sortColsOfEachRow">
-        /// Sorting the columns of each row in the CSR storage format may increase performance of the matrix vector 
-        /// multiplications. It is recommended to set it to true, especially for iterative linear system solvers.
-        /// </param>
-        public CsrMatrixAssembler(bool sortColsOfEachRow = true)
-        {
-            this.sortColsOfEachRow = sortColsOfEachRow;
-        }
+		public CsrMatrixAssembler(bool isMatrixSymmetric)
+		{
+			this.isMatrixSymmetric = isMatrixSymmetric;
+		}
+
+		/// <summary>
+		/// Governs how non-structural zeros will be handled.
+		/// If negative, then no entries will be dropped. If zero, then stored entries that are exactly 0 will be dropped.
+		/// If positive, then entries Aij with |Aij| &lt; <see cref="DropEntryTolerance"/> * max|Aij| will be dropped (A is the assembled matrix).
+		/// </summary>
+		public double DropEntryTolerance { get; set; } = -1;
+
+		/// <summary>
+		/// Sorting the columns of each row in the CSR storage format helps multiple other sparse matrix algorithms. 
+		/// It may also increase performance of the matrix-vector multiplications. 
+		/// It is recommended to set it to true, especially for iterative linear system solvers.
+		/// </summary>
+		public bool SortColsOfEachRow { get; set; } = true;
 
 		public CsrMatrix CreateEmptyMatrix(ISubdomainFreeDofOrdering dofOrdering) =>
 			CsrMatrix.CreateFromArrays(dofOrdering.NumFreeDofs, dofOrdering.NumFreeDofs, Array.Empty<double>(), Array.Empty<int>(), new int[dofOrdering.NumFreeDofs + 1], true);
@@ -50,14 +57,26 @@ namespace MGroup.Solvers.Assemblers
             int numFreeDofs = dofOrdering.NumFreeDofs;
             var subdomainMatrix = DokRowMajor.CreateEmpty(numFreeDofs, numFreeDofs);
 
-            foreach (IElementType element in elements)
-            {
-                (int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapFreeDofsElementToSubdomain(element);
-                IMatrix elementMatrix = matrixProvider.Matrix(element);
-                subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, elementDofIndices, subdomainDofIndices);
-            }
+			if (isMatrixSymmetric)
+			{
+				foreach (IElementType element in elements)
+				{
+					(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapFreeDofsElementToSubdomain(element);
+					IMatrix elementMatrix = matrixProvider.Matrix(element);
+					subdomainMatrix.AddSubmatrixSymmetric(elementMatrix, elementDofIndices, subdomainDofIndices);
+				}
+			}
+			else
+			{
+				foreach (IElementType element in elements)
+				{
+					(int[] elementDofIndices, int[] subdomainDofIndices) = dofOrdering.MapFreeDofsElementToSubdomain(element);
+					IMatrix elementMatrix = matrixProvider.Matrix(element);
+					subdomainMatrix.AddSubmatrix(elementMatrix, elementDofIndices, subdomainDofIndices, elementDofIndices, subdomainDofIndices);
+				}
+			}
 
-            (double[] values, int[] colIndices, int[] rowOffsets) = subdomainMatrix.BuildCsrArrays(sortColsOfEachRow);
+			(double[] values, int[] colIndices, int[] rowOffsets) = subdomainMatrix.BuildCsrArrays(SortColsOfEachRow);
             if (!isIndexerCached)
             {
                 cachedColIndices = colIndices;
@@ -118,7 +137,13 @@ namespace MGroup.Solvers.Assemblers
         //    return (matrixFreeFree, matrixConstrFree, matrixConstrFree.TransposeToCSC(false), matrixConstrConstr);
         //}
 
-		public ISubdomainMatrixAssembler<CsrMatrix> Clone() => new CsrMatrixAssembler(sortColsOfEachRow);
+		public ISubdomainMatrixAssembler<CsrMatrix> Clone()
+		{
+			var clone = new CsrMatrixAssembler(isMatrixSymmetric);
+			clone.DropEntryTolerance = this.DropEntryTolerance;
+			clone.SortColsOfEachRow = this.SortColsOfEachRow;
+			return clone;
+		}
 
 		public void HandleDofOrderingWasModified()
         {

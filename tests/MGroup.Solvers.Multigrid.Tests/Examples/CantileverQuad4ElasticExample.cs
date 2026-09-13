@@ -3,6 +3,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Reflection;
 	using System.Text;
 	using System.Threading.Tasks;
 
@@ -22,11 +23,13 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 		public double Thickness { get; set; } = 0.25;
 
-		public double EndPointLoad { get; set; } = 20.0E3;
-
 		public double YoungModulus { get; set; } = 2.1E7;
 
 		public double PoissonRatio { get; set; } = 0.3;
+
+		public double EndPointLoad { get; set; } = 20.0E3;
+
+		public bool ParallelToX { get; set; } = true;
 
 		public Model CreateFemModel(int numElementsX, int numElementsY)
 		{
@@ -59,6 +62,14 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 				model.SubdomainsDictionary[subdomainID].Elements.Add(element);
 			}
 
+			if (ParallelToX) ApplyBCsAlongX(model);
+			else ApplyBCsAlongY(model);
+
+				return model;
+		}
+
+		private void ApplyBCsAlongX(Model model)
+		{
 			// Clamp boundary condition at one end
 			var tol = 1E-10; //TODO: this should be chosen w.r.t. the element size along X
 			var dirichletBCs = new List<INodalDisplacementBoundaryCondition>();
@@ -70,7 +81,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 			// Apply concentrated load at the other end
 			var loadedNodes = model.NodesDictionary.Values.Where(node => Math.Abs(node.X - LengthX) <= tol).ToArray();
-			var loadPerNode = EndPointLoad / loadedNodes.Length;
+			var loadPerNode = - EndPointLoad / loadedNodes.Length;
 			var neumannBCs = new List<INodalLoadBoundaryCondition>();
 			foreach (var node in loadedNodes)
 			{
@@ -78,8 +89,29 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			}
 
 			model.BoundaryConditions.Add(new StructuralBoundaryConditionSet(dirichletBCs, neumannBCs));
+		}
 
-			return model;
+		private void ApplyBCsAlongY(Model model)
+		{
+			// Clamp boundary condition at one end
+			var tol = 1E-10; //TODO: this should be chosen w.r.t. the element size along X
+			var dirichletBCs = new List<INodalDisplacementBoundaryCondition>();
+			foreach (var node in model.NodesDictionary.Values.Where(node => Math.Abs(node.Y) <= tol))
+			{
+				dirichletBCs.Add(new NodalDisplacement(node, StructuralDof.TranslationX, 0));
+				dirichletBCs.Add(new NodalDisplacement(node, StructuralDof.TranslationY, 0));
+			}
+
+			// Apply concentrated load at the other end
+			var loadedNodes = model.NodesDictionary.Values.Where(node => Math.Abs(node.Y - LengthY) <= tol).ToArray();
+			var loadPerNode = EndPointLoad / loadedNodes.Length;
+			var neumannBCs = new List<INodalLoadBoundaryCondition>();
+			foreach (var node in loadedNodes)
+			{
+				neumannBCs.Add(new NodalLoad(node, StructuralDof.TranslationX, loadPerNode));
+			}
+
+			model.BoundaryConditions.Add(new StructuralBoundaryConditionSet(dirichletBCs, neumannBCs));
 		}
 	}
 }

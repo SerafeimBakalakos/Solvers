@@ -91,7 +91,10 @@ namespace MGroup.Solvers.MachineLearning
 		public void SetModel(double[] modelParameters, IModel model)
 		{
 			modelParametersCurrent = modelParameters.Copy();
-			AlgebraicModel = new GlobalAlgebraicModel<CsrMatrix>(model, dofOrderer, new CsrMatrixAssembler(true));
+			var assembler = new CsrMatrixAssembler(isMatrixSymmetric:false);
+			assembler.SortColsOfEachRow = true;
+			assembler.DropEntryTolerance = -1;
+			AlgebraicModel = new GlobalAlgebraicModel<CsrMatrix>(model, dofOrderer, assembler);
 			this.LinearSystem = AlgebraicModel.LinearSystem;
 			this.LinearSystem.Observers.Add(this);
 		}

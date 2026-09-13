@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.DirectSolver
+namespace MGroup.Solvers.Multigrid.CoarseSystemSolvers
 {
 	using System;
 	using System.Collections.Generic;

@@ -4,7 +4,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 	using System.Collections.Generic;
 	using System.Text;
 
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
 	public class Prolongation3DScalarStrategy : IProlongationStrategy
 	{

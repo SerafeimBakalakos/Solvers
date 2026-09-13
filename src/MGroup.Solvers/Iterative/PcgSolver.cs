@@ -155,7 +155,12 @@ namespace MGroup.Solvers.Iterative
 				=> new PcgSolver(model, PcgAlgorithm, Preconditioner.CopyWithInitialSettings(), MatrixPatternWillNotBeModified);
 
 			public GlobalAlgebraicModel<CsrMatrix> BuildAlgebraicModel(IModel model)
-				=> new GlobalAlgebraicModel<CsrMatrix>(model, DofOrderer, new CsrMatrixAssembler(true));
+			{
+				var assembler = new CsrMatrixAssembler(isMatrixSymmetric: true);
+				assembler.SortColsOfEachRow = true;
+				assembler.DropEntryTolerance = -1;
+				return new GlobalAlgebraicModel<CsrMatrix>(model, DofOrderer, assembler);
+			}
 		}
 	}
 }

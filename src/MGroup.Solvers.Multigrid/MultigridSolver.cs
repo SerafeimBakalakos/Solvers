@@ -11,6 +11,7 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.DataStructures;
+	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Solution;
 	using MGroup.MSolve.Solution.LinearSystem;
@@ -20,22 +21,24 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.Multigrid.CoarseMatrix;
+	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
-	using MGroup.Solvers.Multigrid.DirectSolver;
 	using MGroup.Solvers.Multigrid.GridDefinition;
 	using MGroup.Solvers.Multigrid.GridTransfer;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary.CSR;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Reordering;
+	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
+	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.Multigrid.Smoothing;
 
 	public class MultigridSolver : ISolver
 	{
+		private readonly GlobalAlgebraicModel<CsrMatrix> algebraicModel; // Perhaps I need a dedicated algebraic model for multigrid
 		private readonly ICoarseSystemSolver coarsestSystemSolver;
 		private readonly ICycleSchedule cycleSchedule;
+		private readonly IDofType[] dofsPerNode;
 		private readonly IGrid[] grids;
 		private readonly IntergridTransfers intergridTransfers;
+		private readonly Model model;
 		private readonly int maxCycles;
-		private readonly GlobalAlgebraicModel<CsrMatrix> model; // Perhaps I need a dedicated algebraic model for multigrid
 		private readonly int numLevels;
 		private readonly double residualTolerance;
 		private readonly MultigridSmoothers smoothers;
@@ -44,15 +47,19 @@ namespace MGroup.Solvers.Multigrid
 		private readonly Vector[] vectorsLhs;
 		private readonly Vector[] vectorsRhs;
 
+		private bool isInitialized = false;
 		private bool mustPrepareSystemMatrices = true;
 		private LevelProgression levelProgression;
 
-		internal MultigridSolver(GlobalAlgebraicModel<CsrMatrix> model, int numLevels, IGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices)
+		internal MultigridSolver(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevels, IGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices)
 		{
 			Name = "MultigridSolver";
 			Logger = new SolverLogger(Name);
+
 			this.model = model;
-			this.LinearSystem = model.LinearSystem;
+			this.dofsPerNode = dofsPerNode;
+			this.algebraicModel = algebraicModel;
+			this.LinearSystem = algebraicModel.LinearSystem;
 			LinearSystem.Observers.Add(this);
 
 			this.numLevels = numLevels;
@@ -71,12 +78,12 @@ namespace MGroup.Solvers.Multigrid
 			}
 
 			// Prolongations, restrictions
-			intergridTransfers = new IntergridTransfers(prolongationStrategy, restrictionStrategy); 
+			intergridTransfers = new IntergridTransfers(model, dofsPerNode, prolongationStrategy, restrictionStrategy); 
 
 			// Linear system matrices
 			if (useGalerkinCoarseMatrices)
 			{
-				systemMatrices = new GalerkinCoarseMatrixStrategy(numLevels, new GalerkinProductCsr(), intergridTransfers, () => model.LinearSystem.Matrix);	 
+				systemMatrices = new GalerkinCoarseMatrixStrategy(numLevels, new GalerkinProductCsr(), intergridTransfers, () => algebraicModel.LinearSystem.Matrix);	 
 			}
 			else
 			{
@@ -103,7 +110,8 @@ namespace MGroup.Solvers.Multigrid
 			watch.Start();
 
 			levelProgression = cycleSchedule.CreateProgression(numLevels);
-			intergridTransfers.Initialize(grids);
+			ISubdomainFreeDofOrdering freeDofOrderingFinest = algebraicModel.SubdomainFreeDofOrdering;
+			intergridTransfers.Initialize(grids, freeDofOrderingFinest, freeDofOrderingFinest.AllDofs);
 
 			watch.Stop();
 			Logger.LogTaskDuration("Initialization", watch.ElapsedMilliseconds);
@@ -125,7 +133,13 @@ namespace MGroup.Solvers.Multigrid
 
 		public void Solve()
 		{
-			if (!mustPrepareSystemMatrices)
+			if (!isInitialized)
+			{
+				Initialize();
+				isInitialized = true;
+			}
+
+			if (mustPrepareSystemMatrices)
 			{
 				PrepareSystemMatrices();
 				PrepareSystemVectors();
@@ -135,36 +149,41 @@ namespace MGroup.Solvers.Multigrid
 			var watch = new Stopwatch();
 			watch.Start();
 
-			Vector res = model.LinearSystem.RhsVector.Copy();
+			vectorsRhs[0] = LinearSystem.RhsVector;
+			vectorsLhs[0] = LinearSystem.Solution;
+
+			Vector res = algebraicModel.LinearSystem.RhsVector.Copy();
 			double normRes0 = res.Norm2();
+			double resRatio = 1.0;
 			for (int c = 0; c < maxCycles; c++)
 			{
 				RunSingleCycle();
 
 				// Calculate the residual of the coarsest grid.
 				//TODO: Perhaps this is already done inside the RunSingleCycle().
-				Vector x = model.LinearSystem.Solution;
-				IReadOnlyMatrix matrix = model.LinearSystem.Matrix;
+				Vector x = algebraicModel.LinearSystem.Solution;
+				IReadOnlyMatrix matrix = algebraicModel.LinearSystem.Matrix;
 				matrix.MultiplyIntoResult(x, res);
 				double normRes = res.Norm2();
+				resRatio = normRes / normRes0;
+				
+				Logger.LogIterativeAlgorithm(c + 1, resRatio);
+				Logger.IncrementAnalysisStep();
 
-				// Check convergence
-				double ratio = normRes / normRes0;
-				if (ratio < residualTolerance)
+				if (resRatio <= residualTolerance)
 				{
-					watch.Stop();
-					Logger.LogTaskDuration("Execution of cycles", watch.ElapsedMilliseconds);
-					Logger.LogIterativeAlgorithm(c + 1, ratio);
-					Logger.IncrementAnalysisStep();
-				}
-				else
-				{
-					throw new IterativeSolverNotConvergedException($"{Name} did not converge to a solution. The solver ran for {c + 1} cycles iterations and ||b-A*x|| / ||b|| is{ratio}.");
+					break;
 				}
 			}
 
 			watch.Stop();
-			Logger.LogTaskDuration("Linear system solution", watch.ElapsedMilliseconds);
+			Logger.LogTaskDuration("Execution of cycles", watch.ElapsedMilliseconds);
+
+			if (resRatio > residualTolerance)
+			{
+				throw new IterativeSolverNotConvergedException(
+					$"{Name} did not converge to a solution. The solver ran for {maxCycles} cycles iterations and ||b-A*x|| / ||b|| is {resRatio}.");
+			}
 		}
 
 		private void PrepareSystemMatrices()
@@ -173,6 +192,10 @@ namespace MGroup.Solvers.Multigrid
 			watch.Start();
 
 			systemMatrices.CalcCoarseSystemMatrices();
+			for (int lvl = 0; lvl < numLevels - 1;  lvl++)
+			{
+				smoothers.Update(lvl, systemMatrices.GetLinearSystemMatrix(lvl), areDofsModified: true);
+			}
 			coarsestSystemSolver.Initialize(systemMatrices.GetLinearSystemMatrix(numLevels - 1));
 
 			watch.Stop();
@@ -184,9 +207,7 @@ namespace MGroup.Solvers.Multigrid
 			var watch = new Stopwatch();
 			watch.Start();
 
-			vectorsRhs[0] = model.LinearSystem.RhsVector;
-			vectorsLhs[0] = model.LinearSystem.Solution;
-			
+			// Do not allocate memory for the finest level, since the rhs and solution vector of the original system will be used.
 			for (int lvl = 1; lvl < numLevels; lvl++)
 			{
 				int numDofs = systemMatrices.GetLinearSystemMatrix(lvl).NumColumns;
@@ -227,7 +248,7 @@ namespace MGroup.Solvers.Multigrid
 				else if (direction == -1) // Coarse -> fine
 				{
 					// Access the correct matrices and vectors
-					IReadOnlyMatrix P = intergridTransfers.GetProlongation(lvl);
+					IReadOnlyMatrix P = intergridTransfers.GetProlongation(lvl-1);
 					Vector ec = vectorsLhs[lvl];
 					Vector rc = vectorsRhs[lvl];
 					Vector xf = vectorsLhs[lvl - 1];

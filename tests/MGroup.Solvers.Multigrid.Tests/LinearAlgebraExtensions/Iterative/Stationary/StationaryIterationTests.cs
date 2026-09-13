@@ -6,8 +6,8 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Iterative.Stati
 	//using MGroup.LinearAlgebra.Tests.TestData;
 	//using MGroup.LinearAlgebra.Tests.Utilities;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary.CSR;
+	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary;
+	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 
 	using Xunit;

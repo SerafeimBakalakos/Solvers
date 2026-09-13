@@ -30,7 +30,7 @@ namespace MGroup.Solvers.Multigrid.CoarseMatrix
 		{
 			allSystemMatrices[0] = getFineGridMatrix();
 
-			for (int lvl = 0; lvl < numLevels; lvl++)
+			for (int lvl = 0; lvl < numLevels - 1; lvl++)
 			{
 				IReadOnlyMatrix P = intergridTransfers.GetProlongation(lvl);
 				IReadOnlyMatrix R = intergridTransfers.GetRestriction(lvl);

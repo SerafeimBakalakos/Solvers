@@ -6,7 +6,7 @@ namespace MGroup.Solvers.Multigrid.Smoothing
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Solvers.Multigrid.LinearAlgebraExtensions.Iterative.Stationary;
+	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary;
 
 	public class StationaryIterationSmoother : IMultigridSmoother
 	{
