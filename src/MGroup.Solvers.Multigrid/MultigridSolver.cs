@@ -152,10 +152,12 @@ namespace MGroup.Solvers.Multigrid
 			vectorsRhs[0] = LinearSystem.RhsVector;
 			vectorsLhs[0] = LinearSystem.Solution;
 
-			Vector res = algebraicModel.LinearSystem.RhsVector.Copy();
-			double normRes0 = res.Norm2();
+			Vector b = algebraicModel.LinearSystem.RhsVector;
+			var res = Vector.CreateZero(b.Length);
+			double normRes0 = b.Norm2();
 			double resRatio = 1.0;
-			for (int c = 0; c < maxCycles; c++)
+			int cycleIdx;
+			for (cycleIdx = 0; cycleIdx < maxCycles; cycleIdx++)
 			{
 				RunSingleCycle();
 
@@ -164,11 +166,10 @@ namespace MGroup.Solvers.Multigrid
 				Vector x = algebraicModel.LinearSystem.Solution;
 				IReadOnlyMatrix matrix = algebraicModel.LinearSystem.Matrix;
 				matrix.MultiplyIntoResult(x, res);
+				res.LinearCombinationIntoThis(-1, b, 1);
 				double normRes = res.Norm2();
 				resRatio = normRes / normRes0;
 				
-				Logger.LogIterativeAlgorithm(c + 1, resRatio);
-				Logger.IncrementAnalysisStep();
 
 				if (resRatio <= residualTolerance)
 				{
@@ -177,6 +178,7 @@ namespace MGroup.Solvers.Multigrid
 			}
 
 			watch.Stop();
+			Logger.LogIterativeAlgorithm(cycleIdx + 1, resRatio);
 			Logger.LogTaskDuration("Execution of cycles", watch.ElapsedMilliseconds);
 
 			if (resRatio > residualTolerance)
@@ -237,8 +239,9 @@ namespace MGroup.Solvers.Multigrid
 
 					// MG operations
 					smoothers.ApplyPreSmoothing(lvl, bf, xf);
-					Vector rf = bf.Copy(); //TODO: Preallocate this as work array or differentiate between r and b.
+					var rf = Vector.CreateZero(bf.Length); //TODO: Preallocate this as work array or differentiate between r and b.
 					Af.MultiplyIntoResult(xf, rf);
+					rf.LinearCombinationIntoThis(-1, bf, 1);
 					R.MultiplyIntoResult(rf, rc);
 
 					// Prepare for next step
