@@ -29,28 +29,22 @@ namespace MGroup.Solvers.Multigrid
 		private readonly int numLevels;
 		private readonly IGrid finestGrid;
 		private readonly IDofOrderer dofOrderer;
-		private readonly IImplementationProvider linearAlgebraProvider;
 		private readonly int maxCycles;
 		private readonly IProlongationStrategy prolongation;
 		
 		private MultigridSmoothers smoothers;
 		private bool useGalerkinCoarseMatrices = true;
 
-		public GmgSolverBuilder(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation, int maxCycles, IImplementationProvider? linearAlgebraProvider = null)
+		public GmgSolverBuilder(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
 		{
 			this.finestGrid = finestGrid;
 
 			if (numLevels < 2) throw new ArgumentException("The must be at least two grids/levels");
 			this.numLevels = numLevels;
 
-			if (linearAlgebraProvider is null) linearAlgebraProvider = LibrarySettings.GlobalProvider;
-			this.linearAlgebraProvider = linearAlgebraProvider;
-
 			var defaultSmoother = new StationaryIterationSmoother(new GaussSeidelIterationCsr(forwardDirection: true), numSteps: 2);
 			smoothers = new MultigridSmoothers(numLevels);
 			smoothers.DefineSmoother(defaultSmoother);
-
-			CoarsestSystemSolver = new CholeskyCscCoarseSolver(linearAlgebraProvider, new AmdSymmetricOrdering(linearAlgebraProvider));
 
 			this.prolongation = prolongation;
 			this.maxCycles = maxCycles;
@@ -61,13 +55,16 @@ namespace MGroup.Solvers.Multigrid
 			dofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
 		}
 
-		public ICoarseSystemSolver CoarsestSystemSolver { get; set; }
+		public ICoarseSystemSolver? CoarsestSystemSolver { get; set; }
 
 		public int[]? CoarseningRatioPerAxis { get; set; } = null;
 
+		public ICycleSchedule CycleSchedule { get; set; } = new VCycleSchedule();
+		
 		public double DropToleranceForSmallEntriesOfSystemMatrix { get; set; } = -1;
 
-		public ICycleSchedule CycleSchedule { get; set; } = new VCycleSchedule();
+		public IImplementationProvider LinearAlgebraProvider { get; set; } = LibrarySettings.GlobalProvider;
+
 
 		public double ResidualTolerance = 1E-7;
 
@@ -87,6 +84,12 @@ namespace MGroup.Solvers.Multigrid
 			{
 				CoarseningRatioPerAxis = new int[finestGrid.Dimension];
 				Array.Fill(CoarseningRatioPerAxis, 2);
+			}
+
+			if (CoarsestSystemSolver is null)
+			{
+				var reordering = new AmdSymmetricOrdering(LinearAlgebraProvider);
+				CoarsestSystemSolver = new CholeskyCscCoarseSolver(LinearAlgebraProvider, reordering);
 			}
 
 			return new MultigridSolver(algebraicModel, model, dofsPerNode, numLevels, finestGrid, CoarseningRatioPerAxis, prolongation, Restriction, smoothers, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance, useGalerkinCoarseMatrices);

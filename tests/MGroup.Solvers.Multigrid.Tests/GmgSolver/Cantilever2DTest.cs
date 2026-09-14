@@ -64,12 +64,12 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 			// Setup solver
 			var grid = new Grid2D(numElements[0] + 1, numElements[1] + 1);
 			var prolongation = new Prolongation2DVectorStrategy();
-			var linearAlgebraProvider = new ManagedSequentialImplementationProvider();
-			var solverBuilder = new GmgSolverBuilder(numLevels: numLevels, grid, prolongation, maxCycles: 100, linearAlgebraProvider);
+			var solverBuilder = new GmgSolverBuilder(numLevels: numLevels, grid, prolongation, maxCycles: 100);
+			solverBuilder.LinearAlgebraProvider = new ManagedSequentialImplementationProvider();
 			solverBuilder.CycleSchedule = cycle.Translate();
 			IStationaryIteration stationaryIteration = smoother.Translate(relaxFactor);
 			solverBuilder.SetSmoothers(new StationaryIterationSmoother(stationaryIteration, smoothingSteps));
-			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(linearAlgebraProvider, new AmdSymmetricOrdering());
+			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
 			solverBuilder.ResidualTolerance = 1E-10;
 			solverBuilder.DropToleranceForSmallEntriesOfSystemMatrix = 1E-10;
 

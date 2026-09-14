@@ -46,6 +46,7 @@ namespace MGroup.Solvers.Multigrid
 
 		private readonly Vector[] vectorsLhs;
 		private readonly Vector[] vectorsRhs;
+		private readonly Vector[] vectorsWork;
 
 		private bool isInitialized = false;
 		private bool mustPrepareSystemMatrices = true;
@@ -93,7 +94,7 @@ namespace MGroup.Solvers.Multigrid
 			// Vectors
 			vectorsLhs = new Vector[numLevels];
 			vectorsRhs = new Vector[numLevels];
-
+			vectorsWork = new Vector[numLevels];
 		}
 
 		IGlobalLinearSystem ISolver.LinearSystem => LinearSystem;
@@ -210,11 +211,13 @@ namespace MGroup.Solvers.Multigrid
 			watch.Start();
 
 			// Do not allocate memory for the finest level, since the rhs and solution vector of the original system will be used.
+			vectorsWork[0] = Vector.CreateZero(LinearSystem.RhsVector.Length);
 			for (int lvl = 1; lvl < numLevels; lvl++)
 			{
 				int numDofs = systemMatrices.GetLinearSystemMatrix(lvl).NumColumns;
 				vectorsRhs[lvl] = Vector.CreateZero(numDofs);
 				vectorsLhs[lvl] = Vector.CreateZero(numDofs);
+				vectorsWork[lvl] = Vector.CreateZero(numDofs);
 			}
 
 			watch.Stop();
@@ -236,16 +239,16 @@ namespace MGroup.Solvers.Multigrid
 					Vector bf = vectorsRhs[lvl];
 					Vector xc = vectorsLhs[lvl + 1];
 					Vector rc = vectorsRhs[lvl + 1]; // Fine residual becomes coarse rhs
+					Vector rf = vectorsWork[lvl];
 
 					// MG operations
 					smoothers.ApplyPreSmoothing(lvl, bf, xf);
-					var rf = Vector.CreateZero(bf.Length); //TODO: Preallocate this as work array or differentiate between r and b.
 					Af.MultiplyIntoResult(xf, rf);
 					rf.LinearCombinationIntoThis(-1, bf, 1);
 					R.MultiplyIntoResult(rf, rc);
 
 					// Prepare for next step
-					xc.Clear(); //TODO: I think this is needed only when smoothing in the coarse level. If so, move it to that if case.
+					xc.Clear();
 					lvl++;
 				}
 				else if (direction == -1) // Coarse -> fine
@@ -255,6 +258,7 @@ namespace MGroup.Solvers.Multigrid
 					Vector ec = vectorsLhs[lvl];
 					Vector rc = vectorsRhs[lvl];
 					Vector xf = vectorsLhs[lvl - 1];
+					Vector ef = vectorsWork[lvl - 1];
 
 					// MG operations
 					if (lvl < numLevels - 1)
@@ -266,7 +270,6 @@ namespace MGroup.Solvers.Multigrid
 						coarsestSystemSolver.Solve(rc, ec);
 					}
 
-					Vector ef = xf.Copy(); //TODO: Preallocate this as work array or differentiate between e and x.
 					P.MultiplyIntoResult(ec, ef);
 					xf.AddIntoThis(ef);
 
