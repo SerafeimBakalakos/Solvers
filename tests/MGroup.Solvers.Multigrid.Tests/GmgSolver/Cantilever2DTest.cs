@@ -65,7 +65,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 			IDofType[] dofsPerNode = [StructuralDof.TranslationX, StructuralDof.TranslationY];
 
 			// Setup solver
-			var prolongation = new Prolongation2DVectorStrategy();
+			var prolongation = new Prolongation2DStrategy(2);
 			var solverBuilder = new GmgSolverBuilder(numLevels: numLevels, grid, prolongation, maxCycles: 100);
 			solverBuilder.LinearAlgebraProvider = new ManagedSequentialImplementationProvider();
 			solverBuilder.CycleSchedule = cycle.Translate();

@@ -8,13 +8,17 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 	using MGroup.Solvers.Multigrid.GridDefinition;
 	using MGroup.Solvers.Multigrid.Utilities;
 
-	public class Prolongation3DScalarStrategy : IProlongationStrategy
+	public class Prolongation3DStrategy : IProlongationStrategy
 	{
-		private Prolongation1DStrategy prolongation1D;
+		private readonly int numDofsPerNode;
+		private readonly Prolongation1DStrategy prolongation1D;
 
-		public Prolongation3DScalarStrategy(double tolerance = 1E-12)
+		public Prolongation3DStrategy(int numDofsPerNode, double tolerance = 1E-12)
 		{
-			prolongation1D = new Prolongation1DStrategy(tolerance);
+			if (numDofsPerNode < 1) throw new ArgumentException("There must be at least 1 dof per node.");
+			this.numDofsPerNode = numDofsPerNode;
+
+			prolongation1D = new Prolongation1DStrategy(1, tolerance);
 		}
 
 		public DokRowMajor CreateProlongationMatrix(IGrid fineGrid, IGrid coarseGrid)
@@ -50,8 +54,16 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 			DokRowMajor? prolongation2D = ProlongationUtilities.KroneckerProduct(majorP, nMajor, mediumP, nMedium);
 			DokRowMajor? prolongation3D = ProlongationUtilities.KroneckerProduct(prolongation2D, nMajor * nMedium, minorP, nMinor);
 			if (prolongation3D is null) throw new Exception("This should not have happened. All 1D prolongation matrices cannot be identity.");
-			
-			return prolongation3D;
+
+			// Take into account multiple dofs per node
+			if (numDofsPerNode > 1)
+			{
+				return prolongation3D.KroneckerProductThisTimesIdentity(numDofsPerNode);
+			}
+			else
+			{
+				return prolongation3D;
+			}
 		}
 	}
 }

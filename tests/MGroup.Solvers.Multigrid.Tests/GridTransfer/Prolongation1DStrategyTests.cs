@@ -28,7 +28,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestFineDofsDependOnLimitedCoarseDofs(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation1DStrategy(tol);
+			var strategy = new Prolongation1DStrategy(1, tol);
 			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
 			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
@@ -40,7 +40,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestReproducesLinearField1D(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation1DStrategy(tol);
+			var strategy = new Prolongation1DStrategy(1, tol);
 			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
 			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
@@ -52,7 +52,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestRowsSumToOne(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation1DStrategy(tol);
+			var strategy = new Prolongation1DStrategy(1, tol);
 			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
 			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
@@ -64,7 +64,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestWeightsAre1ForCoincidentNodes(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation1DStrategy(tol);
+			var strategy = new Prolongation1DStrategy(1, tol);
 			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
 			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
@@ -76,7 +76,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestWeightsAreInRange0to1(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation1DStrategy(tol);
+			var strategy = new Prolongation1DStrategy(1, tol);
 			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
 			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
@@ -88,7 +88,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestExactMatrix(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation1DStrategy(tol);
+			var strategy = new Prolongation1DStrategy(1, tol);
 			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
 			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);

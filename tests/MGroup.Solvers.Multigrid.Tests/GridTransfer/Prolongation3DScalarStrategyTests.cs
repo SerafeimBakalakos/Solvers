@@ -55,7 +55,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestFineDofsDependOnLimitedCoarseDofs(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation3DScalarStrategy(tol);
+			var strategy = new Prolongation3DStrategy(1, tol);
 			var fineGrid = new Grid3D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorMinorAxis(0, 2);
 			var coarseGrid = new Grid3D(gridNodes.NumNodesCoarsePerAxis);
@@ -69,7 +69,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestReproducesLinearField3D(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation3DScalarStrategy(tol);
+			var strategy = new Prolongation3DStrategy(1, tol);
 			var fineGrid = new Grid3D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorMinorAxis(0, 2);
 			var coarseGrid = new Grid3D(gridNodes.NumNodesCoarsePerAxis);
@@ -83,7 +83,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestRowsSumToOne(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation3DScalarStrategy(tol);
+			var strategy = new Prolongation3DStrategy(1, tol);
 			var fineGrid = new Grid3D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorMinorAxis(0, 2);
 			var coarseGrid = new Grid3D(gridNodes.NumNodesCoarsePerAxis);
@@ -97,7 +97,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestWeightsAre1ForCoincidentNodes(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation3DScalarStrategy(tol);
+			var strategy = new Prolongation3DStrategy(1, tol);
 			var fineGrid = new Grid3D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorMinorAxis(0, 2);
 			var coarseGrid = new Grid3D(gridNodes.NumNodesCoarsePerAxis);
@@ -111,7 +111,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public void TestWeightsAreInRange0to1(GridNodeCounts gridNodes)
 		{
 			double tol = 1E-12;
-			var strategy = new Prolongation3DScalarStrategy(tol);
+			var strategy = new Prolongation3DStrategy(1, tol);
 			var fineGrid = new Grid3D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorMinorAxis(0, 2);
 			var coarseGrid = new Grid3D(gridNodes.NumNodesCoarsePerAxis);
@@ -125,7 +125,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			var gridNodes = GridNodeCounts.Create3D(5, 7, 9, 3, 4, 5);
 			double tol = 1E-12;
-			var strategy = new Prolongation3DScalarStrategy(tol);
+			var strategy = new Prolongation3DStrategy(1, tol);
 			var fineGrid = new Grid3D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorMinorAxis(0, 2);
 			var coarseGrid = new Grid3D(gridNodes.NumNodesCoarsePerAxis);

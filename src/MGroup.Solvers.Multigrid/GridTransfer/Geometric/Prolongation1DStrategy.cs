@@ -9,10 +9,15 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 
 	public class Prolongation1DStrategy : IProlongationStrategy
 	{
+		private readonly int numDofsPerNode;
 		private double tolerance;
 
-		public Prolongation1DStrategy(double tolerance = 1E-12)
+		public Prolongation1DStrategy(int numDofsPerNode, double tolerance = 1E-12)
 		{
+			if (numDofsPerNode < 1) throw new ArgumentException("There must be at least 1 dof per node.");
+			if (tolerance <= 0) throw new ArgumentException("Tolerance must be positive");
+
+			this.numDofsPerNode = numDofsPerNode;
 			this.tolerance = tolerance;
 		}
 
@@ -27,6 +32,19 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 		}
 
 		public DokRowMajor CreateProlongationMatrix(int numNodesFinePerAxis, int numNodesCoarsePerAxis)
+		{
+			DokRowMajor P = CreateProlongationMatrixScalar(numNodesFinePerAxis, numNodesCoarsePerAxis);
+			if (numDofsPerNode > 1)
+			{
+				return P.KroneckerProductThisTimesIdentity(numDofsPerNode);
+			}
+			else
+			{
+				return P;
+			}
+		}
+
+		private DokRowMajor CreateProlongationMatrixScalar(int numNodesFinePerAxis, int numNodesCoarsePerAxis)
 		{
 			var nf = numNodesFinePerAxis;
 			var nc = numNodesCoarsePerAxis;
