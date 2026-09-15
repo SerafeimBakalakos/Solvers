@@ -5,6 +5,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 	using System.Text;
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.Multigrid.GridDefinition;
 
 	public class Prolongation2DVectorStrategy : IProlongationStrategy
 	{
@@ -15,9 +16,9 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 			scalarProlongation = new Prolongation2DScalarStrategy(tolerance);
 		}
 
-		public DokRowMajor CreateProlongationMatrix(int[] numNodesFinePerAxis, int[] numNodesCoarsePerAxis)
+		public DokRowMajor CreateProlongationMatrix(IGrid fineGrid, IGrid coarseGrid)
 		{
-			var P = scalarProlongation.CreateProlongationMatrix(numNodesFinePerAxis, numNodesCoarsePerAxis);
+			var P = scalarProlongation.CreateProlongationMatrix(fineGrid, coarseGrid);
 			return P.KroneckerProductThisTimesIdentity(2);
 		}
 	}

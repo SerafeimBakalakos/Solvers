@@ -12,8 +12,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using MGroup.Constitutive.Structural.Planar;
 	using MGroup.Constitutive.Structural.Transient;
 	using MGroup.FEM.Structural.Continuum;
+	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Meshes.Generation.Custom;
+	using MGroup.MSolve.Discretization.Meshes.Structured;
+	using MGroup.Solvers.Multigrid.GridDefinition;
 
 	public class CantileverQuad4ElasticExample
 	{
@@ -31,7 +34,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 		public bool ParallelToX { get; set; } = true;
 
-		public Model CreateFemModel(int numElementsX, int numElementsY)
+		public Model CreateFemModel(Grid2D grid)
 		{
 			const int subdomainID = 0;
 
@@ -44,28 +47,37 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			model.SubdomainsDictionary.Add(subdomainID, new Subdomain(subdomainID));
 
 			// Generate mesh
-			var meshGenerator = new UniformMeshGenerator2D<Node>(0.0, 0.0, LengthX, LengthY,
-				numElementsX, numElementsY);
-			(var vertices, var cells) =
-				meshGenerator.CreateMesh((id, x, y, z) => new Node(id: id, x: x, y: y, z: z));
+			UniformCartesianMesh2D mesh = grid.CreateMesh([0, 0], [LengthX, LengthY]);
 
 			// Add nodes to the model
-			for (var n = 0; n < vertices.Count; ++n) model.NodesDictionary.Add(n, vertices[n]);
+			foreach ((int nodeID, double[] coords) in mesh.EnumerateNodes())
+			{
+				model.NodesDictionary[nodeID] = new Node(nodeID, coords[0], coords[1]);
+			}
 
 			// Add Quad4 elements to the model
 			var factory = new ContinuumElement2DFactory(Thickness, material, dynamicProperties);
-			for (var e = 0; e < cells.Count; ++e)
+			foreach ((int elementID, int[] nodeIDs) in mesh.EnumerateElements())
 			{
-				var element = factory.CreateElement(cells[e].CellType, cells[e].Vertices);
-				element.ID = e;
-				model.ElementsDictionary.Add(e, element);
+				// Gather nodes
+				int numNodes = nodeIDs.Length;
+				var elementNodes = new INode[numNodes];
+				for (int n = 0; n < numNodes; n++)
+				{
+					elementNodes[n] = model.NodesDictionary[nodeIDs[n]];
+				}
+
+				CellType cellType = mesh.CellType;
+				ContinuumElement2D element = factory.CreateElement(cellType, elementNodes);
+				element.ID = elementID;
+				model.ElementsDictionary.Add(elementID, element);
 				model.SubdomainsDictionary[subdomainID].Elements.Add(element);
 			}
 
 			if (ParallelToX) ApplyBCsAlongX(model);
 			else ApplyBCsAlongY(model);
 
-				return model;
+			return model;
 		}
 
 		private void ApplyBCsAlongX(Model model)

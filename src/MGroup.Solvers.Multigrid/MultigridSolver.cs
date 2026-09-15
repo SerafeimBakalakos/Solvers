@@ -73,9 +73,11 @@ namespace MGroup.Solvers.Multigrid
 			// Grids
 			var gridDimensions = new GridDimensions(finestGrid.Dimension, numLevels, finestGrid.NumNodesPerAxis, coarseningRatios);
 			grids = new IGrid[numLevels];
-			for (int lvl = 0; lvl < numLevels; lvl++)
+			grids[0] = finestGrid;
+			for (int lvl = 1; lvl < numLevels; lvl++)
 			{
-				grids[lvl] = gridDimensions.MakeGridForLevel(lvl);
+				int[] numNodesCoarse = gridDimensions.GetNumNodesAtLevel(lvl);
+				grids[lvl] = finestGrid.CreateGridWithSameSettings(numNodesCoarse);
 			}
 
 			// Prolongations, restrictions

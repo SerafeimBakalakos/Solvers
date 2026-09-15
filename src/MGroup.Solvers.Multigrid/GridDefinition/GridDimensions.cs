@@ -140,21 +140,6 @@ namespace MGroup.Solvers.Multigrid.GridDefinition
 		/// <returns>Array with the number of nodes along each axis.</returns>
 		public int[] GetNumNodesAtLevel(int level) => gridNodes[level];
 
-		/// <summary>
-		/// Creates an <see cref="IGrid"/> to represent the grid at <paramref name="level"/>.
-		/// </summary>
-		/// <param name="level">
-		/// The level at which the grid is located at. Use 0 for the finest grid. Use <see cref="NumLevels"/>-1 for the coarsest grid.
-		/// </param>
-		/// <returns>An <see cref="IGrid"/>.</returns>
-		public IGrid MakeGridForLevel(int level)
-		{
-			int[] numNodes = gridNodes[level];
-			if (Dimension == 1) return new Grid1D(numNodes);
-			else if (Dimension == 2) return new Grid2D(numNodes);
-			else return new Grid3D(numNodes);
-		}
-
 		private void CheckInput(int dimension, int numLevels, int[] numNodesFine, int[] coarsenRatios)
 		{
 			if (dimension != 1 && dimension != 2 && dimension != 3)

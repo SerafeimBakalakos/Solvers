@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid
+namespace MGroup.Solvers.Multigrid.Utilities
 {
 	using System;
 	using System.Collections.Generic;

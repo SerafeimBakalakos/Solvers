@@ -5,6 +5,8 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 	using System.Text;
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.Multigrid.GridDefinition;
+	using MGroup.Solvers.Multigrid.Utilities;
 
 	public class Prolongation2DScalarStrategy : IProlongationStrategy
 	{
@@ -15,31 +17,39 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 			prolongation1D = new Prolongation1DStrategy(tolerance);
 		}
 
-		public DokRowMajor CreateProlongationMatrix(int[] numNodesFinePerAxis, int[] numNodesCoarsePerAxis)
+		public DokRowMajor CreateProlongationMatrix(IGrid fineGrid, IGrid coarseGrid)
 		{
-			GridPreconditions.CheckGrids2D(numNodesFinePerAxis, numNodesCoarsePerAxis);
+			ProlongationUtilities.CheckGrids2D(fineGrid, coarseGrid);
 
-			var nfx = numNodesFinePerAxis[0];
-			var nfy = numNodesFinePerAxis[1];
-			var ncx = numNodesCoarsePerAxis[0];
-			var ncy = numNodesCoarsePerAxis[1];
+			// Find the 1D prolongation matrix per axis
+			int nfx = fineGrid.NumNodesPerAxis[0];
+			int nfy = fineGrid.NumNodesPerAxis[1];
+			int ncx = coarseGrid.NumNodesPerAxis[0];
+			int ncy = coarseGrid.NumNodesPerAxis[1];
 
-			if (nfx > ncx && nfy > ncy)
+			DokRowMajor? Px = (nfx > ncx) ? prolongation1D.CreateProlongationMatrix(nfx, ncx) : null;
+			DokRowMajor? Py = (nfy > ncy) ? prolongation1D.CreateProlongationMatrix(nfy, ncy) : null;
+
+			// Combine them to 2D using tensor products
+			int majorAxis = fineGrid.AxesMajorToMinor[0];
+			if (!ArrayUtilities.Equal(fineGrid.AxesMajorToMinor, coarseGrid.AxesMajorToMinor))
 			{
-				var Px = prolongation1D.CreateProlongationMatrix([nfx], [ncx]);
-				var Py = prolongation1D.CreateProlongationMatrix([nfy], [ncy]);
-				return Py.KroneckerProduct(Px);
+				throw new NotImplementedException();
 			}
-			else if (nfx == ncx)
+
+			DokRowMajor? prolongation2D;
+			if (majorAxis == 0) // x major, y minor
 			{
-				var Py = prolongation1D.CreateProlongationMatrix([nfy], [ncy]);
-				return Py.KroneckerProductThisTimesIdentity(nfx);
+				prolongation2D = ProlongationUtilities.KroneckerProduct(Px, nfx, Py, nfy);
 			}
-			else // nfy == ncy
+			else // y major, x minor
 			{
-				var Px = prolongation1D.CreateProlongationMatrix([nfx], [ncx]);
-				return Px.KroneckerProductIdentityTimesThis(nfy);
+				prolongation2D = ProlongationUtilities.KroneckerProduct(Py, nfy, Px, nfy);
 			}
+
+			if (prolongation2D is null) throw new Exception("This should not have happened. Both 1D prolongation matrices cannot be identity.");
+			return prolongation2D;
 		}
+				
 	}
 }

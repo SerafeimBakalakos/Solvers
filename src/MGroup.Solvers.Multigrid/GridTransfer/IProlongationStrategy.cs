@@ -5,9 +5,10 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 	using System.Text;
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.Multigrid.GridDefinition;
 
 	public interface IProlongationStrategy
 	{
-		DokRowMajor CreateProlongationMatrix(int[] numNodesFinePerAxis, int[] numNodesCoarsePerAxis);
+		DokRowMajor CreateProlongationMatrix(IGrid fineGrid, IGrid coarseGrid);
 	}
 }

@@ -51,10 +51,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 
 			for (int lvl  = 0; lvl < numLevels - 1; lvl++)
 			{
-				int[] numNodesFine = grids[lvl].NumNodesPerAxis;
-				int[] numNodesCoarse = grids[lvl + 1].NumNodesPerAxis;
-
-				DokRowMajor prolongation = prolongationStrategy.CreateProlongationMatrix(numNodesFine, numNodesCoarse);
+				DokRowMajor prolongation = prolongationStrategy.CreateProlongationMatrix(grids[lvl], grids[lvl + 1]);
 				int[] freeDofsFine = freeDofMaps[lvl];
 				int[] freeDofsCoarse = FindFreeDofsCoarse(prolongation, freeDofsFine);
 				freeDofMaps.Add(freeDofsCoarse);

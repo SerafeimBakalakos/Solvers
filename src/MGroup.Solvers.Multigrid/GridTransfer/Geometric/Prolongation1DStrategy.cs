@@ -5,6 +5,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 	using System.Text;
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.Multigrid.GridDefinition;
 
 	public class Prolongation1DStrategy : IProlongationStrategy
 	{
@@ -15,11 +16,21 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 			this.tolerance = tolerance;
 		}
 
-		public DokRowMajor CreateProlongationMatrix(int[] numNodesFinePerAxis, int[] numNodesCoarsePerAxis)
+		public DokRowMajor CreateProlongationMatrix(IGrid fineGrid, IGrid coarseGrid)
 		{
-			var nf = numNodesFinePerAxis[0];
-			var nc = numNodesCoarsePerAxis[0];
-			GridPreconditions.CheckGrids1D(nf, nc);
+			if ((fineGrid.Dimension != 1) || (coarseGrid.Dimension != 1))
+			{
+				throw new ArgumentException("The fine and coarse grids must be 1D");
+			}
+
+			return CreateProlongationMatrix(fineGrid.NumNodesPerAxis[0], coarseGrid.NumNodesPerAxis[0]);
+		}
+
+		public DokRowMajor CreateProlongationMatrix(int numNodesFinePerAxis, int numNodesCoarsePerAxis)
+		{
+			var nf = numNodesFinePerAxis;
+			var nc = numNodesCoarsePerAxis;
+			ProlongationUtilities.CheckGrids1D(nf, nc);
 
 			// Initialize
 			var dxf = 1.0 / (nf - 1); // length of fine element, scaled so that domain length = 1

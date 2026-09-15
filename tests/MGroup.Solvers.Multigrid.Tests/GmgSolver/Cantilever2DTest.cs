@@ -48,8 +48,11 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 		[InlineData(2, Cycles.V, Smoothers.GS, 1.0, 2, 10)]
 		private static void RunTest(int numLevels, Cycles cycle, Smoothers smoother, double relaxFactor, int smoothingSteps, int numCyclesExpected)
 		{
-			// Model
 			int[] numElements = [32, 160];
+			var grid = new Grid2D(numElements[0] + 1, numElements[1] + 1);
+			grid.SetMajorAxis(0);
+
+			// Model
 			var example = new CantileverQuad4ElasticExample();
 			example.LengthX = 0.4;
 			example.LengthY = 2;
@@ -58,11 +61,10 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 			example.PoissonRatio = 0.3;
 			example.EndPointLoad = 1000;
 			example.ParallelToX = false;
-			Model model = example.CreateFemModel(numElements[0], numElements[1]);
+			Model model = example.CreateFemModel(grid);
 			IDofType[] dofsPerNode = [StructuralDof.TranslationX, StructuralDof.TranslationY];
 
 			// Setup solver
-			var grid = new Grid2D(numElements[0] + 1, numElements[1] + 1);
 			var prolongation = new Prolongation2DVectorStrategy();
 			var solverBuilder = new GmgSolverBuilder(numLevels: numLevels, grid, prolongation, maxCycles: 100);
 			solverBuilder.LinearAlgebraProvider = new ManagedSequentialImplementationProvider();
@@ -79,7 +81,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 			IVector solution = RunAnalysis(model, algebraicModel, solver);
 
 			// Reference solution
-			Model refModel = example.CreateFemModel(numElements[0], numElements[1]);
+			Model refModel = example.CreateFemModel(grid);
 			(IAlgebraicModel refAlgModel, ISolver refSolver) = SetupReferenceSolver(refModel);
 			IVector refSolution = RunAnalysis(refModel, refAlgModel, refSolver);
 
