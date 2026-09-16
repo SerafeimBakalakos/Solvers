@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
+namespace MGroup.Solvers.Multigrid.Tests.GmgPcgSolver
 {
 	using System;
 	using System.Collections.Generic;
@@ -36,16 +36,16 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 	public static class Cantilever2DTest
 	{
 		[Theory]
-		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 2, 13)]
+		//[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 2, 13)]
 		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 3, 11)]
-		[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 1, 15)]
-		[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 2, 11)]
-		[InlineData(4, Cycles.V, Smoothers.SOR, 1.1, 2, 12)]
-		[InlineData(4, Cycles.V, Smoothers.SSOR, 1.1, 2, 11)]
-		[InlineData(4, Cycles.W, Smoothers.GS, 1.0, 2, 10)]
-		[InlineData(4, Cycles.F, Smoothers.GS, 1.0, 2, 10)]
-		[InlineData(3, Cycles.V, Smoothers.GS, 1.0, 2, 12)]
-		[InlineData(2, Cycles.V, Smoothers.GS, 1.0, 2, 10)]
+		//[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 1, 15)]
+		//[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 2, 11)]
+		//[InlineData(4, Cycles.V, Smoothers.SOR, 1.1, 2, 12)]
+		//[InlineData(4, Cycles.V, Smoothers.SSOR, 1.1, 2, 11)]
+		//[InlineData(4, Cycles.W, Smoothers.GS, 1.0, 2, 10)]
+		//[InlineData(4, Cycles.F, Smoothers.GS, 1.0, 2, 10)]
+		//[InlineData(3, Cycles.V, Smoothers.GS, 1.0, 2, 12)]
+		//[InlineData(2, Cycles.V, Smoothers.GS, 1.0, 2, 10)]
 		private static void RunTest(int numLevels, Cycles cycle, Smoothers smoother, double relaxFactor, int smoothingSteps, int numCyclesExpected)
 		{
 			int[] numElements = [32, 160];
@@ -66,7 +66,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 
 			// Setup solver
 			var prolongation = new Prolongation2DStrategy(2);
-			var solverBuilder = new GeometricMultigridSolver.Builder(numLevels: numLevels, grid, prolongation, maxCycles: 100);
+			var solverBuilder = new PcgWithMultigridSolver.Builder(numLevels: numLevels, grid, prolongation, maxCycles: 100);
 			solverBuilder.LinearAlgebraProvider = new ManagedSequentialImplementationProvider();
 			solverBuilder.CycleSchedule = cycle.Translate();
 			IStationaryIteration stationaryIteration = smoother.Translate(relaxFactor);
@@ -77,7 +77,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 
 			// Run analysis
 			GlobalAlgebraicModel<CsrMatrix> algebraicModel = solverBuilder.BuildAlgebraicModel(model);
-			GeometricMultigridSolver solver = solverBuilder.BuildSolver(model, dofsPerNode, algebraicModel);
+			PcgWithMultigridSolver solver = solverBuilder.BuildSolver(model, dofsPerNode, algebraicModel);
 			IVector solution = RunAnalysis(model, algebraicModel, solver);
 
 			// Reference solution

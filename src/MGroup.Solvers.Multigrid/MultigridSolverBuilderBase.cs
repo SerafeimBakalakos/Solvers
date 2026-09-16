@@ -22,20 +22,20 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.Solvers.Multigrid.Smoothing;
 
 	/// <summary>
-	/// Sets up a Geometric Multigrid solver.
+	/// Sets up a Multigrid solver.
 	/// </summary>
-	public class GmgSolverBuilder
+	public class MultigridSolverBuilderBase
 	{
-		private readonly int numLevels;
-		private readonly IGrid finestGrid;
-		private readonly IDofOrderer dofOrderer;
-		private readonly int maxCycles;
-		private readonly IProlongationStrategy prolongation;
-		
-		private MultigridSmoothers smoothers;
-		private bool useGalerkinCoarseMatrices = true;
+		protected readonly int numLevels;
+		protected readonly IGrid finestGrid;
+		protected readonly IDofOrderer dofOrderer;
+		protected readonly int maxCycles;
+		protected readonly IProlongationStrategy prolongation;
 
-		public GmgSolverBuilder(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
+		protected MultigridSmoothers smoothers;
+		protected bool useGalerkinCoarseMatrices = true;
+
+		public MultigridSolverBuilderBase(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
 		{
 			this.finestGrid = finestGrid;
 
@@ -78,23 +78,6 @@ namespace MGroup.Solvers.Multigrid
 			return new GlobalAlgebraicModel<CsrMatrix>(model, dofOrderer, assembler);
 		}
 
-		public MultigridSolver BuildSolver(Model model, IDofType[] dofsPerNode, GlobalAlgebraicModel<CsrMatrix> algebraicModel)
-		{
-			if (CoarseningRatioPerAxis is null)
-			{
-				CoarseningRatioPerAxis = new int[finestGrid.Dimension];
-				Array.Fill(CoarseningRatioPerAxis, 2);
-			}
-
-			if (CoarsestSystemSolver is null)
-			{
-				var reordering = new AmdSymmetricOrdering(LinearAlgebraProvider);
-				CoarsestSystemSolver = new CholeskyCscCoarseSolver(LinearAlgebraProvider, reordering);
-			}
-
-			return new MultigridSolver(algebraicModel, model, dofsPerNode, numLevels, finestGrid, CoarseningRatioPerAxis, prolongation, Restriction, smoothers, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance, useGalerkinCoarseMatrices);
-		}
-
 		public void ConfigCoarseMatricesGalerkin()
 		{
 			useGalerkinCoarseMatrices = true;
@@ -118,6 +101,27 @@ namespace MGroup.Solvers.Multigrid
 			}
 
 			this.smoothers = allSmoothers;
+		}
+
+		protected int[] FinalizeCoarseningRatios()
+		{
+			if (CoarseningRatioPerAxis is null)
+			{
+				CoarseningRatioPerAxis = new int[finestGrid.Dimension];
+				Array.Fill(CoarseningRatioPerAxis, 2);
+			}
+			return CoarseningRatioPerAxis;
+		}
+
+		protected ICoarseSystemSolver FinalizeCoarsetSystemSolver()
+		{
+			if (CoarsestSystemSolver is null)
+			{
+				var reordering = new AmdSymmetricOrdering(LinearAlgebraProvider);
+				CoarsestSystemSolver = new CholeskyCscCoarseSolver(LinearAlgebraProvider, reordering);
+			}
+
+			return CoarsestSystemSolver;
 		}
 	}
 }
