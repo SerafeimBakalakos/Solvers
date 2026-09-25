@@ -71,6 +71,7 @@ namespace MGroup.Solvers.Multigrid
 
 		private void ApplyPreconditioner(IReadOnlyVector rhs, IVector lhs)
 		{
+			lhs.Clear();
 			vectorsRhs[0] = (Vector)rhs;
 			vectorsLhs[0] = (Vector)lhs;
 			RunSingleCycle();

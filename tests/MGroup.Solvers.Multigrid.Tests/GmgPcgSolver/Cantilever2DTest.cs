@@ -36,16 +36,8 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgPcgSolver
 	public static class Cantilever2DTest
 	{
 		[Theory]
-		//[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 2, 13)]
-		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 3, 11)]
-		//[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 1, 15)]
-		//[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 2, 11)]
-		//[InlineData(4, Cycles.V, Smoothers.SOR, 1.1, 2, 12)]
-		//[InlineData(4, Cycles.V, Smoothers.SSOR, 1.1, 2, 11)]
-		//[InlineData(4, Cycles.W, Smoothers.GS, 1.0, 2, 10)]
-		//[InlineData(4, Cycles.F, Smoothers.GS, 1.0, 2, 10)]
-		//[InlineData(3, Cycles.V, Smoothers.GS, 1.0, 2, 12)]
-		//[InlineData(2, Cycles.V, Smoothers.GS, 1.0, 2, 10)]
+		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 2, 8)]
+		[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 2, 7)]
 		private static void RunTest(int numLevels, Cycles cycle, Smoothers smoother, double relaxFactor, int smoothingSteps, int numCyclesExpected)
 		{
 			int[] numElements = [32, 160];
