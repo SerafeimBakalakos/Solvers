@@ -6,6 +6,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation
 	using System.Text;
 	using System.Threading.Tasks;
 
+	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation;
@@ -26,13 +27,21 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation
 		public static void TestForPoisson1D(double theta)
 		{
 			int numElements = 12;
-			(DokRowMajor A, Vector b) = Poisson1DProblem.CreateWithConstantSource(numElements, source: 1.0);
-			DokRowMajor socComputed = SymmetricStrengthOfConnection.Compute(A, theta);
+			(DokRowMajor dokA, Vector b) = Poisson1DProblem.CreateWithConstantSource(numElements, source: 1.0);
+			CsrMatrix csrA = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
-			DokRowMajor socExpected = MatrixUtilities.ArrayToDok(GetSocMatrixForPoisson1D(numElements, theta));
+			DokRowMajor socComputedDok = SymmetricStrengthOfConnection.Compute(dokA, theta);
+			CsrMatrix socComputedCsr = SymmetricStrengthOfConnection.Compute(csrA, theta);
+
+			DokRowMajor socExpectedDok = MatrixUtilities.ArrayToDok(GetSocMatrixForPoisson1D(numElements, theta));
+			CsrMatrix socExpectedCsr = MatrixUtilities.ArrayToCsr(GetSocMatrixForPoisson1D(numElements, theta));
 
 			var comparer = new MatrixComparer(tolerance: 1E-20);
-			comparer.AssertEqual(socExpected, socComputed);
+			comparer.AssertEqual(socExpectedDok, socComputedDok);
+			
+			Assert.Equal(socExpectedCsr.RawValues, socComputedCsr.RawValues);
+			Assert.Equal(socExpectedCsr.RawColIndices, socComputedCsr.RawColIndices);
+			Assert.Equal(socExpectedCsr.RawRowOffsets, socComputedCsr.RawRowOffsets);
 		}
 
 		internal static double[,] GetSocMatrixForPoisson1D(int numElements, double theta)
