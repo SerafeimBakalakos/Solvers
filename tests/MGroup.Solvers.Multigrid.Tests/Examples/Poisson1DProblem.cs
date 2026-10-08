@@ -11,6 +11,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 	public static class Poisson1DProblem
 	{
+		private const double domainLength = 1.0;
+
 		public static (DokRowMajor A, Vector b) CreateWithConstantSource(int numElements, double source = 1.0)
 			=> Create(numElements, x => source);
 
@@ -28,7 +30,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			if (sourceFunction == null) throw new ArgumentNullException(nameof(sourceFunction));
 
 			int numUnknowns = numElements - 1;
-			double h = 1.0 / numElements;
+			double h = domainLength / numElements;
 
 			var A = DokRowMajor.CreateEmpty(numUnknowns, numUnknowns);
 			var b = Vector.CreateZero(numUnknowns);
@@ -64,6 +66,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			}
 
 			return (A, b);
+		}
+
+		public static double GetMaxEigenvalueOfSystemMatrix(int numElements)
+		{
+			return 2 * numElements / domainLength * (1 + Math.Cos(Math.PI / numElements));
 		}
 
 		private static void AddStiffnessContribution(DokRowMajor A, int node0, int node1, double value, int numElements)

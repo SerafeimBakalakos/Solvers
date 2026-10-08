@@ -233,8 +233,8 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.EigenSystems
 			{
 				if (eigenvaluesImaginary[i] != 0.0)
 				{
-					throw new InvalidOperationException(
-						"Approximate spectral radius encountered a complex Ritz eigenvalue.");
+					throw new NotImplementedException(
+						"Approximate spectral radius encountered a complex Ritz eigenvalue. Must use complex eigenvalues for this matrix, but they are not implemented yet.");
 				}
 			}
 		}

@@ -5,6 +5,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using System.Text;
 
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
 	public static class SymmetricStrengthOfConnection
@@ -100,7 +101,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			}
 
 			int n = A.NumRows;
-			double[] diagonal = FindAbsDiagonal(A); // Store |Aii| once because it is used for every connection involving node i.
+			double[] diagonal = A.GetDiagonalAbs(); // Store |Aii| once because it is used for every connection involving node i.
 			(double[] values, int[] columnIndices, int[] rowOffsets) = BuildStrengthMatrix(A, diagonal, theta);
 			NormalizeStrengthMatrix(n, values, columnIndices, rowOffsets);
 			return CsrMatrix.CreateFromArrays(n, n, values, columnIndices, rowOffsets, checkInput:false);
@@ -154,28 +155,6 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			Array.Resize(ref strengthColumnIndices, nnz);
 
 			return (strengthValues, strengthColumnIndices, strengthRowOffsets);
-		}
-
-		private static double[] FindAbsDiagonal(CsrMatrix A)
-		{
-			int n = A.NumRows;
-			var diagonal = new double[n];
-			for (int i = 0; i < n; ++i)
-			{
-				int rowStart = A.RawRowOffsets[i];
-				int rowEnd = A.RawRowOffsets[i + 1];
-				for (int t = rowStart; t < rowEnd; ++t)
-				{
-					int j = A.RawColIndices[t];
-					if (j == i)
-					{
-						diagonal[i] = Math.Abs(A.RawValues[t]);
-						break;
-					}
-				}
-			}
-
-			return diagonal;
 		}
 
 		private static void NormalizeStrengthMatrix(int numRows, double[] values, int[] columnIndices, int[] rowOffsets)

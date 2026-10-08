@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
+namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing
 {
 	using System;
 	using System.Collections.Generic;

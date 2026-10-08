@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation
+namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,6 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
 
 	using Xunit;
 

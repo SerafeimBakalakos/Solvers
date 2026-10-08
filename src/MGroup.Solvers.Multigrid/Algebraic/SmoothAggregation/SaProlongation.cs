@@ -5,6 +5,9 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using System.Text;
 
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 
 	public class SaProlongation
 	{
