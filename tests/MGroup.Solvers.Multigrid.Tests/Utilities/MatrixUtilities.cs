@@ -8,6 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Utilities
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 
 	public static class MatrixUtilities
 	{
@@ -36,6 +37,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Utilities
 
 			return dok;
 		}
+
 		public static double[,] CreateIdentityAsArray(int order)
 		{
 			var result = new double[order, order];

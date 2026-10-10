@@ -38,10 +38,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation
 
 			var comparer = new MatrixComparer(tolerance: 1E-20);
 			comparer.AssertEqual(socExpectedDok, socComputedDok);
-			
-			Assert.Equal(socExpectedCsr.RawValues, socComputedCsr.RawValues);
-			Assert.Equal(socExpectedCsr.RawColIndices, socComputedCsr.RawColIndices);
-			Assert.Equal(socExpectedCsr.RawRowOffsets, socComputedCsr.RawRowOffsets);
+			AssertUtilities.AssertEqualCsr(socExpectedCsr, socComputedCsr);
 		}
 
 		internal static double[,] GetSocMatrixForPoisson1D(int numElements, double theta)

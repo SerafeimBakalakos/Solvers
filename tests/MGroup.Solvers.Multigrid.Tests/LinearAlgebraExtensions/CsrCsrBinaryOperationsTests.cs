@@ -8,6 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.LinearAlgebraExtensions.Commons;
+	using MGroup.Solvers.Multigrid.Tests.Utilities;
 
 	using Xunit;
 
@@ -212,7 +213,7 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions
 			CsrMatrix expectedC = CsrMatrix.CreateFromArrays(numRows, numColumns, CValues, CColumnIndices, CRowOffsets, checkInput: true);
 			
 			CsrMatrix computedC = CsrCsrBinaryOperations.CsrMinusCsr(matrixA, matrixB);
-			AssertMatrixEqual(expectedC, computedC);
+			AssertUtilities.AssertEqualCsr(expectedC, computedC);
 		}
 
 
@@ -224,7 +225,7 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions
 			CsrMatrix expectedC = CsrMatrix.CreateFromArrays(numRows, numColumns, CCanonicalValues, CCanonicalColumnIndices, CCanonicalRowOffsets, checkInput: true);
 
 			CsrMatrix computedC = CsrCsrBinaryOperations.CsrMinusCsrCanonical(matrixA, matrixB);
-			AssertMatrixEqual(expectedC, computedC);
+			AssertUtilities.AssertEqualCsr(expectedC, computedC);
 		}
 
 
@@ -236,19 +237,7 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions
 			CsrMatrix expectedC = CsrMatrix.CreateFromArrays(numRows, numColumns, CCanonicalValues, CCanonicalColumnIndices, CCanonicalRowOffsets, checkInput: true);
 
 			CsrMatrix computedC = CsrCsrBinaryOperations.CsrMinusCsrCanonicalResult(matrixA, matrixB);
-			AssertMatrixEqual(expectedC, computedC);
-		}
-
-
-		private static void AssertMatrixEqual(CsrMatrix expected, CsrMatrix actual)
-		{
-			Assert.Equal(expected.NumRows, actual.NumRows);
-			Assert.Equal(expected.NumColumns, actual.NumColumns);
-			Assert.Equal(expected.NumNonZeros, actual.NumNonZeros);
-
-			Assert.Equal(expected.RawValues, actual.RawValues);
-			Assert.Equal(expected.RawColIndices, actual.RawColIndices);
-			Assert.Equal(expected.RawRowOffsets, actual.RawRowOffsets);
+			AssertUtilities.AssertEqualCsr(expectedC, computedC);
 		}
 	}
 }
