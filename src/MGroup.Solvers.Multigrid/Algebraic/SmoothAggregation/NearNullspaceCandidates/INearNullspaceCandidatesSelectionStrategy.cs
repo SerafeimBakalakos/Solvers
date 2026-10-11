@@ -8,6 +8,6 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 
 	public interface INearNullspaceCandidatesSelectionStrategy
 	{
-		(Matrix candidatesFine, Matrix candidatesCoarse) ChooseCandidateVectors();
+		Matrix ChooseCandidateVectors(IReadOnlyMatrix systemMatrix);
 	}
 }

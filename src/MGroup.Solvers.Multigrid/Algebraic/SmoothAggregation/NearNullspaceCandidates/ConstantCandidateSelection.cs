@@ -8,6 +8,10 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 
 	public class ConstantCandidateSelection : INearNullspaceCandidatesSelectionStrategy
 	{
-		public (Matrix candidatesFine, Matrix candidatesCoarse) ChooseCandidateVectors() => throw new NotImplementedException();
+		public Matrix ChooseCandidateVectors(IReadOnlyMatrix systemMatrix)
+		{
+			int n = systemMatrix.NumRows;
+			return Matrix.CreateWithValue(n, 1, 1.0);
+		}
 	}
 }

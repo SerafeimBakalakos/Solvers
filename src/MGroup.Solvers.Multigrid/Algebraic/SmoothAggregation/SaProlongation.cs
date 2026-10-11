@@ -12,38 +12,26 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	public class SaProlongation
 	{
 		private readonly INearNullspaceCandidatesSelectionStrategy candidatesSelection;
-		private readonly INearNullspaceCandidatesImprovementStrategy candidatesImprovement;
+		private readonly INearNullspaceCandidatesRelaxationStrategy candidatesRelaxation;
 		private	readonly IProlongationSmoothingStrategy prolongationSmoothing;
-		private readonly TentativeProlongation tentativeProlongation = new();
+		private readonly CandidateVectorFitting candidatesFitting;
 
-		public SaProlongation(INearNullspaceCandidatesSelectionStrategy candidatesSelection, INearNullspaceCandidatesImprovementStrategy candidatesImprovement, IProlongationSmoothingStrategy prolongationSmoothing)
+		public SaProlongation(INearNullspaceCandidatesSelectionStrategy candidatesSelection, INearNullspaceCandidatesRelaxationStrategy candidatesRelaxation, CandidateVectorFitting candidatesFitting, IProlongationSmoothingStrategy prolongationSmoothing)
 		{
 			this.candidatesSelection = candidatesSelection;
-			this.candidatesImprovement = candidatesImprovement;
+			this.candidatesRelaxation = candidatesRelaxation;
+			this.candidatesFitting = candidatesFitting;
 			this.prolongationSmoothing = prolongationSmoothing;
 		}
 
 		public CsrMatrix ComputeProlongationMatrix(CsrMatrix systemMatrix, AggregateCollection aggregates)
 		{
-			CsrMatrix A = aggregates.BuildAggregateMembershipMatrix();
-			CsrMatrix Pt = ComputeTentativeProlongation(A);
+			//CsrMatrix AggOp = aggregates.BuildAggregateMembershipMatrix();
+			Matrix Bf = candidatesSelection.ChooseCandidateVectors(systemMatrix);
+			candidatesRelaxation.ImproveCandidateVectors(systemMatrix, Bf);
+			(CsrMatrix Pt, Matrix Bc) = candidatesFitting.FitCandidates(aggregates, Bf);
 			CsrMatrix P = prolongationSmoothing.SmoothProlongationMatrix(Pt, systemMatrix);
 			return P;
-		}
-
-		private CsrMatrix ComputeTentativeProlongation(CsrMatrix aggregateMembershipMatrix)
-		{
-			if ((candidatesSelection is ConstantCandidateSelection) && (candidatesImprovement is NoNearNullspaceCandidatesImprovement))
-			{
-				return aggregateMembershipMatrix;
-			}
-			else
-			{
-				(Matrix Bf, Matrix Bc) = candidatesSelection.ChooseCandidateVectors();
-				candidatesImprovement.ImproveCandidateVectors(Bf, Bc);
-				CsrMatrix Pt = tentativeProlongation.Compute(aggregateMembershipMatrix, Bf, Bc);
-				return Pt;
-			}
 		}
 	}
 }

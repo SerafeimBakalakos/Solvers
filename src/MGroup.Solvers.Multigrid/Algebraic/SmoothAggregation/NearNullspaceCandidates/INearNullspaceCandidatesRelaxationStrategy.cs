@@ -6,8 +6,8 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 
 	using MGroup.LinearAlgebra.Matrices;
 
-	public interface INearNullspaceCandidatesImprovementStrategy
+	public interface INearNullspaceCandidatesRelaxationStrategy
 	{
-		void ImproveCandidateVectors(Matrix candidatesFine, Matrix candidatesCoarse);
+		void ImproveCandidateVectors(IReadOnlyMatrix systemMatrix, Matrix candidateVectors);
 	}
 }
