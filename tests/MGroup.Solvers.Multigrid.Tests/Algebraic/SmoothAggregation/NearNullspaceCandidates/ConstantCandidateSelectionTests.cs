@@ -26,7 +26,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 
 			var candidatesSelection = new ConstantCandidateSelection();
 			Matrix computedB = candidatesSelection.ChooseCandidateVectors(csrA);
-			var expectedB = Matrix.CreateFromArray(StationaryIterationCandidatesRelaxationTests.CandidatesPoisson1D);
+			var expectedB = Matrix.CreateFromArray(StationaryIterationCandidatesRelaxationTests.GetFineCandidatesPoisson1D(relaxationStrategy: "None"));
 
 			var comparer = new MatrixComparer(tolerance: 1E-25);
 			comparer.AssertEqual(expectedB, computedB);

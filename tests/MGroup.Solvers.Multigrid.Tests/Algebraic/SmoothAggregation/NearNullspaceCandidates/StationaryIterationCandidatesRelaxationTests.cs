@@ -19,37 +19,48 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 
 	public static class StationaryIterationCandidatesRelaxationTests
 	{
-		public static double[,] CandidatesPoisson1D => new[,]
+		public static double[,] GetFineCandidatesPoisson1D(string relaxationStrategy)
 		{
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 },
-			{ 1.0 }
-		};
+			if (relaxationStrategy == "None")
+			{
+				return new double[,]
+				{
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 },
+					{ 1.0 }
+				};
+			}
+			else if (relaxationStrategy == "SGS-4")
+			{
+				return new double[,]
+				{
+					{ 0.1824138483343726 },
+					{ 0.3648276966687452 },
+					{ 0.5165402787220331 },
+					{ 0.6288922203198463 },
+					{ 0.6987160332233953 },
+					{ 0.7255399806696738 },
+					{ 0.7092479831569433 },
+					{ 0.6490469913098891 },
+					{ 0.5440050161211692 },
+					{ 0.39517555515785957},
+					{ 0.20892285858466839}
+				};
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}
+		}
 
-		public static double[,] RelaxedCandidatesPoisson1DSgs4 => new[,]
-		{
-			{ 0.1824138483343726 },
-			{ 0.3648276966687452 },
-			{ 0.5165402787220331 },
-			{ 0.6288922203198463 },
-			{ 0.6987160332233953 },
-			{ 0.7255399806696738 },
-			{ 0.7092479831569433 },
-			{ 0.6490469913098891 },
-			{ 0.5440050161211692 },
-			{ 0.39517555515785957},
-			{ 0.20892285858466839}
-		};
-
-		[Fact]
 		public static void TestSymmetricGaussSeidelForPoisson1D()
 		{
 			int numElements = 12;
@@ -58,13 +69,13 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 			CsrMatrix csrA = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 			AggregateCollection aggregates = StandardAggregationTests.GetAggregatesForPoisson1D(numElements, theta);
 
-			var matrixB = Matrix.CreateFromArray(CandidatesPoisson1D);
+			var matrixB = Matrix.CreateFromArray(GetFineCandidatesPoisson1D(relaxationStrategy: "None"));
 
 			var stationaryIteration = new SgsIterationCsr();
 			var candidatesRelaxation = new StationaryIterationCandidatesRelaxation(stationaryIteration, 4);
 			candidatesRelaxation.ImproveCandidateVectors(csrA, matrixB);
 
-			var expectedB = Matrix.CreateFromArray(RelaxedCandidatesPoisson1DSgs4);
+			var expectedB = Matrix.CreateFromArray(GetFineCandidatesPoisson1D(relaxationStrategy: "SGS-4"));
 			var comparer = new MatrixComparer(tolerance: 1E-20);
 			comparer.AssertEqual(expectedB, matrixB);
 		}
