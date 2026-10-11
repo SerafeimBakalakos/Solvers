@@ -42,6 +42,31 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 			return CsrMatrix.CreateFromArrays(numFineDofs, NumAggregates, values, columnIndices, rowOffsets, false);
 		}
 
+		public int[][] GatherFineDofsPerAggregate()
+		{
+			var fineDofsByAggregate = new List<int>[NumAggregates];
+
+			for (int aggregate = 0; aggregate < NumAggregates; ++aggregate)
+			{
+				fineDofsByAggregate[aggregate] = new List<int>();
+			}
+
+			for (int fineDof = 0; fineDof < AggregatesOfFineDofs.Length; ++fineDof)
+			{
+				int aggregate = AggregatesOfFineDofs[fineDof];
+				fineDofsByAggregate[aggregate].Add(fineDof);
+			}
+
+			var result = new int[NumAggregates][];
+
+			for (int aggregate = 0; aggregate < NumAggregates; ++aggregate)
+			{
+				result[aggregate] = fineDofsByAggregate[aggregate].ToArray();
+			}
+
+			return result;
+		}
+
 		[Conditional("DEBUG")]
 		private void Validate()
 		{

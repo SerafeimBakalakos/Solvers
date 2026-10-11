@@ -9,6 +9,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
+	using MGroup.Solvers.Multigrid.Tests.Utilities;
 
 	using Xunit;
 
@@ -26,9 +27,26 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 			int[] colIndicesExpected = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3];
 			int[] rowOffsetsExpected = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-			Assert.Equal(valuesExpected, am.RawValues);
-			Assert.Equal(colIndicesExpected, am.RawColIndices);
-			Assert.Equal(rowOffsetsExpected, am.RawRowOffsets);
+			AssertUtilities.AssertEqualCsr(4, valuesExpected, colIndicesExpected, rowOffsetsExpected, am);
+		}
+
+		[Fact]
+		public static void TestGatherFineDofsPerAggregate()
+		{
+			int[] aggregatesOfFineDofs = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3];
+			int[] fineDofRootsOfAggregates = [0, 3, 6, 9];
+			var aggregates = new AggregateCollection(aggregatesOfFineDofs, fineDofRootsOfAggregates);
+
+			int[][] fineDofsPerAggregate = aggregates.GatherFineDofsPerAggregate();
+			int[][] fineDofsPerAggregateExpected = new int[][]
+			{
+				new int[] { 0, 1 },
+				new int[] { 2, 3, 4 },
+				new int[] { 5, 6, 7 },
+				new int[] { 8, 9, 10 }
+			};
+
+			Assert.Equal(fineDofsPerAggregateExpected, fineDofsPerAggregate);
 		}
 	}
 }
