@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation
+namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.ConnectionStrength
 {
 	using System;
 	using System.Collections.Generic;
@@ -9,7 +9,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
-	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 	using MGroup.Solvers.Multigrid.Tests.Utilities;
@@ -30,15 +30,16 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation
 			(DokRowMajor dokA, Vector b) = Poisson1DProblem.CreateWithConstantSource(numElements, source: 1.0);
 			CsrMatrix csrA = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
-			DokRowMajor socComputedDok = SymmetricStrengthOfConnection.Compute(dokA, theta);
-			CsrMatrix socComputedCsr = SymmetricStrengthOfConnection.Compute(csrA, theta);
+			var soc = new SymmetricStrengthOfConnection(theta);
+			DokRowMajor computedStrengthDok = soc.Compute(dokA);
+			CsrMatrix computedStrengthCsr = soc.CalcStrengthMatrix(csrA);
 
-			DokRowMajor socExpectedDok = MatrixUtilities.ArrayToDok(GetSocMatrixForPoisson1D(numElements, theta));
-			CsrMatrix socExpectedCsr = MatrixUtilities.ArrayToCsr(GetSocMatrixForPoisson1D(numElements, theta));
+			DokRowMajor expectedStrengthDok = MatrixUtilities.ArrayToDok(GetSocMatrixForPoisson1D(numElements, theta));
+			CsrMatrix expectedStrengthCsr = MatrixUtilities.ArrayToCsr(GetSocMatrixForPoisson1D(numElements, theta));
 
 			var comparer = new MatrixComparer(tolerance: 1E-20);
-			comparer.AssertEqual(socExpectedDok, socComputedDok);
-			AssertUtilities.AssertEqualCsr(socExpectedCsr, socComputedCsr);
+			comparer.AssertEqual(expectedStrengthDok, computedStrengthDok);
+			AssertUtilities.AssertEqualCsr(expectedStrengthCsr, computedStrengthCsr);
 		}
 
 		internal static double[,] GetSocMatrixForPoisson1D(int numElements, double theta)

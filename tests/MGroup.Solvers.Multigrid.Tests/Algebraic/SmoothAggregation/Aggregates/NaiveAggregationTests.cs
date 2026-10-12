@@ -10,6 +10,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
+	using MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.ConnectionStrength;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.Utilities;
 

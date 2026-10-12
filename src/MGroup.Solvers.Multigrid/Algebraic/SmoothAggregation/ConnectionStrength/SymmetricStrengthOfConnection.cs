@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
+namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,21 +8,48 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
-	public static class SymmetricStrengthOfConnection
+	/// <summary>
+	/// Calculates the symmetric strength-of-connection measure of real scalar symmetric sparse matrices.
+	/// If A is the input matrix and theta a strength thresjold, then a connection (i,j) is retained when
+	///		|A[i,j]| >= theta * sqrt(|A[i,i]| * |A[j,j]|)
+	/// The resulting entries are then replaced by their magnitudes and scaled by the largest magnitude in each row.
+	/// </summary>
+	/// <remarks>
+	/// This is the scalar CSR/CSR-equivalent algorithm used by PyAMG's symmetric_strength_of_connection.
+	/// </remarks>
+	public class SymmetricStrengthOfConnection : IStrengthOfConnection
 	{
+		private readonly double theta;
+
 		/// <summary>
-		/// Computes symmetric strength-of-connection measure for a real scalar sparse matrix.
-		/// A connection (i,j) is retained when
-		///     |A[i,j]| >= theta * sqrt(|A[i,i]| * |A[j,j]|)
-		/// The resulting entries are then replaced by their magnitudes and scaled by the largest magnitude in each row.
+		/// Constructor.
 		/// </summary>
-		/// <remarks>
-		/// This is the scalar CSR/CSR-equivalent algorithm used by PyAMG's symmetric_strength_of_connection.
-		/// </remarks>
-		/// <param name="A">Square sparse matrix of the linear system.</param>
-		/// <param name="theta">Strength threshold. Usually in [0,1]</param>
-		/// <returns> Strength matrix C with the same dimensions as A.</returns>
-		public static DokRowMajor Compute(DokRowMajor A, double theta = 0.0)
+		/// <param name="theta">Strength threshold. Usually in [0,1].</param>
+		public SymmetricStrengthOfConnection(double theta = 0.0)
+		{
+			this.theta = theta;
+		}
+
+		public CsrMatrix CalcStrengthMatrix(CsrMatrix A)
+		{
+			if (A.NumRows != A.NumColumns)
+			{
+				throw new ArgumentException("Strength of connection requires a square matrix.", nameof(A));
+			}
+
+			if (theta < 0.0)
+			{
+				throw new ArgumentException("Theta must be non-negative.", nameof(theta));
+			}
+
+			int n = A.NumRows;
+			double[] diagonal = A.GetDiagonalAbs(); // Store |Aii| once because it is used for every connection involving node i.
+			(double[] values, int[] columnIndices, int[] rowOffsets) = BuildStrengthMatrix(A, diagonal, theta);
+			NormalizeStrengthMatrix(n, values, columnIndices, rowOffsets);
+			return CsrMatrix.CreateFromArrays(n, n, values, columnIndices, rowOffsets, checkInput: false);
+		}
+
+		public DokRowMajor Compute(DokRowMajor A)
 		{
 			if (A.NumRows != A.NumColumns)
 			{
@@ -74,37 +101,6 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			}
 
 			return strength;
-		}
-
-		/// <summary>
-		/// Computes symmetric strength-of-connection measure for a real scalar sparse matrix.
-		/// A connection (i,j) is retained when
-		///     |A[i,j]| >= theta * sqrt(|A[i,i]| * |A[j,j]|)
-		/// The resulting entries are then replaced by their magnitudes and scaled by the largest magnitude in each row.
-		/// </summary>
-		/// <remarks>
-		/// This is the scalar CSR/CSR-equivalent algorithm used by PyAMG's symmetric_strength_of_connection.
-		/// </remarks>
-		/// <param name="A">Square sparse matrix of the linear system.</param>
-		/// <param name="theta">Strength threshold. Usually in [0,1].</param>
-		/// <returns> Strength matrix C with the same dimensions as A.</returns>
-		public static CsrMatrix Compute(CsrMatrix A, double theta = 0.0)
-		{
-			if (A.NumRows != A.NumColumns)
-			{
-				throw new ArgumentException("Strength of connection requires a square matrix.", nameof(A));
-			}
-
-			if (theta < 0.0)
-			{
-				throw new ArgumentException("Theta must be non-negative.", nameof(theta));
-			}
-
-			int n = A.NumRows;
-			double[] diagonal = A.GetDiagonalAbs(); // Store |Aii| once because it is used for every connection involving node i.
-			(double[] values, int[] columnIndices, int[] rowOffsets) = BuildStrengthMatrix(A, diagonal, theta);
-			NormalizeStrengthMatrix(n, values, columnIndices, rowOffsets);
-			return CsrMatrix.CreateFromArrays(n, n, values, columnIndices, rowOffsets, checkInput:false);
 		}
 
 		private static (double[] values, int[] columnIndices, int[] rowOffsets) BuildStrengthMatrix(CsrMatrix A, double[] diagonal, double theta)
