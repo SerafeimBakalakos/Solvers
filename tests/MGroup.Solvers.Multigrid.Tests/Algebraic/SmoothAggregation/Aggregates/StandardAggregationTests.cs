@@ -18,33 +18,21 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 
 	public static class StandardAggregationTests
 	{
-		public static AggregateCollection GetAggregatesForPoisson1D(int numElements, double theta)
-		{
-			if (numElements == 12 && theta == 0)
-			{
-				int[] aggregatesOfFineDofsExpected = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3];
-				int[] fineDofRootsOfAggregatesExpected = [0, 3, 6, 9];
-				return new AggregateCollection(aggregatesOfFineDofsExpected, fineDofRootsOfAggregatesExpected);
-			}
-			else throw new NotImplementedException();
-		}
-
 		[Fact]
 		public static void TestForPoisson1D()
 		{
-			int numElements = 12;
-			double theta = 0;
-
-			double[,] C = SymmetricStrengthOfConnectionTests.GetSocMatrixForPoisson1D(numElements, theta);
+			double[,] C = Poisson1D12ElementsSaAmgResults.GetStrenghOfConnectionMatrix(level: 0, theta: 0);
 			CsrMatrix soc = MatrixUtilities.ArrayToCsr(C);
 
 			var aggregationStrategy = new StandardAggregation();
 			AggregateCollection aggregates = aggregationStrategy.FindAggregates(soc);
-			AggregateCollection expected = GetAggregatesForPoisson1D(numElements, theta);
 
-			Assert.Equal(expected.NumAggregates, aggregates.NumAggregates);
-			Assert.Equal(expected.AggregatesOfFineDofs, aggregates.AggregatesOfFineDofs);
-			Assert.Equal(expected.FineDofRootsOfAggregates, aggregates.FineDofRootsOfAggregates);
+			int numAggregatesExpected = Poisson1D12ElementsSaAmgResults.SystemOrders[1];
+			(int[] aggregatesOfFineDofsExpected, int[] fineDofRootsOfAggregatesExpected, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+
+			Assert.Equal(numAggregatesExpected, aggregates.NumAggregates);
+			Assert.Equal(aggregatesOfFineDofsExpected, aggregates.AggregatesOfFineDofs);
+			Assert.Equal(fineDofRootsOfAggregatesExpected, aggregates.FineDofRootsOfAggregates);
 		}
 	}
 }

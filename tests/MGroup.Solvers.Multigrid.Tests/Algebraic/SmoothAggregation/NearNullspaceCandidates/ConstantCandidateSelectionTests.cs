@@ -19,14 +19,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 		[Fact]
 		public static void TestForPoisson1D()
 		{
-			int numElements = 12;
-			double theta = 0;
-			(DokRowMajor dokA, _) = Poisson1DProblem.CreateWithConstantSource(numElements, source: 1.0);
-			CsrMatrix csrA = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
+			CsrMatrix csrA = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
+			var expectedB = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(level: 0, relaxationStrategy: "None"));
 
 			var candidatesSelection = new ConstantCandidateSelection();
 			Matrix computedB = candidatesSelection.ChooseCandidateVectors(csrA);
-			var expectedB = Matrix.CreateFromArray(StationaryIterationCandidatesRelaxationTests.GetFineCandidatesPoisson1D(relaxationStrategy: "None"));
 
 			var comparer = new MatrixComparer(tolerance: 1E-25);
 			comparer.AssertEqual(expectedB, computedB);

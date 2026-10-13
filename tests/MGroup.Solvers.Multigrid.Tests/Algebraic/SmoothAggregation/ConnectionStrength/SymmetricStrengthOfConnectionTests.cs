@@ -26,50 +26,20 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.ConnectionS
 		[InlineData(1.0)]
 		public static void TestForPoisson1D(double theta)
 		{
-			int numElements = 12;
-			(DokRowMajor dokA, Vector b) = Poisson1DProblem.CreateWithConstantSource(numElements, source: 1.0);
-			CsrMatrix csrA = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
+			(DokRowMajor dokA, _) = Poisson1DProblem.CreateWithConstantSource(numElements: 12, source: 1.0);
+			CsrMatrix csrA = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
 
 			var soc = new SymmetricStrengthOfConnection(theta);
 			DokRowMajor computedStrengthDok = soc.Compute(dokA);
 			CsrMatrix computedStrengthCsr = soc.CalcStrengthMatrix(csrA);
 
-			DokRowMajor expectedStrengthDok = MatrixUtilities.ArrayToDok(GetSocMatrixForPoisson1D(numElements, theta));
-			CsrMatrix expectedStrengthCsr = MatrixUtilities.ArrayToCsr(GetSocMatrixForPoisson1D(numElements, theta));
+			double[,] expectedStrength = Poisson1D12ElementsSaAmgResults.GetStrenghOfConnectionMatrix(level: 0, theta);
+ 			DokRowMajor expectedStrengthDok = MatrixUtilities.ArrayToDok(expectedStrength);
+			CsrMatrix expectedStrengthCsr = MatrixUtilities.ArrayToCsr(expectedStrength);
 
 			var comparer = new MatrixComparer(tolerance: 1E-20);
 			comparer.AssertEqual(expectedStrengthDok, computedStrengthDok);
 			AssertUtilities.AssertEqualCsr(expectedStrengthCsr, computedStrengthCsr);
-		}
-
-		internal static double[,] GetSocMatrixForPoisson1D(int numElements, double theta)
-		{
-			if (numElements == 12)
-			{
-				if (theta == 0.0 || theta == 0.25 || theta == 0.5)
-				{
-					return new double[,]
-					{
-						{ 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-						{ 0.5, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-						{ 0.0, 0.5, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-						{ 0.0, 0.0, 0.5, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-						{ 0.0, 0.0, 0.0, 0.5, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0 },
-						{ 0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0 },
-						{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 0.5, 0.0, 0.0, 0.0 },
-						{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 0.5, 0.0, 0.0 },
-						{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 0.5, 0.0 },
-						{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 0.5 },
-						{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 1.0 }
-					};
-				}
-				else if (theta == 0.75 || theta == 1.0)
-				{
-					return MatrixUtilities.CreateIdentityAsArray(numElements - 1);
-				}
-			}
-
-			throw new NotImplementedException();
 		}
 	}
 }
