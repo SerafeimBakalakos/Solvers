@@ -28,21 +28,18 @@ namespace MGroup.Solvers.Multigrid.CoarseMatrix
 				throw new InvalidSparsityPatternException($"Prolongation matrix must be a {nameof(CsrMatrix)}.");
 			}
 
-			var restrictionCsr = (CsrMatrix)restriction;
-			var fineGridMatrixCsr = (CsrMatrix)fineGridMatrix;
-			
+			return CalcProduct((CsrMatrix)restriction, (CsrMatrix)fineGridMatrix, (CsrMatrix)prolongation);
+		}
+
+		public CsrMatrix CalcProduct(CsrMatrix restriction, CsrMatrix fineGridMatrix, CsrMatrix prolongation)
+		{
 			if (prolongation != this.prolongationCsr)
 			{
-				this.prolongationCsr = (CsrMatrix)prolongation;
+				this.prolongationCsr = prolongation;
 				this.prolongationCsc = Conversions.CsrToCsc(this.prolongationCsr);
 			}
 
-			return CalcProduct(restrictionCsr, fineGridMatrixCsr, prolongationCsc);
-		}
-
-		private CsrMatrix CalcProduct(CsrMatrix restriction, CsrMatrix fineMatrix, CscMatrix prolongation)
-		{
-			CscMatrix temp = CsrCscMultiplications.CsrTimesCscToCsc(fineMatrix, prolongation);
+			CscMatrix temp = CsrCscMultiplications.CsrTimesCscToCsc(fineGridMatrix, prolongationCsc);
 			return CsrCscMultiplications.CsrTimesCscToCsr(restriction, temp);
 		}
 	}
