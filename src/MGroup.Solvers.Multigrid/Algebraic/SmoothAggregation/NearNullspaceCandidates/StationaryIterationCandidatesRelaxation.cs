@@ -20,6 +20,9 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 			this.stationaryIteration = stationaryIteration;
 		}
 
+		public INearNullspaceCandidatesRelaxationStrategy CopyWithInitialSettings() 
+			=> new StationaryIterationCandidatesRelaxation(stationaryIteration.CopyWithInitialSettings(), numSteps);
+
 		public void ImproveCandidateVectors(IReadOnlyMatrix systemMatrix, Matrix candidateVectors)
 		{
 			stationaryIteration.UpdateMatrix(systemMatrix, isPatternModified: true);

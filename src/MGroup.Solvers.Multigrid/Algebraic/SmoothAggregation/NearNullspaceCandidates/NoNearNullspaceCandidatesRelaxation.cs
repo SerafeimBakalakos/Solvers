@@ -8,6 +8,8 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 
 	public class NoNearNullspaceCandidatesRelaxation : INearNullspaceCandidatesRelaxationStrategy
 	{
+		public INearNullspaceCandidatesRelaxationStrategy CopyWithInitialSettings() => new NoNearNullspaceCandidatesRelaxation();
+
 		public void ImproveCandidateVectors(IReadOnlyMatrix systemMatrix, Matrix candidateVectors) { }
 	}
 }

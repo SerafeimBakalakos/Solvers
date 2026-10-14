@@ -4,9 +4,10 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 	using System.Collections.Generic;
 	using System.Text;
 
+	using MGroup.LinearAlgebra.Iterative;
 	using MGroup.LinearAlgebra.Matrices;
 
-	public interface INearNullspaceCandidatesRelaxationStrategy
+	public interface INearNullspaceCandidatesRelaxationStrategy : ISettingsCopiable<INearNullspaceCandidatesRelaxationStrategy>
 	{
 		void ImproveCandidateVectors(IReadOnlyMatrix systemMatrix, Matrix candidateVectors);
 	}
