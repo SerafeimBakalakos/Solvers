@@ -13,6 +13,7 @@ namespace MGroup.Solvers.Logging
 	{
 		private readonly string solverName;
 		private readonly List<(int iterations, double residualNormRatio)> iterativeAlgorithmData = new List<(int, double)>();
+		private readonly List<ResidualNormHistory> residualHistoryData = new List<ResidualNormHistory>();
 		private readonly List<SortedDictionary<string, long>> taskDurations = new List<SortedDictionary<string, long>>();
 		private readonly List<SortedDictionary<string, int>> numDofsPerCategory = new List<SortedDictionary<string, int>>();
 		private int currentStep;
@@ -31,6 +32,9 @@ namespace MGroup.Solvers.Logging
 		public int GetNumDofs(int analysisStep, string category) => numDofsPerCategory[analysisStep][category];
 
 		public int GetNumIterationsOfIterativeAlgorithm(int analysisStep) => iterativeAlgorithmData[analysisStep].iterations;
+
+		public ResidualNormHistory GetResidualHistory(int analysisStep) => residualHistoryData[analysisStep];
+
 		public double GetResidualNormRatioOfIterativeAlgorithm(int analysisStep) 
 			=> iterativeAlgorithmData[analysisStep].residualNormRatio;
 
@@ -50,6 +54,8 @@ namespace MGroup.Solvers.Logging
 
 		public void LogIterativeAlgorithm(int iterations, double residualNormRatio)
 			=> iterativeAlgorithmData.Add((iterations, residualNormRatio));
+
+		public void LogResidualHistory(ResidualNormHistory history) => residualHistoryData.Add(history);
 
 		/// <summary>
 		/// Each iteration is defined by the solution phase of ISolver. Dof ordering and matrix assembly may also be included, 

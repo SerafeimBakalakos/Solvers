@@ -16,6 +16,14 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 	public static class Poisson1D12ElementsSaAmgResults
 	{
+		/// <summary>
+		/// The first entry is the residual of the rhs. This sequence was obtained with 1 iteration of Symmetric GS per smoothing step and Cholesky solver for the coarsest level.
+		/// </summary>
+		public static double[] ResidualHistory => [3.3166247903553998, 0.054147283864000056, 0.0031261721647107337, 0.00021029782737567787, 1.5157638018852395e-05, 1.1650351000480434e-06, 9.4608340693744758e-08, 7.9726525032722071e-09, 6.8578273361354786e-10, 5.9573073859860636e-11];
+
+		public static double[] RhsVector => [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ];
+		public static double[] Solution => [0.45833333333236492, 0.83333333333139648, 1.1249999999981997, 1.333333333333419, 1.4583333333361705, 1.5000000000029889, 1.4583333333337751, 1.3333333333319721, 1.1249999999985325, 0.833333333332968, 0.45833333333334925];
+
 		public static int[] SystemOrders = { 11, 4 };
 
 		public static (int[] aggregatesOfFineDofs, int[] fineDofRootsOfAggregates, int[][] fineDofsPerAggregate) GetAggregates(int level)

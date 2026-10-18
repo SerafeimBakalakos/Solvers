@@ -7,6 +7,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Utilities
 	using System.Threading.Tasks;
 
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 
 	using Xunit;
@@ -44,6 +45,25 @@ namespace MGroup.Solvers.Multigrid.Tests.Utilities
 			else
 			{
 				Assert.Equal(expected.RawValues, computed.RawValues);
+			}
+		}
+
+		public static void AssertEqualResidualHistories(double[] expectedResiduals, ResidualNormHistory computedHistory, double tolerance)
+		{
+			var comparer = new MatrixComparer(tolerance);
+			if (computedHistory.IsInitialResidualStored)
+			{
+				double[] computedResiduals = computedHistory.GetAllResiduals();
+				Assert.Equal(computedResiduals.Length - 1, computedHistory.NumSolverIterations);
+				Assert.Equal(expectedResiduals.Length - 1, computedHistory.NumSolverIterations);
+				comparer.AssertEqual(expectedResiduals, computedResiduals);
+			}
+			else
+			{
+				double[] computedResiduals = computedHistory.GetResidualsExceptInitial();
+				Assert.Equal(computedResiduals.Length, computedHistory.NumSolverIterations);
+				Assert.Equal(expectedResiduals.Length, computedHistory.NumSolverIterations);
+				comparer.AssertEqual(expectedResiduals, computedResiduals);
 			}
 		}
 	}
