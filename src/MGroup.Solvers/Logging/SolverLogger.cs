@@ -28,7 +28,6 @@ namespace MGroup.Solvers.Logging
 
 		public string ExtraInfo { get; set; }
 
-
 		public int GetNumDofs(int analysisStep, string category) => numDofsPerCategory[analysisStep][category];
 
 		public int GetNumIterationsOfIterativeAlgorithm(int analysisStep) => iterativeAlgorithmData[analysisStep].iterations;

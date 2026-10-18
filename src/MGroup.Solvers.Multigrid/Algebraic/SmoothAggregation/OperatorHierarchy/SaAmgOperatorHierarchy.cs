@@ -13,6 +13,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.CoarseMatrix;
+	using MGroup.Solvers.Multigrid.Logging;
 
 	public class SaAmgOperatorHierarchy
 	{
@@ -70,21 +71,30 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 
 		public int NumLevels { get; private set; }
 
+		public SaAmgHierarchyLog Log { get; private set; }
+
 		public void BuildOperators(CsrMatrix finestLevelSystemMatrix)
 		{
+			Log = new SaAmgHierarchyLog();
+
 			CsrMatrix Af = finestLevelSystemMatrix;
 			systemMatricesPerLevel.Add(Af);
+			Log.LogSystemMatrix(Af);
+
 			Matrix Bf = candidatesSelectionStrategy.ChooseCandidateVectors(Af);
 			nullspaceCandidatesPerLevel.Add(Bf);
+			Log.LogNumNullspaceCandidateVectors(Bf.NumColumns);
 
 			int lvl = 0;
 			while ((lvl < numLevelsRequested - 1) && !terminationCriterion.MustStopCoarsening(Af))
 			{
 				// Aggregation
 				CsrMatrix C = strengthOfConnectionStrategy.CalcStrengthMatrix(Af);
+				Log.LogStrengthOfConnection(C);
 				if (!discardIntermediateData) strengthOfConnectionsPerLevel.Add(C);
 
 				AggregateCollection aggregates = aggregationStrategy.FindAggregates(C);
+				Log.LogNumAggregates(aggregates.NumAggregates);
 				if (!discardIntermediateData) aggregatesPerLevel.Add(aggregates);
 
 				// Smooth prolongation
@@ -92,6 +102,9 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 				// B is already stored
 
 				(CsrMatrix Pt, Matrix Bc) = candidatesFitting.FitCandidates(aggregates, Bf);
+				Log.LogTentativeProlongation(Pt);
+				Log.LogNumNullspaceCandidateVectors(Bc.NumColumns);
+
 				if (!discardIntermediateData)
 				{
 					tentativeProlongationsPerLevel.Add(Pt);
@@ -99,13 +112,16 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 				}
 
 				CsrMatrix P = prolongationSmoothingStrategy.SmoothProlongationMatrix(Pt, Af);
+				Log.LogProlongation(P);
 				prolongationsPerLevel.Add(P);
 
 				// Restriction and system matrix coarsening
 				CsrMatrix R = restrictionStrategy.CalcRestrictionMatrix(P);
+				Log.LogRestriction(R);
 				restrictionsPerLevel.Add(R);
 
 				CsrMatrix Ac = galerkinProductStrategy.CalcProduct(R, Af, P);
+				Log.LogSystemMatrix(Ac);
 				systemMatricesPerLevel.Add(Ac);
 
 				// Prepare for next level
@@ -115,6 +131,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 			}
 
 			NumLevels = lvl + 1;
+			Log.NumLevels = NumLevels;
 		}
 
 		public CsrMatrix GetProlongation(int level)

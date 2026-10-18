@@ -16,6 +16,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.GridTransfer;
+	using MGroup.Solvers.Multigrid.Logging;
 	using MGroup.Solvers.Multigrid.Smoothing;
 
 	public class SaAmgSolver
@@ -34,7 +35,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public SaAmgSolver(SaAmgOperatorHierarchy hierarchy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance)
 		{
-			Logger = new SolverLogger(Name);
+			Logger = new MultigridSolverLogger<SaAmgHierarchyLog>(Name);
 
 			this.hierarchy = hierarchy;
 			this.smoothers = smoothers;
@@ -46,7 +47,9 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public string Name { get; } = "Smooth Aggregation AMG solver";
 
-		public SolverLogger Logger { get; }
+		public MultigridSolverLogger<SaAmgHierarchyLog> Logger { get; }
+		
+		public SaAmgOperatorHierarchy OperatorHierarchy => hierarchy;
 
 		public void Solve(CsrMatrix systemMatrix, Vector rhsVector, Vector solution)
 		{
@@ -104,6 +107,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			int numLevels = hierarchy.NumLevels;
 			watch.Stop();
 			Logger.LogTaskDuration("Prepare prolongations, restrictions and coarse matrices", watch.ElapsedMilliseconds);
+			Logger.LogOperatorHierarchy(hierarchy.Log);
 
 			watch.Restart();
 			levelProgression = cycleSchedule.CreateProgression(hierarchy.NumLevels);
