@@ -10,6 +10,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.LinearAlgebraExtensions.Random;
 	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation;
@@ -43,7 +44,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			solver.Solve(systemMatrix, rhs, solution);
 
 			// Expected output
-			Vector solutionExpected = Vector.CreateFromArray(Poisson1D12ElementsSaAmgResults.Solution);
+			var solutionExpected = Vector.CreateFromArray(Poisson1D12ElementsSaAmgResults.Solution);
 			double[] residualNormsExpected = Poisson1D12ElementsSaAmgResults.ResidualHistory;
 
 			var expectedHierarchy = new SaAmgHierarchyLog();
@@ -72,6 +73,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 
 		private static SaAmgSolverBuilder ChooseDefaultSolver()
 		{
+			IRandomNumberGenerator rng = new SystemRandomRng(13);
+
 			var solverBuilder = new SaAmgSolverBuilder(numLevelsRequested: 10, maxCycles: 1000);
 			solverBuilder.ResidualTolerance = 1E-10;
 			solverBuilder.CoarseningTermination = new SystemOrderBasedTermination(10);
@@ -80,7 +83,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			solverBuilder.NullspaceCandidatesSelection = new ConstantCandidateSelection();
 			solverBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
 			solverBuilder.NullspaceOrthonormalizationTolerance = 1E-10;
-			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weightFactor: 4.0 / 3, degree: 1);
+			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weightFactor: 4.0 / 3, degree: 1, rng);
 			solverBuilder.Restriction = new SimpleTransposeRestriction();
 			solverBuilder.SetSmoothers(new StationaryIterationSmoother(new SgsIterationCsr(), numSteps: 1));
 			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());

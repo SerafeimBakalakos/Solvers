@@ -10,6 +10,7 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.EigenSystems
 	using MGroup.LinearAlgebra.Implementations.Managed;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.Solvers.LinearAlgebraExtensions.Random;
 
 	public class SpectralRadius
 	{
@@ -18,10 +19,10 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.EigenSystems
 		private readonly double tolerance = 0.01;
 		private readonly int maxIterations = 15;
 		private readonly int restart = 5;
-		private readonly Random rng;
+		private readonly IRandomNumberGenerator rng;
 		private readonly ILapackProvider provider = DotNumericsLapackProvider.UniqueInstance;
 
-		public SpectralRadius(double tolerance = 0.01, int maxIterations = 15, int restart = 5, int? rngSeed = null)
+		public SpectralRadius(double tolerance = 0.01, int maxIterations = 15, int restart = 5, IRandomNumberGenerator? rng = null)
 		{
 			if (maxIterations < 1)
 			{
@@ -37,8 +38,7 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.EigenSystems
 			this.maxIterations = maxIterations;
 			this.restart = restart;
 
-			if (rngSeed is null) rng = new Random();
-			else rng = new Random(rngSeed.Value);
+			this.rng = (rng is null) ? new SystemRandomRng() : rng;
 		}
 
 		public double ApproximateSpectralRadius(CsrMatrix matrix)
@@ -46,7 +46,7 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.EigenSystems
 			CheckSystemMatrix(matrix);
 
 			int n = matrix.NumRows;
-			Vector v0 = CreateRandomInitialGuess(n);
+			Vector v0 = Vector.CreateFromArray(rng.NextDoubleArray(n)); // Random initial guess
 			Normalize(v0);
 
 			double[] eigenvaluesReal = null;
@@ -138,7 +138,7 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.EigenSystems
 				v.Add(w);
 			}
 
-			int hSize = j + 1;
+			int hSize = breakdown ? j + 1 : j;
 
 			double[] eigenvaluesReal = new double[hSize];
 			double[] eigenvaluesImaginary = new double[hSize];
@@ -256,16 +256,6 @@ namespace MGroup.Solvers.LinearAlgebraExtensions.EigenSystems
 		{
 			// Similar to PyAMG's set_tol(): 1e6 * eps for double precision.
 			return 1.0E6 * DoubleMachineEpsilon;
-		}
-
-		private Vector CreateRandomInitialGuess(int length)
-		{
-			var vector = new double[length];
-			for (int i = 0; i < length; ++i)
-			{
-				vector[i] = rng.NextDouble();
-			}
-			return Vector.CreateFromArray(vector);
 		}
 
 		private static void Normalize(Vector vector)

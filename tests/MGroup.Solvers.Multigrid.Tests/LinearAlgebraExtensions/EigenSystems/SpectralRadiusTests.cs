@@ -8,6 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.EigenSystems
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.LinearAlgebraExtensions.EigenSystems;
+	using MGroup.Solvers.LinearAlgebraExtensions.Random;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.TestData;
 
 	using Xunit;
@@ -20,7 +21,8 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.EigenSystems
 			int n = Poisson1D_12Elements.SystemOrder;
 			var matrix = CsrMatrix.CreateFromArrays(n, n, Poisson1D_12Elements.SystemMatrixCsrValues, Poisson1D_12Elements.SystemMatrixCsrColIndices, Poisson1D_12Elements.SystemMatrixCsrRowOffsets, checkInput: true);
 
-			var spectralRadius = new SpectralRadius(tolerance: 0.01, maxIterations: 15, restart: 5, rngSeed: 13);
+			var rng = new SystemRandomRng(seed: 13);
+			var spectralRadius = new SpectralRadius(tolerance: 0.01, maxIterations: 15, restart: 5, rng);
 			double lambdaMax = spectralRadius.ApproximateSpectralRadius(matrix);
 
 			double lambdaMaxExpected = Poisson1D_12Elements.SystemMatrixMaxEigenvalue;
@@ -32,7 +34,8 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.EigenSystems
 		{
 			var matrix = CsrMatrix.CreateFromArrays(Poisson1D_12Elements.SystemOrder, Poisson1D_12Elements.SystemOrder, Poisson1D_12Elements.SystemMatrixNormalizedCsrValues, Poisson1D_12Elements.SystemMatrixCsrColIndices, Poisson1D_12Elements.SystemMatrixCsrRowOffsets, checkInput: true);
 
-			var spectralRadius = new SpectralRadius(tolerance: 0.01, maxIterations: 15, restart: 5, rngSeed: 13);
+			var rng = new SystemRandomRng(seed: 13);
+			var spectralRadius = new SpectralRadius(tolerance: 0.01, maxIterations: 15, restart: 5, rng);
 			double lambdaMax = spectralRadius.ApproximateSpectralRadius(matrix);
 
 			double lambdaMaxExpected = Poisson1D_12Elements.SystemMatrixNormalizedMaxEigenvalue;

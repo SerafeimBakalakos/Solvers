@@ -10,6 +10,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.LinearAlgebraExtensions.Random;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
@@ -41,7 +42,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 			var aggregationStrategy = new StandardAggregation();
 			var candidateSelectionStrategy = new ConstantCandidateSelection();
 			var candidateFittingStrategy = new CandidateVectorFitting(orthonormalizationTolerance);
-			var prolongationSmoothing = new JacobiProlongationSmoothing(smoothingWeightFactor,smoothingDegree);
+			var prolongationSmoothing = new JacobiProlongationSmoothing(smoothingWeightFactor,smoothingDegree, new SystemRandomRng(13));
 			var restrictionStrategy = new SimpleTransposeRestriction();
 
 			var relaxation = new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4);

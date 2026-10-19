@@ -11,6 +11,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Smoothing
 	using MGroup.Solvers.LinearAlgebraExtensions.EigenSystems;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.LinearAlgebraExtensions.Random;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
@@ -28,7 +29,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Smoothing
 			CsrMatrix systemMatrix = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
 			CsrMatrix tentativeP = Poisson1D12ElementsSaAmgResults.GetTentativeProlongation(level: 0, relaxationStrategy: "SGS-4");
 
-			var smoothing = new JacobiProlongationSmoothing(weightFactor, degree);
+			var rng = new SystemRandomRng(seed: 13);
+			var smoothing = new JacobiProlongationSmoothing(weightFactor, degree, rng);
 			CsrMatrix computedP = smoothing.SmoothProlongationMatrix(tentativeP, systemMatrix);
 
 			CsrMatrix expectedP = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(level: 0, weightFactor, degree);

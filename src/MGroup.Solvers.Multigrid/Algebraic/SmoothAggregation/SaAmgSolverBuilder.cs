@@ -13,6 +13,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.MSolve.Solution;
 	using MGroup.MSolve.Solution.AlgebraicModel;
 	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
+	using MGroup.Solvers.LinearAlgebraExtensions.Random;
 	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
@@ -67,7 +68,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public double NullspaceOrthonormalizationTolerance { get; set; } = 1E-10;
 
-		public IProlongationSmoothingStrategy ProlongationSmoothing { get; set; } = new JacobiProlongationSmoothing(weightFactor: 4.0 / 3.0, degree: 1);
+		public IProlongationSmoothingStrategy ProlongationSmoothing { get; set; } = new JacobiProlongationSmoothing(weightFactor: 4.0 / 3.0, degree: 1, new SystemRandomRng());
 
 		public double ResidualTolerance = 1E-7;
 
