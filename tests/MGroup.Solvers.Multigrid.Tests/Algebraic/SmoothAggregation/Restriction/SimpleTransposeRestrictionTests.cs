@@ -18,9 +18,9 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Restriction
 		[Fact]
 		public static void TestForPoisson1D()
 		{
-			double weightFactor = 4.0 / 3.0;
+			double dampingFactor = 4.0 / 3.0;
 			int degree = 1;
-			CsrMatrix P = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(level: 0, weightFactor, degree);
+			CsrMatrix P = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(level: 0, weightingStrategy: "SpectralRadius", dampingFactor, degree);
 			CsrMatrix expectedR = Poisson1D12ElementsSaAmgResults.GetRestrictionMatrix(level: 0);
 
 			var restrictionStrategy = new SimpleTransposeRestriction();

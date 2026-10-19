@@ -16,6 +16,49 @@ namespace MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Matrices
 	public static class CsrMatrixTestsExtensions
 	{
 		[Fact]
+		public static void TestCalcAbsRowSums()
+		{
+			var matrix = CsrMatrix.CreateFromArrays(numRows: 8, numCols: 5,
+				values: new double[]
+				{
+					2.0, -3.0, 4.0,
+					-1.0, 5.0,
+					7.0, -2.0,
+					-4.0, 1.0, -6.0,
+					3.0,
+					-2.0, -8.0,
+					9.0, -1.0
+				},
+				colIndices: new int[]
+				{
+					0, 2, 4,
+					1, 3,
+					0, 4,
+					0, 2, 3,
+					2,
+					1, 4,
+					0, 3
+				},
+				rowOffsets: new int[]
+				{
+					0, 3, 5, 7, 10, 10, 11, 13, 15
+				},
+				checkInput: true);
+
+			double[] expected = new double[]
+			{
+				9.0, 6.0, 9.0, 11.0, 0.0, 3.0, 10.0, 10.0
+			};
+
+			double[] computed = matrix.CalcAbsRowSums();
+
+			var comparer = new MatrixComparer(tolerance: 1E-15);
+			comparer.AssertEqual(expected, computed);
+		}
+
+
+
+		[Fact]
 		public static void TestGetDiagonalAbs()
 		{
 			double[] values =

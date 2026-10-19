@@ -69,12 +69,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-8);
 		}
 
-		
-
 		private static SaAmgSolverBuilder ChooseDefaultSolver()
 		{
-			IRandomNumberGenerator rng = new SystemRandomRng(13);
-
 			var solverBuilder = new SaAmgSolverBuilder(numLevelsRequested: 10, maxCycles: 1000);
 			solverBuilder.ResidualTolerance = 1E-10;
 			solverBuilder.CoarseningTermination = new SystemOrderBasedTermination(10);
@@ -83,7 +79,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			solverBuilder.NullspaceCandidatesSelection = new ConstantCandidateSelection();
 			solverBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
 			solverBuilder.NullspaceOrthonormalizationTolerance = 1E-10;
-			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weightFactor: 4.0 / 3, degree: 1, rng);
+			IJacobiWeightingStrategy weighting = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
+			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
 			solverBuilder.Restriction = new SimpleTransposeRestriction();
 			solverBuilder.SetSmoothers(new StationaryIterationSmoother(new SgsIterationCsr(), numSteps: 1));
 			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());

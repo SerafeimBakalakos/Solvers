@@ -25,7 +25,7 @@ namespace MGroup.Solvers.Multigrid.Tests.CoarseMatrix
 		[Fact]
 		public static void TestForPoisson1D()
 		{
-			CsrMatrix P = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(0, weightFactor: 4.0 / 3.0, degree: 1);
+			CsrMatrix P = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(0, dampingFactor: 4.0 / 3.0, degree: 1);
 			CsrMatrix R = Poisson1D12ElementsSaAmgResults.GetRestrictionMatrix(0);
 			CsrMatrix Af = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(0);
 			CsrMatrix expectedAc = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(1);

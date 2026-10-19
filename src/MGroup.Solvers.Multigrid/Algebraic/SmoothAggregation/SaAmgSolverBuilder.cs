@@ -50,6 +50,9 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			{
 				nullspaceCandidatesRelaxationStrategies[i] = relaxation.CopyWithInitialSettings();
 			}
+
+			IJacobiWeightingStrategy weightingStrategy = new SpectralRadiusJacobiWeighting(dampingFactor: 4.0 / 3.0, new SystemRandomRng(seed: 13));
+			ProlongationSmoothing = new JacobiProlongationSmoothing(weightingStrategy, degree: 1);
 		}
 
 		public IAggregationStrategy Aggregation { get; set; } = new StandardAggregation();
@@ -68,7 +71,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public double NullspaceOrthonormalizationTolerance { get; set; } = 1E-10;
 
-		public IProlongationSmoothingStrategy ProlongationSmoothing { get; set; } = new JacobiProlongationSmoothing(weightFactor: 4.0 / 3.0, degree: 1, new SystemRandomRng());
+		public IProlongationSmoothingStrategy ProlongationSmoothing { get; set; }
 
 		public double ResidualTolerance = 1E-7;
 
