@@ -13,8 +13,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	{
 		private const double domainLength = 1.0;
 
-		public static (DokRowMajor A, Vector b) CreateWithConstantSource(int numElements, double source = 1.0)
-			=> Create(numElements, x => source);
+		public static (DokRowMajor A, Vector b) CreateLinearSystemWithConstantSource(int numElements, double source = 1.0)
+			=> CreateLinearSystem(numElements, x => source);
 
 		/// <summary>
 		/// Creates the stiffness matrix and load vector for 
@@ -23,7 +23,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 		/// The domain is divided into numElements uniform linear finite elements. The boundary DOFs are eliminated, so the returned system has numElements - 1 unknowns.
 		/// The stiffness matrix is of the form: K = 1/h * [2 -1 0 0 ... 0; -1 2 -1 0 0 ...; 0 -1 2 -1 0 0 ...; ...] where h = 1 / numElements
 		/// </summary>
-		public static (DokRowMajor A, Vector b) Create(int numElements, Func<double, double> sourceFunction)
+		public static (DokRowMajor A, Vector b) CreateLinearSystem(int numElements, Func<double, double> sourceFunction)
 		{
 			if (numElements < 2) throw new ArgumentOutOfRangeException(nameof(numElements));
 

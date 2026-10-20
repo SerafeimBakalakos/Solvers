@@ -115,7 +115,7 @@ namespace MGroup.Solvers.Multigrid.Utilities
 			return true;
 		}
 
-		public static double NormFrobernius(IReadOnlyMatrix matrix) => NormFrobernius((ISparseMatrix)matrix);
+		//public static double NormFrobernius(IReadOnlyMatrix matrix) => NormFrobernius((ISparseMatrix)matrix);
 
 		public static double NormFrobernius(ISparseMatrix matrix)
 		{

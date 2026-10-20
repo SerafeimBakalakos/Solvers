@@ -26,7 +26,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.ConnectionS
 		[InlineData(1.0)]
 		public static void TestForPoisson1D(double theta)
 		{
-			(DokRowMajor dokA, _) = Poisson1DProblem.CreateWithConstantSource(numElements: 12, source: 1.0);
+			(DokRowMajor dokA, _) = Poisson1DProblem.CreateLinearSystemWithConstantSource(numElements: 12, source: 1.0);
 			CsrMatrix csrA = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
 
 			var soc = new SymmetricStrengthOfConnection(theta);
