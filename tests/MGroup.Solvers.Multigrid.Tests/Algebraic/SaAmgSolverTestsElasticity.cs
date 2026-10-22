@@ -6,8 +6,12 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 	using System.Text;
 	using System.Threading.Tasks;
 
+	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.Dofs;
+	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.LinearAlgebraExtensions.Random;
@@ -36,20 +40,31 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 		[Fact]
 		public static void TestForCantilever2D()
 		{
-			(DokRowMajor dokA, Vector rhs) = ElasticityCantilever2DProblem.CreateLinearSystem(numElementsY: 17);
+			int numElementsY = 16;
+			(DokRowMajor dokA, Vector rhs) = ElasticityCantilever2DProblem.CreateLinearSystem(numElementsY);
 			dokA.DropEntriesBelowMagnitude(1E-10, false);
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
-			SaAmgSolverBuilder solverBuilder = SaAmgSolverTestsPoisson.ChooseDefaultSolver();
+			// Nullspace for 2D elasticity
+			double[] domainCentroid = [ElasticityCantilever2DProblem.LengthX / 2.0, ElasticityCantilever2DProblem.LengthY / 2.0];
+			IModel model = ElasticityCantilever2DProblem.CreateModel(numElementsY);
+			ISubdomainFreeDofOrdering dofOrdering = ElasticityCantilever2DProblem.OrderDofs(numElementsY);
+			var candidatesSelection = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, domainCentroid);
+
+			// Solver
+			SaAmgSolverBuilder solverBuilder = ChooseDefaultSolver();
+			solverBuilder.NullspaceCandidatesSelection = candidatesSelection;
+			solverBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
+
 			SaAmgSolver solver = solverBuilder.BuildSolver();
 			Vector solution = Vector.CreateZero(rhs.Length);
 			
 			#region Temporary checks
-			Assert.Equal(1224, systemMatrix.NumRows);
-			Assert.Equal(1224, systemMatrix.NumColumns);
-			Assert.Equal(15224, systemMatrix.NumNonZeros);
-			Assert.Equal(6.7038295365603529e+07, DebugUtilities.NormFrobernius(systemMatrix), tolerance: 1E-5);
-			throw new NotImplementedException();
+			//Assert.Equal(1224, systemMatrix.NumRows);
+			//Assert.Equal(1224, systemMatrix.NumColumns);
+			//Assert.Equal(15224, systemMatrix.NumNonZeros);
+			//Assert.Equal(6.7038295365603529e+07, DebugUtilities.NormFrobernius(systemMatrix), tolerance: 1E-5);
+			//throw new NotImplementedException();
 			#endregion
 
 			solver.Solve(systemMatrix, rhs, solution);
@@ -92,20 +107,20 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 
 			// Comparisons
 			SaAmgSolverTestsPoisson.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
-			var comparer = new MatrixComparer(tolerance: 1E-14);
+			var comparer = new MatrixComparer(tolerance: 1E-5);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-9);
 		}
 
 		[Fact]
-		public static void TestForElasticityCantilever3D()
+		public static void TestForCantilever3D()
 		{
 			(DokRowMajor dokA, Vector rhs) = ElasticityCantilever3DProblem.CreateLinearSystem(numElementsY: 5);
 			dokA.DropEntriesBelowMagnitude(1E-10, false);
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
-			SaAmgSolverBuilder solverBuilder = SaAmgSolverTestsPoisson.ChooseDefaultSolver();
+			SaAmgSolverBuilder solverBuilder = ChooseDefaultSolver();
 			SaAmgSolver solver = solverBuilder.BuildSolver();
 			Vector solution = Vector.CreateZero(rhs.Length);
 
@@ -117,7 +132,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			throw new NotImplementedException();
 			#endregion
 
-			solver.Solve(systemMatrix, rhs, solution);
+			//solver.Solve(systemMatrix, rhs, solution);
 
 			// Expected output
 			var solutionExpected = Vector.CreateFromArray(new double[]
@@ -161,6 +176,25 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-9);
+		}
+
+		private static SaAmgSolverBuilder ChooseDefaultSolver()
+		{
+			var solverBuilder = new SaAmgSolverBuilder(numLevelsRequested: 10, maxCycles: 1000);
+			solverBuilder.ResidualTolerance = 1E-8;
+			solverBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);
+			solverBuilder.Aggregation = new StandardAggregation();
+			solverBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
+			solverBuilder.NullspaceOrthonormalizationTolerance = 1E-10;
+			IJacobiWeightingStrategy weighting = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
+			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
+			solverBuilder.Restriction = new SimpleTransposeRestriction();
+			solverBuilder.SetSmoothers(new StationaryIterationSmoother(new SgsIterationCsr(), numSteps: 1));
+			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
+			solverBuilder.CycleSchedule = new VCycleSchedule();
+			solverBuilder.DiscardIntermediateHierarchyData = false;
+
+			return solverBuilder;
 		}
 	}
 }

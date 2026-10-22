@@ -11,9 +11,10 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 	public static class ElasticityCantilever3DProblem
 	{
-		private const double LengthX = 3.0;
-		private const double LengthY = 1.0;
-		private const double LengthZ = 2.0;
+		public const double LengthX = 3.0;
+		public const double LengthY = 1.0;
+		public const double LengthZ = 2.0;
+
 		private const double TotalLoad = 6000.0;
 		private const double ElasticityModulus = 9.0e5;
 		private const double PoissonRatio = 0.3;

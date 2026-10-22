@@ -59,7 +59,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public ICoarseSystemSolver? CoarsestSystemSolver { get; set; }
 
-		public IAmgCoarseningTerminationCriterion CoarseningTermination { get; set; } = new SystemOrderBasedTermination(targetMinOrder: 10);
+		public IAmgCoarseningTerminationCriterion CoarseningTermination { get; set; } = new SystemSizeBasedTermination(targetMinSize: 10);
 
 		public ICycleSchedule CycleSchedule { get; set; } = new VCycleSchedule();
 

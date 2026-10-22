@@ -6,13 +6,18 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using System.Text;
 	using System.Threading.Tasks;
 
+	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.Dofs;
+	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
 	public static class ElasticityCantilever2DProblem
 	{
-		private const double LengthX = 2.0;
-		private const double LengthY = 1.0;
+		public const double LengthX = 2.0;
+		public const double LengthY = 1.0;
+
 		private const double TotalLoad = 6000.0;
 		private const double ElasticityModulus = 9.0e5;
 		private const double PoissonRatio = 0.3;
@@ -107,6 +112,62 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			}
 
 			return (A, b);
+		}
+
+		public static IModel CreateModel(int numElementsY)
+		{
+			int numElementsX = 2 * numElementsY;
+			int numNodesX = numElementsX + 1;
+			int numNodesY = numElementsY + 1;
+			double hx = LengthX / numElementsX;
+			double hy = LengthY / numElementsY;
+
+			var model = new Model();
+			for (int j = 0; j < numNodesY; j++)
+			{
+				for (int i = 0; i < numNodesX; i++)
+				{
+					int nodeID = GlobalNode(i, j, numElementsX);
+					double x = i * hx;
+					double y = j * hy;
+					model.NodesDictionary[nodeID] = new Node(nodeID, x, y);
+				}
+			}
+
+			return model;
+		}
+
+		public static ISubdomainFreeDofOrdering OrderDofs(int numElementsY)
+		{
+			int numElementsX = 2 * numElementsY;
+			int numNodesX = numElementsX + 1;
+			int numNodesY = numElementsY + 1;
+			double hx = LengthX / numElementsX;
+			double hy = LengthY / numElementsY;
+
+			var dofTypes = new ActiveDofs();
+			dofTypes.AddDof(StructuralDof.TranslationX);
+			dofTypes.AddDof(StructuralDof.TranslationY);
+
+			var freeDofs = new IntDofTable();
+			int dofID = 0;
+			for (int j = 0; j < numNodesY; j++)
+			{
+				for (int i = 0; i < numNodesX; i++)
+				{
+					if (i == 0) continue; // At x = 0, all dofs are constrained
+
+					int nodeID = GlobalNode(i, j, numElementsX);
+
+					for (int dofType = 0; dofType < 2; dofType++) // In order: translation x, translation y
+					{
+						freeDofs.TryAdd(nodeID, dofType, dofID);
+						dofID++;
+					}
+				}
+			}
+
+			return new SubdomainFreeDofOrderingGeneral(dofID, freeDofs, dofTypes);
 		}
 
 		private static double[,] CreateConstitutiveMatrix(double elasticityModulus, double poissonRatio)

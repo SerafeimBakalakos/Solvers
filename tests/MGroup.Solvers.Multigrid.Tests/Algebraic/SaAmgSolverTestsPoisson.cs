@@ -249,27 +249,6 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-9);
 		}
 
-		internal static SaAmgSolverBuilder ChooseDefaultSolver()
-		{
-			var solverBuilder = new SaAmgSolverBuilder(numLevelsRequested: 10, maxCycles: 1000);
-			solverBuilder.ResidualTolerance = 1E-10;
-			solverBuilder.CoarseningTermination = new SystemOrderBasedTermination(10);
-			solverBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);
-			solverBuilder.Aggregation = new StandardAggregation();
-			solverBuilder.NullspaceCandidatesSelection = new ConstantCandidateSelection();
-			solverBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
-			solverBuilder.NullspaceOrthonormalizationTolerance = 1E-10;
-			IJacobiWeightingStrategy weighting = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
-			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
-			solverBuilder.Restriction = new SimpleTransposeRestriction();
-			solverBuilder.SetSmoothers(new StationaryIterationSmoother(new SgsIterationCsr(), numSteps: 1));
-			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
-			solverBuilder.CycleSchedule = new VCycleSchedule();
-			solverBuilder.DiscardIntermediateHierarchyData = true;
-
-			return solverBuilder;
-		}
-
 		internal static void AssertEqualHierarchyLogs(SaAmgHierarchyLog expectedlog, SaAmgHierarchyLog computedLog)
 		{
 			Assert.Equal(expectedlog.NumLevels, computedLog.NumLevels);
@@ -291,11 +270,32 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			Assert.Equal(expectedlog.GetNumNullspaceCandidateVectors(maxLevel), computedLog.GetNumNullspaceCandidateVectors(maxLevel));
 		}
 
-		private static void AssertEqualMatrixSizes(SparseMatrixSizeLog expected, SparseMatrixSizeLog computed)
+		internal static void AssertEqualMatrixSizes(SparseMatrixSizeLog expected, SparseMatrixSizeLog computed)
 		{
 			Assert.Equal(expected.NumRows, computed.NumRows);
 			Assert.Equal(expected.NumColumns, computed.NumColumns);
 			Assert.Equal(expected.NumNonZeros, computed.NumNonZeros);
+		}
+
+		private static SaAmgSolverBuilder ChooseDefaultSolver()
+		{
+			var solverBuilder = new SaAmgSolverBuilder(numLevelsRequested: 10, maxCycles: 1000);
+			solverBuilder.ResidualTolerance = 1E-10;
+			solverBuilder.CoarseningTermination = new SystemSizeBasedTermination(10);
+			solverBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);
+			solverBuilder.Aggregation = new StandardAggregation();
+			solverBuilder.NullspaceCandidatesSelection = new ConstantCandidateSelection();
+			solverBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
+			solverBuilder.NullspaceOrthonormalizationTolerance = 1E-10;
+			IJacobiWeightingStrategy weighting = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
+			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
+			solverBuilder.Restriction = new SimpleTransposeRestriction();
+			solverBuilder.SetSmoothers(new StationaryIterationSmoother(new SgsIterationCsr(), numSteps: 1));
+			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
+			solverBuilder.CycleSchedule = new VCycleSchedule();
+			solverBuilder.DiscardIntermediateHierarchyData = true;
+
+			return solverBuilder;
 		}
 	}
 }
