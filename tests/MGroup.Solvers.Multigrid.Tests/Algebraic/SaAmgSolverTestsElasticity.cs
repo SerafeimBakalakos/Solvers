@@ -38,6 +38,65 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 	public static class SaAmgSolverTestsElasticity
 	{
 		[Fact]
+		public static void TestForCantilever2D_8x4Elements()
+		{
+			CsrMatrix systemMatrix = Cantilever2D_8x4Elements_SaAmgResults.GetSystemMatrix(level: 0);
+			Vector rhs = Vector.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.RhsVector);
+
+			// Elasticity 2D nullspace candidate vectors
+			int numElementsY = 4;
+			double Lx = Cantilever2DElasticityProblem.LengthX;
+			double Ly = Cantilever2DElasticityProblem.LengthY;
+			IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
+			ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
+			var candidateSelectionStrategy = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, [Lx / 2.0, Ly / 2.0]);
+
+			// Solver
+			SaAmgSolverBuilder solverBuilder = ChooseDefaultSolver();
+			solverBuilder.NullspaceCandidatesSelection = candidateSelectionStrategy;
+			solverBuilder.ResidualTolerance = 1E-8;
+			SaAmgSolver solver = solverBuilder.BuildSolver();
+			Vector solution = Vector.CreateZero(rhs.Length);
+			solver.Solve(systemMatrix, rhs, solution);
+
+			// Expected output
+			var solutionExpected = Vector.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.Solution);
+			double[] residualNormsExpected = Cantilever2D_8x4Elements_SaAmgResults.ResidualHistory;
+
+			var expectedHierarchy = new SaAmgHierarchyLog();
+			expectedHierarchy.NumLevels = 3;
+
+			// Level 0
+			expectedHierarchy.LogSystemMatrix(80, 80, 872);
+			expectedHierarchy.LogStrengthOfConnection(80, 80, 872);
+			expectedHierarchy.LogNumAggregates(6);
+			expectedHierarchy.LogNumNullspaceCandidateVectors(3);
+			expectedHierarchy.LogTentativeProlongation(80, 18, 240);
+			expectedHierarchy.LogProlongation(80, 18, 573);
+			expectedHierarchy.LogRestriction(18, 80, 573);
+
+			// Level 1
+			expectedHierarchy.LogSystemMatrix(18, 18, 288);
+			expectedHierarchy.LogStrengthOfConnection(6, 6, 32);
+			expectedHierarchy.LogNumAggregates(1);
+			expectedHierarchy.LogNumNullspaceCandidateVectors(3);
+			expectedHierarchy.LogTentativeProlongation(18, 3, 54);
+			expectedHierarchy.LogProlongation(18, 3, 54);
+			expectedHierarchy.LogRestriction(3, 18, 54);
+
+			// Level 2 (coarsest)
+			expectedHierarchy.LogSystemMatrix(3, 3, 9);
+			expectedHierarchy.LogNumNullspaceCandidateVectors(3);
+
+			// Comparisons
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
+			var comparer = new MatrixComparer(tolerance: 1E-11);
+			comparer.AssertEqual(solutionExpected, solution);
+			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);
+			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-6);
+		}
+
+		[Fact]
 		public static void TestForCantilever2D()
 		{
 			int numElementsY = 16;
@@ -106,7 +165,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(3);
 
 			// Comparisons
-			SaAmgSolverTestsPoisson.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-6);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);
@@ -171,7 +230,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(6);
 
 			// Comparisons
-			SaAmgSolverTestsPoisson.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-14);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);

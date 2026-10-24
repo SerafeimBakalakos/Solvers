@@ -17,7 +17,22 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 	public static class SystemOrderBasedTerminationTests
 	{
 		[Fact]
-		public static void TestPoisson1D()
+		public static void TestMustStopCoarsening_Cantilever8x4Elements()
+		{
+			var terminationCriterion = new SystemSizeBasedTermination(targetMinSize: 10);
+
+			CsrMatrix A0 = Cantilever2D_8x4Elements_SaAmgResults.GetSystemMatrix(level: 0);
+			Assert.Equal(false, terminationCriterion.MustStopCoarsening(A0));
+
+			CsrMatrix A1 = Cantilever2D_8x4Elements_SaAmgResults.GetSystemMatrix(level: 1);
+			Assert.Equal(false, terminationCriterion.MustStopCoarsening(A1));
+
+			CsrMatrix A2 = Cantilever2D_8x4Elements_SaAmgResults.GetSystemMatrix(level: 2);
+			Assert.Equal(true, terminationCriterion.MustStopCoarsening(A2));
+		}
+
+		[Fact]
+		public static void TestMustStopCoarsening_Poisson12Elements()
 		{
 			var terminationCriterion = new SystemSizeBasedTermination(targetMinSize: 10);
 

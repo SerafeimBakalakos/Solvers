@@ -16,6 +16,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 	public static class Poisson1D_12Elements_SaAmgResults
 	{
+		public const int NumLevels = 2;
+
 		/// <summary>
 		/// The first entry is the residual of the rhs. This sequence was obtained with 1 iteration of Symmetric GS per smoothing step and Cholesky solver for the coarsest level.
 		/// </summary>
@@ -33,7 +35,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			{
 				int[] aggregatesOfGraphNodes = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3];
 				int[] rootGraphNodesOfAggregates = [0, 3, 6, 9];
-				int[][] graphNodesPerAggregate = new int[][]
+				int[][] graphNodesPerAggregate = new int[4][]
 				{
 					new int[] { 0, 1 },
 					new int[] { 2, 3, 4 },
@@ -312,8 +314,3 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 		}
 	}
 }
-
-//double[] values = [];
-//int[] colIndices = [];
-//int[] rowOffsets = [];
-//return CsrMatrix.CreateFromArrays(m, n, values, colIndices, rowOffsets, checkInput: true);

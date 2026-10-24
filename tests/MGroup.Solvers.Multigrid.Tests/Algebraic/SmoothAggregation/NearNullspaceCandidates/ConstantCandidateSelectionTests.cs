@@ -17,7 +17,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 	public static class ConstantCandidateSelectionTests
 	{
 		[Fact]
-		public static void TestForPoisson1D()
+		public static void TestChooseCandidateVectors_Poisson12Elements()
 		{
 			CsrMatrix csrA = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
 			var expectedB = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(level: 0, relaxationStrategy: "None"));

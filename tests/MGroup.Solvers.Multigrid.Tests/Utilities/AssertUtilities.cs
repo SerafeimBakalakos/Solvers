@@ -8,6 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Utilities
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.Multigrid.Logging;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 
 	using Xunit;
@@ -46,6 +47,34 @@ namespace MGroup.Solvers.Multigrid.Tests.Utilities
 			{
 				Assert.Equal(expected.RawValues, computed.RawValues);
 			}
+		}
+
+		public static void AssertEqualHierarchyLogs(SaAmgHierarchyLog expectedlog, SaAmgHierarchyLog computedLog)
+		{
+			Assert.Equal(expectedlog.NumLevels, computedLog.NumLevels);
+			int maxLevel = expectedlog.NumLevels - 1;
+
+			for (int lvl = 0; lvl < maxLevel; lvl++)
+			{
+				AssertEqualMatrixSizes(expectedlog.GetSystemMatrixSize(lvl), computedLog.GetSystemMatrixSize(lvl));
+				AssertEqualMatrixSizes(expectedlog.GetProlongationSize(lvl), computedLog.GetProlongationSize(lvl));
+				AssertEqualMatrixSizes(expectedlog.GetRestrictionSize(lvl), computedLog.GetRestrictionSize(lvl));
+
+				AssertEqualMatrixSizes(expectedlog.GetStrengthOfConnectionSize(lvl), computedLog.GetStrengthOfConnectionSize(lvl));
+				Assert.Equal(expectedlog.GetNumAggregates(lvl), computedLog.GetNumAggregates(lvl));
+				Assert.Equal(expectedlog.GetNumNullspaceCandidateVectors(lvl), computedLog.GetNumNullspaceCandidateVectors(lvl));
+				AssertEqualMatrixSizes(expectedlog.GetTentativeProlongationSize(lvl), computedLog.GetTentativeProlongationSize(lvl));
+			}
+
+			AssertEqualMatrixSizes(expectedlog.GetSystemMatrixSize(maxLevel), computedLog.GetSystemMatrixSize(maxLevel));
+			Assert.Equal(expectedlog.GetNumNullspaceCandidateVectors(maxLevel), computedLog.GetNumNullspaceCandidateVectors(maxLevel));
+		}
+
+		public static void AssertEqualMatrixSizes(SparseMatrixSizeLog expected, SparseMatrixSizeLog computed)
+		{
+			Assert.Equal(expected.NumRows, computed.NumRows);
+			Assert.Equal(expected.NumColumns, computed.NumColumns);
+			Assert.Equal(expected.NumNonZeros, computed.NumNonZeros);
 		}
 
 		public static void AssertEqualResidualHistories(double[] expectedResiduals, ResidualNormHistory computedHistory, double tolerance)

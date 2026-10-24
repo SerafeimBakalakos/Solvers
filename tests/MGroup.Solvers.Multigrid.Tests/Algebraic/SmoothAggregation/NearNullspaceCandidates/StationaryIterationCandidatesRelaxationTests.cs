@@ -19,7 +19,36 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 
 	public static class StationaryIterationCandidatesRelaxationTests
 	{
-		public static void TestSymmetricGaussSeidelForPoisson1D()
+		[Fact]
+		public static void TestImproveCandidateVectors_Cantilever8x4Elements_SGS4()
+		{
+			// Level 0
+			CsrMatrix A0 = Cantilever2D_8x4Elements_SaAmgResults.GetSystemMatrix(level: 0);
+			var B0 = Matrix.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.GetNullspaceCandidatesInitial(0));
+
+			var stationaryIteration0 = new SgsIterationCsr();
+			var candidatesRelaxation0 = new StationaryIterationCandidatesRelaxation(stationaryIteration0, 4);
+			candidatesRelaxation0.ImproveCandidateVectors(A0, B0);
+
+			var expectedB0 = Matrix.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.GetNullspaceCandidatesFinal(level: 0));
+			var comparer0 = new MatrixComparer(tolerance: 1E-30);
+			comparer0.AssertEqual(expectedB0, B0);
+
+			// Level 1
+			CsrMatrix A1 = Cantilever2D_8x4Elements_SaAmgResults.GetSystemMatrix(level: 1);
+			var B1 = Matrix.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.GetNullspaceCandidatesInitial(1));
+
+			var stationaryIteration1 = new SgsIterationCsr();
+			var candidatesRelaxation1 = new StationaryIterationCandidatesRelaxation(stationaryIteration1, 4);
+			candidatesRelaxation1.ImproveCandidateVectors(A1, B1);
+
+			var expectedB1 = Matrix.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.GetNullspaceCandidatesFinal(level: 1));
+			var comparer1 = new MatrixComparer(tolerance: 1E-14);
+			comparer1.AssertEqual(expectedB1, B1);
+		}
+
+		[Fact]
+		public static void TestImproveCandidateVectors_Poisson12Elements_SGS4()
 		{
 			CsrMatrix matrixA = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
 			var matrixB = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(level: 0, relaxationStrategy: "None"));
@@ -29,7 +58,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 			candidatesRelaxation.ImproveCandidateVectors(matrixA, matrixB);
 
 			var expectedB = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(level: 0, relaxationStrategy: "SGS-4"));
-			var comparer = new MatrixComparer(tolerance: 1E-20);
+			var comparer = new MatrixComparer(tolerance: 1E-30);
 			comparer.AssertEqual(expectedB, matrixB);
 		}
 	}

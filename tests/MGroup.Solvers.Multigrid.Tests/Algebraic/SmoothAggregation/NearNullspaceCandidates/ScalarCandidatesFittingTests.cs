@@ -22,7 +22,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 		[Theory]
 		[InlineData("None")]
 		[InlineData("SGS-4")]
-		public static void TestForPoisson1D(string relaxation)
+		public static void TestGetTentativeProlongation_Poisson12Elements(string relaxation)
 		{
 			int numDofsFine = Poisson1D_12Elements_SaAmgResults.SystemOrders[0];
 			int numAggregates = Poisson1D_12Elements_SaAmgResults.SystemOrders[1];
