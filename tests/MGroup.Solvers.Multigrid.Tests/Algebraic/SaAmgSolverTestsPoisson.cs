@@ -36,8 +36,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 		[Fact]
 		public static void TestForPoisson1D_12Elements()
 		{
-			CsrMatrix systemMatrix = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
-			Vector rhs = Vector.CreateFromArray(Poisson1D12ElementsSaAmgResults.RhsVector);
+			CsrMatrix systemMatrix = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
+			Vector rhs = Vector.CreateFromArray(Poisson1D_12Elements_SaAmgResults.RhsVector);
 
 			SaAmgSolverBuilder solverBuilder = ChooseDefaultSolver();
 			SaAmgSolver solver = solverBuilder.BuildSolver();
@@ -45,8 +45,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			solver.Solve(systemMatrix, rhs, solution);
 
 			// Expected output
-			var solutionExpected = Vector.CreateFromArray(Poisson1D12ElementsSaAmgResults.Solution);
-			double[] residualNormsExpected = Poisson1D12ElementsSaAmgResults.ResidualHistory;
+			var solutionExpected = Vector.CreateFromArray(Poisson1D_12Elements_SaAmgResults.Solution);
+			double[] residualNormsExpected = Poisson1D_12Elements_SaAmgResults.ResidualHistory;
 
 			var expectedHierarchy = new SaAmgHierarchyLog();
 			expectedHierarchy.NumLevels = 2;

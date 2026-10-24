@@ -27,13 +27,13 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.ConnectionS
 		public static void TestForPoisson1D(double theta)
 		{
 			(DokRowMajor dokA, _) = Poisson1DProblem.CreateLinearSystemWithConstantSource(numElements: 12, source: 1.0);
-			CsrMatrix csrA = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
+			CsrMatrix csrA = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
 
 			var soc = new SymmetricStrengthOfConnection(theta);
 			DokRowMajor computedStrengthDok = soc.ComputeScalar(dokA);
 			CsrMatrix computedStrengthCsr = soc.CalcStrengthMatrix(csrA, blockSize: 1);
 
-			double[,] expectedStrength = Poisson1D12ElementsSaAmgResults.GetStrengthOfConnectionMatrix(level: 0, theta);
+			double[,] expectedStrength = Poisson1D_12Elements_SaAmgResults.GetStrengthOfConnectionMatrix(level: 0, theta);
  			DokRowMajor expectedStrengthDok = MatrixUtilities.ArrayToDok(expectedStrength);
 			CsrMatrix expectedStrengthCsr = MatrixUtilities.ArrayToCsr(expectedStrength);
 

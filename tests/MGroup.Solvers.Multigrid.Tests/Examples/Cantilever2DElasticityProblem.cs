@@ -13,7 +13,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
-	public static class ElasticityCantilever2DProblem
+	public static class Cantilever2DElasticityProblem
 	{
 		public const double LengthX = 2.0;
 		public const double LengthY = 1.0;

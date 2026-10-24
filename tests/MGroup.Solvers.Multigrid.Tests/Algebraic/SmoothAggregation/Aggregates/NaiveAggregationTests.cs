@@ -21,7 +21,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 		[Fact]
 		public static void TestForPoisson1D()
 		{
-			double[,] C = Poisson1D12ElementsSaAmgResults.GetStrengthOfConnectionMatrix(level: 0, theta: 0);
+			double[,] C = Poisson1D_12Elements_SaAmgResults.GetStrengthOfConnectionMatrix(level: 0, theta: 0);
 			CsrMatrix soc = MatrixUtilities.ArrayToCsr(C);
 
 			var aggregationStrategy = new NaiveAggregation();

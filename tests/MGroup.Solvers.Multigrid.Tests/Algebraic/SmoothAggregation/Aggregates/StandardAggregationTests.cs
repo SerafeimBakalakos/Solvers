@@ -21,14 +21,14 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 		[Fact]
 		public static void TestForPoisson1D()
 		{
-			double[,] C = Poisson1D12ElementsSaAmgResults.GetStrengthOfConnectionMatrix(level: 0, theta: 0);
+			double[,] C = Poisson1D_12Elements_SaAmgResults.GetStrengthOfConnectionMatrix(level: 0, theta: 0);
 			CsrMatrix soc = MatrixUtilities.ArrayToCsr(C);
 
 			var aggregationStrategy = new StandardAggregation();
 			AggregateCollection aggregates = aggregationStrategy.FindAggregates(soc);
 
-			int numAggregatesExpected = Poisson1D12ElementsSaAmgResults.SystemOrders[1];
-			(int[] aggregatesOfGraphNodesExpected, int[] rootGraphNodesOfAggregatesExpected, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			int numAggregatesExpected = Poisson1D_12Elements_SaAmgResults.SystemOrders[1];
+			(int[] aggregatesOfGraphNodesExpected, int[] rootGraphNodesOfAggregatesExpected, _) = Poisson1D_12Elements_SaAmgResults.GetAggregates(level: 0);
 
 			Assert.Equal(numAggregatesExpected, aggregates.NumAggregates);
 			Assert.Equal(aggregatesOfGraphNodesExpected, aggregates.AggregatesOfGraphNodes);

@@ -19,11 +19,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Smoothing
 		[Fact]
 		public static void TestForPoisson1D()
 		{
-			CsrMatrix systemMatrix = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
+			CsrMatrix systemMatrix = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
 			IJacobiWeightingStrategy weightingStrategy = new SpectralRadiusJacobiWeighting(dampingFactor: 4.0 / 3, new SystemRandomRng(seed: 13));
 			CsrMatrix computed = weightingStrategy.WeightSystemMatrix(systemMatrix);
 
-			CsrMatrix expected = Poisson1D12ElementsSaAmgResults.GetSystemMatrixWeighted(level: 0, weightingStrategy: "SpectralRadius");
+			CsrMatrix expected = Poisson1D_12Elements_SaAmgResults.GetSystemMatrixWeighted(level: 0, weightingStrategy: "SpectralRadius");
 			AssertUtilities.AssertEqualCsr(expected, computed, 1E-30);
 		}
 	}

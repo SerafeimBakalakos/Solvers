@@ -19,7 +19,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 		[Fact]
 		public static void TestBuildAggregateMembershipMatrix()
 		{
-			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D_12Elements_SaAmgResults.GetAggregates(level: 0);
 			var aggregates = new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregates);
 			CsrMatrix am = aggregates.BuildAggregateMembershipMatrix();
 
@@ -33,7 +33,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 		[Fact]
 		public static void TestGatherFineDofsPerAggregate()
 		{
-			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, int[][] expectedGraphNodesPerAggregate) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, int[][] expectedGraphNodesPerAggregate) = Poisson1D_12Elements_SaAmgResults.GetAggregates(level: 0);
 			
 			var aggregates = new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregates);
 			int[][] graphNodesPerAggregate = aggregates.GatherGraphNodesPerAggregate();

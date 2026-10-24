@@ -26,28 +26,28 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Smoothing
 		[InlineData(1.2, 3, 1E-14)]
 		public static void TestWithSpectralRadiusWeightingForPoisson1D(double dampingFactor, int degree, double tolerance)
 		{
-			CsrMatrix systemMatrix = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
-			CsrMatrix tentativeP = Poisson1D12ElementsSaAmgResults.GetTentativeProlongation(level: 0, relaxationStrategy: "SGS-4");
+			CsrMatrix systemMatrix = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
+			CsrMatrix tentativeP = Poisson1D_12Elements_SaAmgResults.GetTentativeProlongation(level: 0, relaxationStrategy: "SGS-4");
 
 			IJacobiWeightingStrategy weightingStrategy = new SpectralRadiusJacobiWeighting(dampingFactor, new SystemRandomRng(seed: 13));
 			var prolongationSmoothing = new JacobiProlongationSmoothing(weightingStrategy, degree);
 			CsrMatrix computedP = prolongationSmoothing.SmoothProlongationMatrix(tentativeP, systemMatrix);
 
-			CsrMatrix expectedP = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(level: 0, weightingStrategy:"SpectralRadius", dampingFactor, degree);
+			CsrMatrix expectedP = Poisson1D_12Elements_SaAmgResults.GetProlongationMatrix(level: 0, weightingStrategy:"SpectralRadius", dampingFactor, degree);
 			AssertUtilities.AssertEqualCsr(expectedP, computedP, tolerance);
 		}
 
 		[Fact]
 		public static void TestWithGershgorinWeightingForPoisson1D()
 		{
-			CsrMatrix systemMatrix = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
-			CsrMatrix tentativeP = Poisson1D12ElementsSaAmgResults.GetTentativeProlongation(level: 0, relaxationStrategy: "SGS-4");
+			CsrMatrix systemMatrix = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
+			CsrMatrix tentativeP = Poisson1D_12Elements_SaAmgResults.GetTentativeProlongation(level: 0, relaxationStrategy: "SGS-4");
 
 			IJacobiWeightingStrategy weightingStrategy = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
 			var prolongationSmoothing = new JacobiProlongationSmoothing(weightingStrategy, degree: 1);
 			CsrMatrix computedP = prolongationSmoothing.SmoothProlongationMatrix(tentativeP, systemMatrix);
 
-			CsrMatrix expectedP = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(level: 0, weightingStrategy: "Gershgorin", dampingFactor: 4.0 / 3.0, degree: 1);
+			CsrMatrix expectedP = Poisson1D_12Elements_SaAmgResults.GetProlongationMatrix(level: 0, weightingStrategy: "Gershgorin", dampingFactor: 4.0 / 3.0, degree: 1);
 			AssertUtilities.AssertEqualCsr(expectedP, computedP, 1E-30);
 		}
 	}

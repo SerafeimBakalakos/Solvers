@@ -24,23 +24,23 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 		[InlineData("SGS-4")]
 		public static void TestForPoisson1D(string relaxation)
 		{
-			int numDofsFine = Poisson1D12ElementsSaAmgResults.SystemOrders[0];
-			int numAggregates = Poisson1D12ElementsSaAmgResults.SystemOrders[1];
-			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			int numDofsFine = Poisson1D_12Elements_SaAmgResults.SystemOrders[0];
+			int numAggregates = Poisson1D_12Elements_SaAmgResults.SystemOrders[1];
+			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D_12Elements_SaAmgResults.GetAggregates(level: 0);
 			var aggregates = new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregates);
 
 			Assert.Equal(numDofsFine, aggregates.AggregatesOfGraphNodes.Length);
 			Assert.Equal(numAggregates, aggregates.NumAggregates);
 
-			var fineCandidates = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(level: 0, relaxation));
+			var fineCandidates = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(level: 0, relaxation));
 			var candidateFitting = new ScalarCandidatesFitting(orthonormalizationTolerance: 1E-10);
 			(CsrMatrix tentativeProlongation, Matrix coarseCandidates, int blockSizeCoarse) = candidateFitting.FitCandidates(aggregates, fineCandidates);
 
 			Assert.Equal(1, blockSizeCoarse);
-			CsrMatrix expectedPt = Poisson1D12ElementsSaAmgResults.GetTentativeProlongation(level: 0, relaxation);
+			CsrMatrix expectedPt = Poisson1D_12Elements_SaAmgResults.GetTentativeProlongation(level: 0, relaxation);
 			AssertUtilities.AssertEqualCsr(expectedPt, tentativeProlongation, tolerance: 1E-20);
 
-			var expectedCoarseCandidates = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(level: 1, relaxation));
+			var expectedCoarseCandidates = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(level: 1, relaxation));
 			var matrixComparer = new MatrixComparer(tolerance: 1E-20);
 			matrixComparer.AssertEqual(expectedCoarseCandidates, coarseCandidates);
 		}

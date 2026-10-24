@@ -35,7 +35,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 			int smoothingDegree = 1;
 			string relaxationStrategy = "SGS-4";
 
-			CsrMatrix csrA = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
+			CsrMatrix csrA = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
 
 			var terminationCriterion = new SystemSizeBasedTermination(10);
 			var socStrategy = new SymmetricStrengthOfConnection(socTheta);
@@ -57,16 +57,16 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 			hierarchy.BuildOperators(csrA);
 
 			int expectedNumLevels = 2;
-			CsrMatrix expectedA0 = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(0);
-			CsrMatrix expectedA1 = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(1);
-			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			CsrMatrix expectedA0 = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(0);
+			CsrMatrix expectedA1 = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(1);
+			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D_12Elements_SaAmgResults.GetAggregates(level: 0);
 			var expectedAggregates = new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregates);
-			CsrMatrix expectedC0 = MatrixUtilities.ArrayToCsr(Poisson1D12ElementsSaAmgResults.GetStrengthOfConnectionMatrix(0, socTheta));
-			Matrix expectedB0 = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(0, relaxationStrategy));
-			Matrix expectedB1 = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(1, relaxationStrategy));
-			CsrMatrix expectedPt0 = Poisson1D12ElementsSaAmgResults.GetTentativeProlongation(0, relaxationStrategy);
-			CsrMatrix expectedP0 = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(0, weightingStrategy:  "SpectralRadius", smoothingDampingFactor, smoothingDegree);
-			CsrMatrix expectedR0 = Poisson1D12ElementsSaAmgResults.GetRestrictionMatrix(0);
+			CsrMatrix expectedC0 = MatrixUtilities.ArrayToCsr(Poisson1D_12Elements_SaAmgResults.GetStrengthOfConnectionMatrix(0, socTheta));
+			Matrix expectedB0 = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(0, relaxationStrategy));
+			Matrix expectedB1 = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(1, relaxationStrategy));
+			CsrMatrix expectedPt0 = Poisson1D_12Elements_SaAmgResults.GetTentativeProlongation(0, relaxationStrategy);
+			CsrMatrix expectedP0 = Poisson1D_12Elements_SaAmgResults.GetProlongationMatrix(0, weightingStrategy:  "SpectralRadius", smoothingDampingFactor, smoothingDegree);
+			CsrMatrix expectedR0 = Poisson1D_12Elements_SaAmgResults.GetRestrictionMatrix(0);
 
 			int computedNumLevels = hierarchy.NumLevels;
 			CsrMatrix computedA0 = hierarchy.GetSystemMatrix(0);

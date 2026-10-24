@@ -22,10 +22,10 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 		public static void TestForCantilever2D()
 		{
 			int numElementsY = 2;
-			IModel model = ElasticityCantilever2DProblem.CreateModel(numElementsY);
+			IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
 			CsrMatrix systemMatrix = Cantilever2D_4x2Elements_SaAmgResults.GetSystemMatrix(0);
-			double[] domainCentroid = [ElasticityCantilever2DProblem.LengthX / 2.0, ElasticityCantilever2DProblem.LengthY / 2.0];
-			ISubdomainFreeDofOrdering dofOrdering = ElasticityCantilever2DProblem.OrderDofs(numElementsY);
+			double[] domainCentroid = [Cantilever2DElasticityProblem.LengthX / 2.0, Cantilever2DElasticityProblem.LengthY / 2.0];
+			ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
 
 			var candidatesSelection = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, domainCentroid);
 			Matrix computedB = candidatesSelection.ChooseCandidateVectors(systemMatrix);

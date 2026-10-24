@@ -9,7 +9,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
-	public static class ElasticityCantilever3DProblem
+	public static class Cantilever3DElasticityProblem
 	{
 		public const double LengthX = 3.0;
 		public const double LengthY = 1.0;

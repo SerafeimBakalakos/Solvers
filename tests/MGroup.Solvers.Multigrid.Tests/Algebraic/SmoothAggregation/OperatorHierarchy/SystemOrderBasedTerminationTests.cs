@@ -21,10 +21,10 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 		{
 			var terminationCriterion = new SystemSizeBasedTermination(targetMinSize: 10);
 
-			CsrMatrix Af = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
+			CsrMatrix Af = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
 			Assert.Equal(false, terminationCriterion.MustStopCoarsening(Af));
 
-			CsrMatrix Ac = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 1);
+			CsrMatrix Ac = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 1);
 			Assert.Equal(true, terminationCriterion.MustStopCoarsening(Ac));
 		}
 	}

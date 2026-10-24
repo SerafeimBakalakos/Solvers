@@ -21,14 +21,14 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 	{
 		public static void TestSymmetricGaussSeidelForPoisson1D()
 		{
-			CsrMatrix matrixA = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
-			var matrixB = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(level: 0, relaxationStrategy: "None"));
+			CsrMatrix matrixA = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
+			var matrixB = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(level: 0, relaxationStrategy: "None"));
 
 			var stationaryIteration = new SgsIterationCsr();
 			var candidatesRelaxation = new StationaryIterationCandidatesRelaxation(stationaryIteration, 4);
 			candidatesRelaxation.ImproveCandidateVectors(matrixA, matrixB);
 
-			var expectedB = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(level: 0, relaxationStrategy: "SGS-4"));
+			var expectedB = Matrix.CreateFromArray(Poisson1D_12Elements_SaAmgResults.GetNullspaceCandidates(level: 0, relaxationStrategy: "SGS-4"));
 			var comparer = new MatrixComparer(tolerance: 1E-20);
 			comparer.AssertEqual(expectedB, matrixB);
 		}

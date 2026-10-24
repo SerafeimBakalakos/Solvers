@@ -20,8 +20,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Restriction
 		{
 			double dampingFactor = 4.0 / 3.0;
 			int degree = 1;
-			CsrMatrix P = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(level: 0, weightingStrategy: "SpectralRadius", dampingFactor, degree);
-			CsrMatrix expectedR = Poisson1D12ElementsSaAmgResults.GetRestrictionMatrix(level: 0);
+			CsrMatrix P = Poisson1D_12Elements_SaAmgResults.GetProlongationMatrix(level: 0, weightingStrategy: "SpectralRadius", dampingFactor, degree);
+			CsrMatrix expectedR = Poisson1D_12Elements_SaAmgResults.GetRestrictionMatrix(level: 0);
 
 			var restrictionStrategy = new SimpleTransposeRestriction();
 			CsrMatrix computedR = restrictionStrategy.CalcRestrictionMatrix(P);

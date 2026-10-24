@@ -25,10 +25,10 @@ namespace MGroup.Solvers.Multigrid.Tests.CoarseMatrix
 		[Fact]
 		public static void TestForPoisson1D()
 		{
-			CsrMatrix P = Poisson1D12ElementsSaAmgResults.GetProlongationMatrix(0, dampingFactor: 4.0 / 3.0, degree: 1);
-			CsrMatrix R = Poisson1D12ElementsSaAmgResults.GetRestrictionMatrix(0);
-			CsrMatrix Af = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(0);
-			CsrMatrix expectedAc = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(1);
+			CsrMatrix P = Poisson1D_12Elements_SaAmgResults.GetProlongationMatrix(0, dampingFactor: 4.0 / 3.0, degree: 1);
+			CsrMatrix R = Poisson1D_12Elements_SaAmgResults.GetRestrictionMatrix(0);
+			CsrMatrix Af = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(0);
+			CsrMatrix expectedAc = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(1);
 
 			var galerkin = new GalerkinProductCsr();
 			CsrMatrix Ac = galerkin.CalcProduct(R, Af, P);

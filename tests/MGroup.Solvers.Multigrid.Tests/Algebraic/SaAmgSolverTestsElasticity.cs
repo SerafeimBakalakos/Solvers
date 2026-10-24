@@ -41,14 +41,14 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 		public static void TestForCantilever2D()
 		{
 			int numElementsY = 16;
-			(DokRowMajor dokA, Vector rhs) = ElasticityCantilever2DProblem.CreateLinearSystem(numElementsY);
+			(DokRowMajor dokA, Vector rhs) = Cantilever2DElasticityProblem.CreateLinearSystem(numElementsY);
 			dokA.DropEntriesBelowMagnitude(1E-10, false);
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
 			// Nullspace for 2D elasticity
-			double[] domainCentroid = [ElasticityCantilever2DProblem.LengthX / 2.0, ElasticityCantilever2DProblem.LengthY / 2.0];
-			IModel model = ElasticityCantilever2DProblem.CreateModel(numElementsY);
-			ISubdomainFreeDofOrdering dofOrdering = ElasticityCantilever2DProblem.OrderDofs(numElementsY);
+			double[] domainCentroid = [Cantilever2DElasticityProblem.LengthX / 2.0, Cantilever2DElasticityProblem.LengthY / 2.0];
+			IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
+			ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
 			var candidatesSelection = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, domainCentroid);
 
 			// Solver
@@ -116,7 +116,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 		[Fact]
 		public static void TestForCantilever3D()
 		{
-			(DokRowMajor dokA, Vector rhs) = ElasticityCantilever3DProblem.CreateLinearSystem(numElementsY: 5);
+			(DokRowMajor dokA, Vector rhs) = Cantilever3DElasticityProblem.CreateLinearSystem(numElementsY: 5);
 			dokA.DropEntriesBelowMagnitude(1E-10, false);
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 

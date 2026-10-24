@@ -14,7 +14,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
 	using MGroup.Solvers.Multigrid.Tests.Utilities;
 
-	public static class Poisson1D12ElementsSaAmgResults
+	public static class Poisson1D_12Elements_SaAmgResults
 	{
 		/// <summary>
 		/// The first entry is the residual of the rhs. This sequence was obtained with 1 iteration of Symmetric GS per smoothing step and Cholesky solver for the coarsest level.
