@@ -67,9 +67,9 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public IImplementationProvider LinearAlgebraProvider { get; set; } = LibrarySettings.GlobalProvider;
 
-		public INearNullspaceCandidatesSelectionStrategy NullspaceCandidatesSelection = new ConstantCandidateSelection();
+		public INullspaceCandidatesFittingStrategy NullspaceCandidatesFitting { get; set; } = new ScalarCandidatesFitting(orthonormalizationTolerance: 1E-10);
 
-		public double NullspaceOrthonormalizationTolerance { get; set; } = 1E-10;
+		public INearNullspaceCandidatesSelectionStrategy NullspaceCandidatesSelection { get; set; } = new ConstantCandidateSelection();
 
 		public IProlongationSmoothingStrategy ProlongationSmoothing { get; set; }
 
@@ -81,8 +81,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public SaAmgSolver BuildSolver()
 		{
-			var candidateFittingStrategy = new CandidateVectorFitting(NullspaceOrthonormalizationTolerance);
-			var hierarchy = new SaAmgOperatorHierarchy(numLevelsRequested, CoarseningTermination, StrengthOfConnection, Aggregation, NullspaceCandidatesSelection, nullspaceCandidatesRelaxationStrategies, candidateFittingStrategy, ProlongationSmoothing, Restriction, DiscardIntermediateHierarchyData);
+			var hierarchy = new SaAmgOperatorHierarchy(numLevelsRequested, CoarseningTermination, StrengthOfConnection, Aggregation, NullspaceCandidatesSelection, nullspaceCandidatesRelaxationStrategies, NullspaceCandidatesFitting, ProlongationSmoothing, Restriction, DiscardIntermediateHierarchyData);
 
 			CoarsestSystemSolver = FinalizeCoarsetSystemSolver();
 			return new SaAmgSolver(hierarchy, smoothers, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance);

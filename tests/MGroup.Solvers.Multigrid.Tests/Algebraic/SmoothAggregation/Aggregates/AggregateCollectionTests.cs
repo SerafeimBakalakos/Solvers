@@ -19,8 +19,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 		[Fact]
 		public static void TestBuildAggregateMembershipMatrix()
 		{
-			(int[] aggregatesOfFineDofs, int[] fineDofRootsOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
-			var aggregates = new AggregateCollection(aggregatesOfFineDofs, fineDofRootsOfAggregates);
+			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			var aggregates = new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregates);
 			CsrMatrix am = aggregates.BuildAggregateMembershipMatrix();
 
 			double[] valuesExpected = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
@@ -33,12 +33,12 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 		[Fact]
 		public static void TestGatherFineDofsPerAggregate()
 		{
-			(int[] aggregatesOfFineDofs, int[] fineDofRootsOfAggregates, int[][] fineDofsPerAggregateExpected) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, int[][] expectedGraphNodesPerAggregate) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
 			
-			var aggregates = new AggregateCollection(aggregatesOfFineDofs, fineDofRootsOfAggregates);
-			int[][] fineDofsPerAggregate = aggregates.GatherGraphNodesPerAggregate();
+			var aggregates = new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregates);
+			int[][] graphNodesPerAggregate = aggregates.GatherGraphNodesPerAggregate();
 
-			Assert.Equal(fineDofsPerAggregateExpected, fineDofsPerAggregate);
+			Assert.Equal(expectedGraphNodesPerAggregate, graphNodesPerAggregate);
 		}
 	}
 }

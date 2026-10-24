@@ -27,20 +27,20 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 		public static int[] SystemOrders = { 11, 4 };
 
-		public static (int[] aggregatesOfFineDofs, int[] fineDofRootsOfAggregates, int[][] fineDofsPerAggregate) GetAggregates(int level)
+		public static (int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, int[][] graphNodesPerAggregate) GetAggregates(int level)
 		{
 			if (level == 0)
 			{
-				int[] aggregatesOfFineDofs = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3];
-				int[] fineDofRootsOfAggregates = [0, 3, 6, 9];
-				int[][] fineDofsPerAggregate = new int[][]
+				int[] aggregatesOfGraphNodes = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3];
+				int[] rootGraphNodesOfAggregates = [0, 3, 6, 9];
+				int[][] graphNodesPerAggregate = new int[][]
 				{
 					new int[] { 0, 1 },
 					new int[] { 2, 3, 4 },
 					new int[] { 5, 6, 7 },
 					new int[] { 8, 9, 10 }
 				};
-				return (aggregatesOfFineDofs, fineDofRootsOfAggregates, fineDofsPerAggregate);
+				return (aggregatesOfGraphNodes, rootGraphNodesOfAggregates, graphNodesPerAggregate);
 			}
 			else
 			{

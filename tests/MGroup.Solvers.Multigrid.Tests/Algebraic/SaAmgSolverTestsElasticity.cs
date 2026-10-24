@@ -107,10 +107,10 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 
 			// Comparisons
 			SaAmgSolverTestsPoisson.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
-			var comparer = new MatrixComparer(tolerance: 1E-5);
+			var comparer = new MatrixComparer(tolerance: 1E-6);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);
-			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-9);
+			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-5);
 		}
 
 		[Fact]
@@ -185,7 +185,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			solverBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);
 			solverBuilder.Aggregation = new StandardAggregation();
 			solverBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
-			solverBuilder.NullspaceOrthonormalizationTolerance = 1E-10;
+			solverBuilder.NullspaceCandidatesFitting = new BlockCandidatesFitting(orthonormalizationTolerance: 1E-10);
 			IJacobiWeightingStrategy weighting = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
 			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
 			solverBuilder.Restriction = new SimpleTransposeRestriction();

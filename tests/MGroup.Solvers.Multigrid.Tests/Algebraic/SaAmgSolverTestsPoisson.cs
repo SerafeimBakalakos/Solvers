@@ -285,8 +285,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			solverBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);
 			solverBuilder.Aggregation = new StandardAggregation();
 			solverBuilder.NullspaceCandidatesSelection = new ConstantCandidateSelection();
+			solverBuilder.NullspaceCandidatesFitting = new ScalarCandidatesFitting(orthonormalizationTolerance: 1E-10);
 			solverBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
-			solverBuilder.NullspaceOrthonormalizationTolerance = 1E-10;
 			IJacobiWeightingStrategy weighting = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
 			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
 			solverBuilder.Restriction = new SimpleTransposeRestriction();

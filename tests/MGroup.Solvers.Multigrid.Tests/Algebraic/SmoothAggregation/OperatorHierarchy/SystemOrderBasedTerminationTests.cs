@@ -19,7 +19,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 		[Fact]
 		public static void TestPoisson1D()
 		{
-			var terminationCriterion = new SystemOrderBasedTermination(targetMinOrder: 10);
+			var terminationCriterion = new SystemSizeBasedTermination(targetMinSize: 10);
 
 			CsrMatrix Af = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
 			Assert.Equal(false, terminationCriterion.MustStopCoarsening(Af));

@@ -21,7 +21,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 		private readonly bool discardIntermediateData;
 
 		private readonly IAggregationStrategy aggregationStrategy;
-		private readonly CandidateVectorFitting candidatesFitting;
+		private readonly INullspaceCandidatesFittingStrategy candidatesFitting;
 		private readonly INearNullspaceCandidatesRelaxationStrategy[] candidatesRelaxationStrategies;
 		private readonly INearNullspaceCandidatesSelectionStrategy candidatesSelectionStrategy;
 		private readonly GalerkinProductCsr galerkinProductStrategy = new();
@@ -41,7 +41,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 		private readonly List<CsrMatrix> strengthOfConnectionsPerLevel;
 		private readonly List<CsrMatrix> tentativeProlongationsPerLevel;
 
-		public SaAmgOperatorHierarchy(int numLevelsRequested, IAmgCoarseningTerminationCriterion terminationCriterion, IStrengthOfConnection strengthOfConnectionStrategy, IAggregationStrategy aggregationStrategy, INearNullspaceCandidatesSelectionStrategy candidatesSelectionStrategy, IList<INearNullspaceCandidatesRelaxationStrategy> candidatesRelaxationStrategies, CandidateVectorFitting candidatesFitting, IProlongationSmoothingStrategy prolongationSmoothingStrategy, IRestrictionStrategy restrictionStrategy, bool discardIntermediateData = true)
+		public SaAmgOperatorHierarchy(int numLevelsRequested, IAmgCoarseningTerminationCriterion terminationCriterion, IStrengthOfConnection strengthOfConnectionStrategy, IAggregationStrategy aggregationStrategy, INearNullspaceCandidatesSelectionStrategy candidatesSelectionStrategy, IList<INearNullspaceCandidatesRelaxationStrategy> candidatesRelaxationStrategies, INullspaceCandidatesFittingStrategy candidatesFitting, IProlongationSmoothingStrategy prolongationSmoothingStrategy, IRestrictionStrategy restrictionStrategy, bool discardIntermediateData = true)
 		{
 			if (numLevelsRequested < 1) throw new ArgumentOutOfRangeException("There must be at least 1 level.");
 			if (candidatesRelaxationStrategies.Count != numLevelsRequested - 1)
@@ -86,10 +86,11 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 			Log.LogNumNullspaceCandidateVectors(Bf.NumColumns);
 
 			int lvl = 0;
+			int blockSize = 1;
 			while ((lvl < numLevelsRequested - 1) && !terminationCriterion.MustStopCoarsening(Af))
 			{
 				// Aggregation
-				CsrMatrix C = strengthOfConnectionStrategy.CalcStrengthMatrix(Af);
+				CsrMatrix C = strengthOfConnectionStrategy.CalcStrengthMatrix(Af, blockSize);
 				Log.LogStrengthOfConnection(C);
 				if (!discardIntermediateData) strengthOfConnectionsPerLevel.Add(C);
 
@@ -101,7 +102,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 				candidatesRelaxationStrategies[lvl].ImproveCandidateVectors(Af, Bf);
 				// B is already stored
 
-				(CsrMatrix Pt, Matrix Bc) = candidatesFitting.FitCandidates(aggregates, Bf);
+				(CsrMatrix Pt, Matrix Bc, int blockSizeCoarse) = candidatesFitting.FitCandidates(aggregates, Bf);
 				Log.LogTentativeProlongation(Pt);
 				Log.LogNumNullspaceCandidateVectors(Bc.NumColumns);
 
@@ -127,6 +128,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 				// Prepare for next level
 				Af = Ac;
 				Bf = Bc;
+				blockSize = blockSizeCoarse;
 				lvl++;
 			}
 

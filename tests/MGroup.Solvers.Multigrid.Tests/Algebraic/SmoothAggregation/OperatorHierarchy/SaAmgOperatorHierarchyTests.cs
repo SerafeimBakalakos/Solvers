@@ -37,11 +37,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 
 			CsrMatrix csrA = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
 
-			var terminationCriterion = new SystemOrderBasedTermination(10);
+			var terminationCriterion = new SystemSizeBasedTermination(10);
 			var socStrategy = new SymmetricStrengthOfConnection(socTheta);
 			var aggregationStrategy = new StandardAggregation();
 			var candidateSelectionStrategy = new ConstantCandidateSelection();
-			var candidateFittingStrategy = new CandidateVectorFitting(orthonormalizationTolerance);
+			var candidateFittingStrategy = new ScalarCandidatesFitting(orthonormalizationTolerance);
 			IJacobiWeightingStrategy weightingStrategy = new SpectralRadiusJacobiWeighting(dampingFactor: 4.0 / 3.0, new SystemRandomRng(seed: 13));
 			var prolongationSmoothing = new JacobiProlongationSmoothing(weightingStrategy, smoothingDegree);
 			var restrictionStrategy = new SimpleTransposeRestriction();
@@ -59,8 +59,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 			int expectedNumLevels = 2;
 			CsrMatrix expectedA0 = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(0);
 			CsrMatrix expectedA1 = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(1);
-			(int[] aggregatesOfFineDofs, int[] fineDofRootsOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
-			var expectedAggregates = new AggregateCollection(aggregatesOfFineDofs, fineDofRootsOfAggregates);
+			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			var expectedAggregates = new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregates);
 			CsrMatrix expectedC0 = MatrixUtilities.ArrayToCsr(Poisson1D12ElementsSaAmgResults.GetStrengthOfConnectionMatrix(0, socTheta));
 			Matrix expectedB0 = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(0, relaxationStrategy));
 			Matrix expectedB1 = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(1, relaxationStrategy));
@@ -84,8 +84,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 			AssertUtilities.AssertEqualCsr(expectedA0, computedA0, tolerance: 1E-30);
 			AssertUtilities.AssertEqualCsr(expectedA1, computedA1, tolerance: 1E-15);
 			Assert.Equal(expectedAggregates.NumAggregates, computedAggregates.NumAggregates);
-			Assert.Equal(expectedAggregates.AggregatesOfFineDofs, computedAggregates.AggregatesOfFineDofs);
-			Assert.Equal(expectedAggregates.FineDofRootsOfAggregates, computedAggregates.FineDofRootsOfAggregates);
+			Assert.Equal(expectedAggregates.AggregatesOfGraphNodes, computedAggregates.AggregatesOfGraphNodes);
+			Assert.Equal(expectedAggregates.RootGraphNodesOfAggregates, computedAggregates.RootGraphNodesOfAggregates);
 			AssertUtilities.AssertEqualCsr(expectedC0, computedC0, tolerance: 1E-30);
 			comparer.AssertEqual(expectedB0, computedB0);
 			comparer.AssertEqual(expectedB1, computedB1);

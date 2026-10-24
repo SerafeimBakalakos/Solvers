@@ -28,11 +28,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 			AggregateCollection aggregates = aggregationStrategy.FindAggregates(soc);
 
 			int numAggregatesExpected = Poisson1D12ElementsSaAmgResults.SystemOrders[1];
-			(int[] aggregatesOfFineDofsExpected, int[] fineDofRootsOfAggregatesExpected, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			(int[] aggregatesOfGraphNodesExpected, int[] rootGraphNodesOfAggregatesExpected, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
 
 			Assert.Equal(numAggregatesExpected, aggregates.NumAggregates);
-			Assert.Equal(aggregatesOfFineDofsExpected, aggregates.AggregatesOfGraphNodes);
-			Assert.Equal(fineDofRootsOfAggregatesExpected, aggregates.RootGraphNodesOfAggregates);
+			Assert.Equal(aggregatesOfGraphNodesExpected, aggregates.AggregatesOfGraphNodes);
+			Assert.Equal(rootGraphNodesOfAggregatesExpected, aggregates.RootGraphNodesOfAggregates);
 		}
 	}
 }

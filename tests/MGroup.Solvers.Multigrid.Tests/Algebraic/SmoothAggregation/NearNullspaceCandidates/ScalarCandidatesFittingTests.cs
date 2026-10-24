@@ -17,7 +17,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 
 	using Xunit;
 
-	public static class CandidateVectorFittingTests
+	public static class ScalarCandidatesFittingTests
 	{
 		[Theory]
 		[InlineData("None")]
@@ -26,16 +26,17 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 		{
 			int numDofsFine = Poisson1D12ElementsSaAmgResults.SystemOrders[0];
 			int numAggregates = Poisson1D12ElementsSaAmgResults.SystemOrders[1];
-			(int[] aggregatesOfFineDofs, int[] fineDofRootsOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
-			var aggregates = new AggregateCollection(aggregatesOfFineDofs, fineDofRootsOfAggregates);
+			(int[] aggregatesOfGraphNodes, int[] rootGraphNodesOfAggregates, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
+			var aggregates = new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregates);
 
-			Assert.Equal(numDofsFine, aggregates.AggregatesOfFineDofs.Length);
+			Assert.Equal(numDofsFine, aggregates.AggregatesOfGraphNodes.Length);
 			Assert.Equal(numAggregates, aggregates.NumAggregates);
 
 			var fineCandidates = Matrix.CreateFromArray(Poisson1D12ElementsSaAmgResults.GetNullspaceCandidates(level: 0, relaxation));
-			var candidateFitting = new CandidateVectorFitting(orthonormalizationTolerance: 1E-10);
-			(CsrMatrix tentativeProlongation, Matrix coarseCandidates) = candidateFitting.FitCandidates(aggregates, fineCandidates);
+			var candidateFitting = new ScalarCandidatesFitting(orthonormalizationTolerance: 1E-10);
+			(CsrMatrix tentativeProlongation, Matrix coarseCandidates, int blockSizeCoarse) = candidateFitting.FitCandidates(aggregates, fineCandidates);
 
+			Assert.Equal(1, blockSizeCoarse);
 			CsrMatrix expectedPt = Poisson1D12ElementsSaAmgResults.GetTentativeProlongation(level: 0, relaxation);
 			AssertUtilities.AssertEqualCsr(expectedPt, tentativeProlongation, tolerance: 1E-20);
 
