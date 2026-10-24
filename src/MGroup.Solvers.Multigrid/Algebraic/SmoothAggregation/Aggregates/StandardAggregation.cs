@@ -7,7 +7,11 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 	using MGroup.LinearAlgebra.Matrices;
 
 	/// <summary>
-	/// Calculates aggregates using PyAMG's standard aggregation algorithm.
+	/// Calculates aggregates using 3 passes, without taking into account the graph edge weights (values of the strength of connection matrix).
+	/// Pass 1: A new aggregate is assigned to each connected graph node, if both it and its neighbor nodes are unassigned.
+	/// Pass 2: Each connected node that was not assigned previously, is now assigned to the first assigned neighbor met.
+	/// Pass 3: Each connected node that was not assigned previously and its unassigned neighbors are assigned to a new aggregate (different per node neighborhood).
+	/// Unconnected graph nodes are not assigned to any aggregate.
 	/// </summary>
 	public class StandardAggregation : IAggregationStrategy
 	{
@@ -15,17 +19,17 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 		{
 			if (soc.NumRows != soc.NumColumns)
 			{
-				throw new ArgumentException("Aggregation requires a square matrix.", nameof(soc));
+				throw new ArgumentException("Aggregation requires the strength of connection matrix to be square", nameof(soc));
 			}
 
 			int n = soc.NumRows;
-			var aggregatesOfFineDofs = new int[n];
-			var fineDofRootsOfAggregates = new int[n];
+			var aggregatesOfGraphNodes = new int[n];
+			var rootGraphNodesOfAggregates = new int[n];
 
 			// Zero means that a node has not yet been processed.
 			// During the algorithm, positive values are temporary 1-based aggregate IDs.
 			// Negative values are used to mark nodes that are attached to an existing aggregate or isolated nodes.
-			Array.Fill(aggregatesOfFineDofs, 0);
+			Array.Fill(aggregatesOfGraphNodes, 0);
 
 			int nextAggregate = 1;
 
@@ -34,7 +38,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 			// Such a node becomes the root of a new aggregate, and all of its neighbors are placed into that aggregate.
 			for (int i = 0; i < n; ++i)
 			{
-				if (aggregatesOfFineDofs[i] != 0)
+				if (aggregatesOfGraphNodes[i] != 0)
 				{
 					continue;
 				}
@@ -51,7 +55,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 					if (i != j)
 					{
 						hasNeighbors = true;
-						if (aggregatesOfFineDofs[j] != 0)
+						if (aggregatesOfGraphNodes[j] != 0)
 						{
 							hasAggregatedNeighbors = true;
 							break;
@@ -62,16 +66,16 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 				if (!hasNeighbors)
 				{
 					// Isolated node: do not aggregate it in this pass.
-					aggregatesOfFineDofs[i] = -n;
+					aggregatesOfGraphNodes[i] = -n;
 				}
 				else if (!hasAggregatedNeighbors)
 				{
 					// Make an aggregate from this node and all of its neighbors.
-					aggregatesOfFineDofs[i] = nextAggregate;
-					fineDofRootsOfAggregates[nextAggregate - 1] = i;
+					aggregatesOfGraphNodes[i] = nextAggregate;
+					rootGraphNodesOfAggregates[nextAggregate - 1] = i;
 					for (int t = rowStart; t < rowEnd; ++t)
 					{
-						aggregatesOfFineDofs[soc.RawColIndices[t]] = nextAggregate;
+						aggregatesOfGraphNodes[soc.RawColIndices[t]] = nextAggregate;
 					}
 
 					++nextAggregate;
@@ -82,7 +86,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 			// Attach every remaining unaggregated node to any neighboring aggregate.
 			for (int i = 0; i < n; ++i)
 			{
-				if (aggregatesOfFineDofs[i] != 0)
+				if (aggregatesOfGraphNodes[i] != 0)
 				{
 					continue;
 				}
@@ -90,12 +94,12 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 				for (int t = soc.RawRowOffsets[i]; t < soc.RawRowOffsets[i + 1]; ++t)
 				{
 					int j = soc.RawColIndices[t];
-					int aggregate = aggregatesOfFineDofs[j];
+					int aggregate = aggregatesOfGraphNodes[j];
 
 					if (aggregate > 0)
 					{
 						// Use a negative temporary value so that this node is distinguishable from a node that originally belonged to the aggregate.
-						aggregatesOfFineDofs[i] = -aggregate;
+						aggregatesOfGraphNodes[i] = -aggregate;
 						break;
 					}
 				}
@@ -108,21 +112,21 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 			// Any node still unaggregated becomes the root of a new aggregate, together with all of its currently unaggregated neighbors.
 			for (int i = 0; i < n; ++i)
 			{
-				int aggregate = aggregatesOfFineDofs[i];
+				int aggregate = aggregatesOfGraphNodes[i];
 
 				if (aggregate != 0)
 				{
 					if (aggregate > 0)
 					{
-						aggregatesOfFineDofs[i] = aggregate - 1;
+						aggregatesOfGraphNodes[i] = aggregate - 1;
 					}
 					else if (aggregate == -n)
 					{
-						aggregatesOfFineDofs[i] = -1;
+						aggregatesOfGraphNodes[i] = -1;
 					}
 					else
 					{
-						aggregatesOfFineDofs[i] = -aggregate - 1;
+						aggregatesOfGraphNodes[i] = -aggregate - 1;
 					}
 
 					continue;
@@ -131,15 +135,15 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 				int rowStart = soc.RawRowOffsets[i];
 				int rowEnd = soc.RawRowOffsets[i + 1];
 
-				aggregatesOfFineDofs[i] = nextAggregate;
-				fineDofRootsOfAggregates[nextAggregate] = i;
+				aggregatesOfGraphNodes[i] = nextAggregate;
+				rootGraphNodesOfAggregates[nextAggregate] = i;
 
 				for (int t = rowStart; t < rowEnd; ++t)
 				{
 					int j = soc.RawColIndices[t];
-					if (aggregatesOfFineDofs[j] == 0)
+					if (aggregatesOfGraphNodes[j] == 0)
 					{
-						aggregatesOfFineDofs[j] = nextAggregate;
+						aggregatesOfGraphNodes[j] = nextAggregate;
 					}
 				}
 
@@ -148,10 +152,10 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 
 			// Keep only the relevant entries.
 			int numAggregates = nextAggregate;
-			var fineDofRootsOfAggregatesFinal = new int[numAggregates];
-			Array.Copy(fineDofRootsOfAggregates, fineDofRootsOfAggregatesFinal, numAggregates);
+			var rootGraphNodesOfAggregatesFinal = new int[numAggregates];
+			Array.Copy(rootGraphNodesOfAggregates, rootGraphNodesOfAggregatesFinal, numAggregates);
 
-			return new AggregateCollection(aggregatesOfFineDofs, fineDofRootsOfAggregatesFinal);
+			return new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregatesFinal);
 		}
 	}
 }

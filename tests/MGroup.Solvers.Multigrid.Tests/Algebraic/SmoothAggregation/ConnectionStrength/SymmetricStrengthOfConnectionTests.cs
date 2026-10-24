@@ -30,8 +30,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.ConnectionS
 			CsrMatrix csrA = Poisson1D12ElementsSaAmgResults.GetSystemMatrix(level: 0);
 
 			var soc = new SymmetricStrengthOfConnection(theta);
-			DokRowMajor computedStrengthDok = soc.Compute(dokA);
-			CsrMatrix computedStrengthCsr = soc.CalcStrengthMatrix(csrA);
+			DokRowMajor computedStrengthDok = soc.ComputeScalar(dokA);
+			CsrMatrix computedStrengthCsr = soc.CalcStrengthMatrix(csrA, blockSize: 1);
 
 			double[,] expectedStrength = Poisson1D12ElementsSaAmgResults.GetStrengthOfConnectionMatrix(level: 0, theta);
  			DokRowMajor expectedStrengthDok = MatrixUtilities.ArrayToDok(expectedStrength);

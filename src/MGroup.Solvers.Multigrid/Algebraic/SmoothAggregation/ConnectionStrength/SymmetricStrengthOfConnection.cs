@@ -30,7 +30,16 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrengt
 			this.theta = theta;
 		}
 
-		public CsrMatrix CalcStrengthMatrix(CsrMatrix A)
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="A"></param>
+		/// <param name="blockSize">
+		/// The block size must be the same for rows and columns, when a symmetric connection strength strategy is used.
+		/// </param>
+		/// <returns></returns>
+		/// <exception cref="ArgumentException"></exception>
+		public CsrMatrix CalcStrengthMatrix(CsrMatrix A, int blockSize)
 		{
 			if (A.NumRows != A.NumColumns)
 			{
@@ -42,14 +51,39 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrengt
 				throw new ArgumentException("Theta must be non-negative.", nameof(theta));
 			}
 
-			int n = A.NumRows;
-			double[] diagonal = A.GetDiagonalAbs(); // Store |Aii| once because it is used for every connection involving node i.
-			(double[] values, int[] columnIndices, int[] rowOffsets) = BuildStrengthMatrix(A, diagonal, theta);
-			NormalizeStrengthMatrix(n, values, columnIndices, rowOffsets);
-			return CsrMatrix.CreateFromArrays(n, n, values, columnIndices, rowOffsets, checkInput: false);
+			if (blockSize < 1 || A.NumRows % blockSize != 0)
+			{
+				throw new ArgumentException("Block size must be positive and divide the matrix dimensions.", nameof(blockSize));
+			}
+
+			// Assumes the CSR matrix has unique, sorted column indices in each row.
+			if (blockSize == 1)
+			{
+				// If theta==0, the thresholding operation returns the same matrix.
+				CsrMatrix strength = (theta == 0) ? A.CopyAsSameType(copyIndexingData: false) : BuildScalarStrengthMatrix(A, theta);
+				strength.NormalizeMaxAbs();
+				return strength;
+			}
+			else
+			{
+				if (theta == 0.0)
+				{
+
+					CsrMatrix reducedMatrix = A.ReduceByBlocksEmpty(blockSize, blockSize);
+					reducedMatrix.SetAllNonZeros(1.0);
+					return reducedMatrix; // Thresholding and normalization are redundant here, since all entries are 1.
+				}
+				else
+				{
+					CsrMatrix reducedMatrix = A.ReduceByBlocksFroberniusNorm(blockSize, blockSize);
+					CsrMatrix strength = BuildScalarStrengthMatrix(reducedMatrix, theta);
+					strength.NormalizeMaxAbs();
+					return strength;
+				}
+			}
 		}
 
-		public DokRowMajor Compute(DokRowMajor A)
+		public DokRowMajor ComputeScalar(DokRowMajor A)
 		{
 			if (A.NumRows != A.NumColumns)
 			{
@@ -103,8 +137,109 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrengt
 			return strength;
 		}
 
-		private static (double[] values, int[] columnIndices, int[] rowOffsets) BuildStrengthMatrix(CsrMatrix A, double[] diagonal, double theta)
+		//private static CsrMatrix BuildBlockGraphStrengthMatrix(CsrMatrix A, int blockSize)
+		//{
+		//	int numBlocks = A.NumRows / blockSize;
+		//	var blockColumnsByRow = new SortedSet<int>[numBlocks];
+
+		//	for (int blockRow = 0; blockRow < numBlocks; ++blockRow)
+		//	{
+		//		blockColumnsByRow[blockRow] = new SortedSet<int>();
+		//	}
+
+		//	int[] rowOffsets = A.RawRowOffsets;
+		//	int[] columnIndices = A.RawColIndices;
+
+		//	for (int row = 0; row < A.NumRows; ++row)
+		//	{
+		//		int blockRow = row / blockSize;
+
+		//		for (int k = rowOffsets[row]; k < rowOffsets[row + 1]; ++k)
+		//		{
+		//			int blockColumn = columnIndices[k] / blockSize;
+		//			blockColumnsByRow[blockRow].Add(blockColumn);
+		//		}
+		//	}
+
+		//	var values = new List<double>();
+		//	var columns = new List<int>();
+		//	var offsets = new int[numBlocks + 1];
+
+		//	offsets[0] = 0;
+
+		//	for (int blockRow = 0; blockRow < numBlocks; ++blockRow)
+		//	{
+		//		foreach (int blockColumn in blockColumnsByRow[blockRow])
+		//		{
+		//			columns.Add(blockColumn);
+		//			values.Add(1.0);
+		//		}
+
+		//		offsets[blockRow + 1] = values.Count;
+		//	}
+
+		//	return CsrMatrix.CreateFromArrays(
+		//		numBlocks, numBlocks, values.ToArray(), columns.ToArray(), offsets, checkInput: false);
+		//}
+
+		//private static CsrMatrix BuildBlockFrobeniusNormMatrix(CsrMatrix A, int blockSize)
+		//{
+		//	int numBlocks = A.NumRows / blockSize;
+		//	var blockNormsSquaredByRow = new SortedDictionary<int, double>[numBlocks];
+		//	for (int blockRow = 0; blockRow < numBlocks; ++blockRow)
+		//	{
+		//		blockNormsSquaredByRow[blockRow] = new SortedDictionary<int, double>();
+		//	}
+
+		//	int[] rowOffsets = A.RawRowOffsets;
+		//	int[] columnIndices = A.RawColIndices;
+		//	double[] values = A.RawValues;
+
+		//	for (int row = 0; row < A.NumRows; ++row)
+		//	{
+		//		int blockRow = row / blockSize;
+
+		//		for (int k = rowOffsets[row]; k < rowOffsets[row + 1]; ++k)
+		//		{
+		//			int blockColumn = columnIndices[k] / blockSize;
+		//			double value = values[k];
+
+		//			if (blockNormsSquaredByRow[blockRow].TryGetValue(blockColumn, out double sumSquares))
+		//			{
+		//				blockNormsSquaredByRow[blockRow][blockColumn] = sumSquares + value * value;
+		//			}
+		//			else
+		//			{
+		//				blockNormsSquaredByRow[blockRow].Add(blockColumn, value * value);
+		//			}
+		//		}
+		//	}
+
+		//	var normValues = new List<double>();
+		//	var normColumns = new List<int>();
+		//	var normOffsets = new int[numBlocks + 1];
+
+		//	normOffsets[0] = 0;
+
+		//	for (int blockRow = 0; blockRow < numBlocks; ++blockRow)
+		//	{
+		//		foreach ((int blockColumn, double sumSquares) in blockNormsSquaredByRow[blockRow])
+		//		{
+		//			normColumns.Add(blockColumn);
+		//			normValues.Add(Math.Sqrt(sumSquares));
+		//		}
+
+		//		normOffsets[blockRow + 1] = normValues.Count;
+		//	}
+
+		//	return CsrMatrix.CreateFromArrays(numBlocks, numBlocks, normValues.ToArray(), normColumns.ToArray(), normOffsets, checkInput: false);
+		//}
+
+		private static CsrMatrix BuildScalarStrengthMatrix(CsrMatrix A, double theta)
 		{
+			// Store |Aii| once because it is used for every connection involving node i.
+			double[] diagonal = A.GetDiagonalAbs(); 
+
 			// Allocate more space than will actually be used for the strength matrix, which contains a subset of A's nonzeros. 
 			double[] strengthValues = new double[A.NumNonZeros];
 			int[] strengthColumnIndices = new int[A.NumNonZeros];
@@ -114,9 +249,10 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrengt
 			// Build the strength matrix row-by-row
 			int nnz = 0;
 			strengthRowOffsets[0] = 0;
+			double thetaSquared = theta * theta;
 			for (int i = 0; i < n; ++i)
 			{
-				double thetaSquaredDiagonal = theta * theta * diagonal[i];
+				double thetaSquaredDiagonal = thetaSquared * diagonal[i];
 
 				int rowStart = A.RawRowOffsets[i];
 				int rowEnd = A.RawRowOffsets[i + 1];
@@ -150,38 +286,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrengt
 			Array.Resize(ref strengthValues, nnz);
 			Array.Resize(ref strengthColumnIndices, nnz);
 
-			return (strengthValues, strengthColumnIndices, strengthRowOffsets);
-		}
-
-		private static void NormalizeStrengthMatrix(int numRows, double[] values, int[] columnIndices, int[] rowOffsets)
-		{
-			// Normalization:
-			for (int i = 0; i < numRows; ++i)
-			{
-				int rowStart = rowOffsets[i];
-				int rowEnd = rowOffsets[i + 1];
-
-				double rowMax = 0.0;
-
-				for (int t = rowStart; t < rowEnd; ++t)
-				{
-					double abs = Math.Abs(values[t]); // Take absolute values, since strength represents distances.
-					values[t] = abs;
-					if (abs > rowMax)
-					{
-						rowMax = abs;
-					}
-				}
-
-				// Scale each row by its max abs.
-				if (rowMax > 0.0)
-				{
-					for (int t = rowStart; t < rowEnd; ++t)
-					{
-						values[t] /= rowMax;
-					}
-				}
-			}
+			return CsrMatrix.CreateFromArrays(A.NumRows, A.NumColumns, strengthValues, strengthColumnIndices, strengthRowOffsets, checkInput: false);
 		}
 	}
 }

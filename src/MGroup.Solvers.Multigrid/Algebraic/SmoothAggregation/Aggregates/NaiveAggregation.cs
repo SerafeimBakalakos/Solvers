@@ -8,7 +8,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 
 	/// <summary>
 	/// Very simple implementation of <see cref="IAggregationStrategy"/>. The quality of the coarse space may not be very good.
-	/// Each unaggregated node becomes the root of a new aggregate, and all of its currently unaggregated neighbors are added to that aggregate.
+	/// Each unaggregated graph node becomes the root of a new aggregate, and all of its currently unaggregated neighbors are added to that aggregate.
 	/// </summary>
 	public class NaiveAggregation : IAggregationStrategy
 	{
@@ -20,25 +20,25 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 			}
 
 			int n = soc.NumRows;
-			var aggregatesOfFineDofs = new int[n];
-			var fineDofRootsOfAggregates = new int[n]; // Not all these entries will be used
+			var aggregatesOfGraphNodes = new int[n];
+			var rootGraphNodesOfAggregates = new int[n]; // Not all these entries will be used
 
-			// -1 means that the node has not yet been aggregated.
-			Array.Fill(aggregatesOfFineDofs, -1);
+			// -1 means that the graph node has not yet been aggregated.
+			Array.Fill(aggregatesOfGraphNodes, -1);
 
 			int currentAggregate = -1;
 			for (int i = 0; i < n; ++i)
 			{
-				// Skip this dof if it is already aggregated
-				if (aggregatesOfFineDofs[i] != -1)
+				// Skip this graph node if it is already aggregated
+				if (aggregatesOfGraphNodes[i] != -1)
 				{
 					continue;
 				}
 
-				// Make a new aggregate with this this fine dof as root
+				// Make a new aggregate with this graph node as root
 				currentAggregate++;
-				aggregatesOfFineDofs[i] = currentAggregate;
-				fineDofRootsOfAggregates[currentAggregate] = i;
+				aggregatesOfGraphNodes[i] = currentAggregate;
+				rootGraphNodesOfAggregates[currentAggregate] = i;
 
 				// Add all currently unaggregated neighbors to this aggregate.
 				int rowStart = soc.RawRowOffsets[i];
@@ -46,19 +46,19 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates
 				for (int t = rowStart; t < rowEnd; ++t)
 				{
 					int j = soc.RawColIndices[t];
-					if (aggregatesOfFineDofs[j] == -1)
+					if (aggregatesOfGraphNodes[j] == -1)
 					{
-						aggregatesOfFineDofs[j] = currentAggregate;
+						aggregatesOfGraphNodes[j] = currentAggregate;
 					}
 				}
 			}
 
 			// Keep only the relevant entries.
 			int numAggregates = currentAggregate + 1;
-			var fineDofRootsOfAggregatesFinal = new int[numAggregates];
-			Array.Copy(fineDofRootsOfAggregates, fineDofRootsOfAggregatesFinal, numAggregates);
+			var rootGraphNodesOfAggregatesFinal = new int[numAggregates];
+			Array.Copy(rootGraphNodesOfAggregates, rootGraphNodesOfAggregatesFinal, numAggregates);
 
-			return new AggregateCollection(aggregatesOfFineDofs, fineDofRootsOfAggregatesFinal);
+			return new AggregateCollection(aggregatesOfGraphNodes, rootGraphNodesOfAggregatesFinal);
 		}
 	}
 }

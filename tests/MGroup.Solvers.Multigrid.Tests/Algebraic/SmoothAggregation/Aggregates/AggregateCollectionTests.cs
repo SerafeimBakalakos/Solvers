@@ -36,7 +36,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 			(int[] aggregatesOfFineDofs, int[] fineDofRootsOfAggregates, int[][] fineDofsPerAggregateExpected) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
 			
 			var aggregates = new AggregateCollection(aggregatesOfFineDofs, fineDofRootsOfAggregates);
-			int[][] fineDofsPerAggregate = aggregates.GatherFineDofsPerAggregate();
+			int[][] fineDofsPerAggregate = aggregates.GatherGraphNodesPerAggregate();
 
 			Assert.Equal(fineDofsPerAggregateExpected, fineDofsPerAggregate);
 		}

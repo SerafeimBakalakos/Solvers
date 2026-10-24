@@ -31,8 +31,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 			(int[] aggregatesOfFineDofsExpected, int[] fineDofRootsOfAggregatesExpected, _) = Poisson1D12ElementsSaAmgResults.GetAggregates(level: 0);
 
 			Assert.Equal(numAggregatesExpected, aggregates.NumAggregates);
-			Assert.Equal(aggregatesOfFineDofsExpected, aggregates.AggregatesOfFineDofs);
-			Assert.Equal(fineDofRootsOfAggregatesExpected, aggregates.FineDofRootsOfAggregates);
+			Assert.Equal(aggregatesOfFineDofsExpected, aggregates.AggregatesOfGraphNodes);
+			Assert.Equal(fineDofRootsOfAggregatesExpected, aggregates.RootGraphNodesOfAggregates);
 		}
 	}
 }

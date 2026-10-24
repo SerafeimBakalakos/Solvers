@@ -32,8 +32,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Aggregates
 			int[] fineDofRootsOfAggregatesExpected = [0, 2, 4, 6, 8, 10];
 
 			Assert.Equal(numAggregatesExpected, aggregates.NumAggregates);
-			Assert.Equal(aggregatesOfFineDofsExpected, aggregates.AggregatesOfFineDofs);
-			Assert.Equal(fineDofRootsOfAggregatesExpected, aggregates.FineDofRootsOfAggregates);
+			Assert.Equal(aggregatesOfFineDofsExpected, aggregates.AggregatesOfGraphNodes);
+			Assert.Equal(fineDofRootsOfAggregatesExpected, aggregates.RootGraphNodesOfAggregates);
 		}
 	}
 }
