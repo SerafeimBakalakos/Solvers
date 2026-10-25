@@ -142,8 +142,6 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			int numElementsX = 2 * numElementsY;
 			int numNodesX = numElementsX + 1;
 			int numNodesY = numElementsY + 1;
-			double hx = LengthX / numElementsX;
-			double hy = LengthY / numElementsY;
 
 			var dofTypes = new ActiveDofs();
 			dofTypes.AddDof(StructuralDof.TranslationX);

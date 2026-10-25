@@ -6,7 +6,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using System.Text;
 	using System.Threading.Tasks;
 
+	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.Dofs;
+	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
 	public static class Cantilever3DElasticityProblem
@@ -15,7 +19,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 		public const double LengthY = 1.0;
 		public const double LengthZ = 2.0;
 
-		private const double TotalLoad = 6000.0;
+		private const double TotalLoadY = 4000.0;
+		private const double TotalLoadZ = 3000.0;
 		private const double ElasticityModulus = 9.0e5;
 		private const double PoissonRatio = 0.3;
 
@@ -113,19 +118,89 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			// on the right face x = LengthX.
 			// The total vertical load is -TotalLoad.
 			int numRightFaceNodes = (numElementsY + 1) * (numElementsZ + 1);
-			double loadPerNode = -TotalLoad / numRightFaceNodes;
+			double loadYPerNode = -TotalLoadY / numRightFaceNodes;
+			double loadZPerNode = -TotalLoadZ / numRightFaceNodes;
 
 			for (int k = 0; k <= numElementsZ; k++)
 			{
 				for (int j = 0; j <= numElementsY; j++)
 				{
 					int node = GlobalNode(numElementsX, j, k, numElementsX, numElementsY);
-					int verticalDof = GetDof(node, 1, numElementsX, numElementsY);
-					b[verticalDof] += loadPerNode;
+					int dofY = GetDof(node, 1, numElementsX, numElementsY);
+					int dofZ = GetDof(node, 2, numElementsX, numElementsY);
+					b[dofY] += loadYPerNode;
+					b[dofZ] += loadZPerNode;
 				}
 			}
 
 			return (A, b);
+		}
+
+		public static IModel CreateModel(int numElementsY)
+		{
+			int numElementsX = 3 * numElementsY;
+			int numElementsZ = 2 * numElementsY;
+			int numNodesX = numElementsX + 1;
+			int numNodesY = numElementsY + 1;
+			int numNodesZ = numElementsZ + 1;
+			double hx = LengthX / numElementsX;
+			double hy = LengthY / numElementsY;
+			double hz = LengthZ / numElementsZ;
+
+			var model = new Model();
+			for (int k = 0; k < numNodesZ; k++)
+			{
+				for (int j = 0; j < numNodesY; j++)
+				{
+					for (int i = 0; i < numNodesX; i++)
+					{
+						int nodeID = GlobalNode(i, j, k, numElementsX, numElementsY);
+						double x = i * hx;
+						double y = j * hy;
+						double z = k * hz;
+						model.NodesDictionary[nodeID] = new Node(nodeID, x, y, z);
+					}
+				}
+			}
+
+			return model;
+		}
+
+		public static ISubdomainFreeDofOrdering OrderDofs(int numElementsY)
+		{
+			int numElementsX = 3 * numElementsY;
+			int numElementsZ = 2 * numElementsY;
+			int numNodesX = numElementsX + 1;
+			int numNodesY = numElementsY + 1;
+			int numNodesZ = numElementsZ + 1;
+
+			var dofTypes = new ActiveDofs();
+			dofTypes.AddDof(StructuralDof.TranslationX);
+			dofTypes.AddDof(StructuralDof.TranslationY);
+			dofTypes.AddDof(StructuralDof.TranslationZ);
+
+			var freeDofs = new IntDofTable();
+			int dofID = 0;
+			for (int k = 0; k < numNodesZ; k++)
+			{
+				for (int j = 0; j < numNodesY; j++)
+				{
+					for (int i = 0; i < numNodesX; i++)
+					{
+						if (i == 0) continue; // At x = 0, all dofs are constrained
+
+						int nodeID = GlobalNode(i, j, k, numElementsX, numElementsY);
+
+						for (int dofType = 0; dofType < 3; dofType++) // In order: translation x, translation y, translation z
+						{
+							freeDofs.TryAdd(nodeID, dofType, dofID);
+							dofID++;
+						}
+					}
+				}
+			}
+
+			return new SubdomainFreeDofOrderingGeneral(dofID, freeDofs, dofTypes);
 		}
 
 		private static double[,] CreateConstitutiveMatrix(double lambda, double mu)
