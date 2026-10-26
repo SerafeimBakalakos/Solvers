@@ -77,7 +77,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 
 		public void BuildOperators(CsrMatrix finestLevelSystemMatrix)
 		{
-			Log = new SaAmgHierarchyLog();
+			ClearStoredData();
 
 			CsrMatrix Af = finestLevelSystemMatrix;
 			systemMatricesPerLevel.Add(Af);
@@ -189,6 +189,17 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 		private void CheckOptionalData()
 		{
 			if (discardIntermediateData) throw new InvalidOperationException("Intermediate data is not stored");
+		}
+
+		private void ClearStoredData()
+		{
+			Log = new SaAmgHierarchyLog();
+			prolongationsPerLevel.Clear();
+			restrictionsPerLevel.Clear();
+			systemMatricesPerLevel.Clear();
+			aggregatesPerLevel.Clear();
+			strengthOfConnectionsPerLevel.Clear();
+			tentativeProlongationsPerLevel.Clear();
 		}
 	}
 }
