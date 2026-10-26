@@ -15,6 +15,8 @@ namespace MGroup.Solvers.Multigrid
 
 		void BuildOperators(CsrMatrix finestLevelSystemMatrix);
 
+		void Clear();
+
 		CsrMatrix GetProlongation(int level);
 
 		CsrMatrix GetRestriction(int level);

@@ -13,7 +13,7 @@ namespace MGroup.Solvers.Multigrid.Tests.CoarseMatrix
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
-	using MGroup.Solvers.Multigrid.CoarseMatrix;
+	using MGroup.Solvers.Multigrid.GalerkinProducts;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.Utilities;
 

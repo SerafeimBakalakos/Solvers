@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.CoarseMatrix
+namespace MGroup.Solvers.Multigrid.GalerkinProducts
 {
 	using System;
 	using System.Collections.Generic;

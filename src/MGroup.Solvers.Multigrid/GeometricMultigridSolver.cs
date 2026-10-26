@@ -20,7 +20,7 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.Solvers.DofOrdering.Reordering;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
-	using MGroup.Solvers.Multigrid.CoarseMatrix;
+	using MGroup.Solvers.Multigrid.GalerkinProducts;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.GridTransfer;
