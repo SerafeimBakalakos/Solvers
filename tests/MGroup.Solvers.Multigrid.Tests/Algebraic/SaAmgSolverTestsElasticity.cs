@@ -22,11 +22,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
-	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.Logging;
+	using MGroup.Solvers.Multigrid.Restriction;
 	using MGroup.Solvers.Multigrid.Smoothing;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
@@ -259,7 +259,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			solverBuilder.NullspaceCandidatesFitting = new BlockCandidatesFitting(orthonormalizationTolerance: 1E-10);
 			IJacobiWeightingStrategy weighting = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
 			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
-			solverBuilder.Restriction = new SimpleTransposeRestriction();
+			solverBuilder.Restriction = new UnscaledTransposeRestriction();
 			solverBuilder.SetSmoothers(new StationaryIterationSmoother(new SgsIterationCsr(), numSteps: 1));
 			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
 			solverBuilder.CycleSchedule = new VCycleSchedule();

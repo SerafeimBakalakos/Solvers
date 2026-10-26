@@ -7,7 +7,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Restriction
 	using System.Threading.Tasks;
 
 	using MGroup.LinearAlgebra.Matrices;
-	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction;
+	using MGroup.Solvers.Multigrid.Restriction;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.Utilities;
 
@@ -18,7 +18,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Restriction
 		[Fact]
 		public static void TestCalcRestrictionMatrix_Cantilever8x4Elements()
 		{
-			var restrictionStrategy = new SimpleTransposeRestriction();
+			var restrictionStrategy = new UnscaledTransposeRestriction();
 
 			// Level 0
 			CsrMatrix P0 = Cantilever2D_8x4Elements_SaAmgResults.GetProlongation(level: 0);
@@ -43,7 +43,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Restriction
 			CsrMatrix P = Poisson1D_12Elements_SaAmgResults.GetProlongationMatrix(level: 0, weightingStrategy: "SpectralRadius", dampingFactor, degree);
 			CsrMatrix expectedR = Poisson1D_12Elements_SaAmgResults.GetRestrictionMatrix(level: 0);
 
-			var restrictionStrategy = new SimpleTransposeRestriction();
+			var restrictionStrategy = new UnscaledTransposeRestriction();
 			CsrMatrix computedR = restrictionStrategy.CalcRestrictionMatrix(P);
 
 			AssertUtilities.AssertEqualCsr(expectedR, computedR, tolerance: 1E-30);

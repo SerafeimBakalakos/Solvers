@@ -12,7 +12,6 @@ namespace MGroup.Solvers.Multigrid.Tests.CoarseMatrix
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
-	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.CoarseMatrix;
 	using MGroup.Solvers.Multigrid.Tests.Examples;

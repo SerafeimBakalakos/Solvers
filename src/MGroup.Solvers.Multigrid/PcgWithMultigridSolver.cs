@@ -33,6 +33,7 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.GridDefinition;
 	using MGroup.Solvers.Multigrid.GridTransfer;
+	using MGroup.Solvers.Multigrid.Restriction;
 	using MGroup.Solvers.Multigrid.Smoothing;
 
 	public class PcgWithMultigridSolver : MultigridSolverBase

@@ -1,9 +1,10 @@
-namespace MGroup.Solvers.Multigrid.GridTransfer
+namespace MGroup.Solvers.Multigrid.Restriction
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Text;
 
+	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
 	public class FullWeightingRestrictionStrategy : IRestrictionStrategy
@@ -20,10 +21,10 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 			this.dimension = dimension;
 		}
 
-		public DokRowMajor CreateRestrictionMatrix(DokRowMajor prolongation)
+		public CsrMatrix CalcRestrictionMatrix(CsrMatrix prolongation)
 		{
 			var coeff = 1.0 / Math.Pow(2, dimension);
-			DokRowMajor restriction = prolongation.Transpose();
+			CsrMatrix restriction = prolongation.TransposeToCSR();
 			restriction.ScaleIntoThis(coeff);
 			return restriction;
 		}

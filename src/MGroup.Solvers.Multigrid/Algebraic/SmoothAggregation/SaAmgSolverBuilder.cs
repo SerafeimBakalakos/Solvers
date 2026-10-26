@@ -21,10 +21,10 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
-	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
+	using MGroup.Solvers.Multigrid.Restriction;
 	using MGroup.Solvers.Multigrid.Smoothing;
 
 	public class SaAmgSolverBuilder
@@ -75,7 +75,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public double ResidualTolerance = 1E-7;
 
-		public IRestrictionStrategy Restriction { get; set;  } = new SimpleTransposeRestriction();
+		public IRestrictionStrategy Restriction { get; set;  } = new UnscaledTransposeRestriction();
 
 		public IStrengthOfConnection StrengthOfConnection { get; set; } = new SymmetricStrengthOfConnection(theta: 0.0);
 

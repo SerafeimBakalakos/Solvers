@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction
+namespace MGroup.Solvers.Multigrid.Restriction
 {
 	using System;
 	using System.Collections.Generic;
@@ -6,7 +6,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction
 
 	using MGroup.LinearAlgebra.Matrices;
 
-	public class SimpleTransposeRestriction : IRestrictionStrategy
+	public class UnscaledTransposeRestriction : IRestrictionStrategy
 	{
 		public CsrMatrix CalcRestrictionMatrix(CsrMatrix prolongationMatrix) => prolongationMatrix.TransposeToCSR();
 	}

@@ -18,8 +18,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
-	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
+	using MGroup.Solvers.Multigrid.Restriction;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 	using MGroup.Solvers.Multigrid.Tests.Utilities;
@@ -46,7 +46,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 			var candidateFittingStrategy = new BlockCandidatesFitting(orthonormalizationTolerance: 1E-10);
 			IJacobiWeightingStrategy weightingStrategy = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
 			var prolongationSmoothing = new JacobiProlongationSmoothing(weightingStrategy, degree: 1);
-			var restrictionStrategy = new SimpleTransposeRestriction();
+			var restrictionStrategy = new UnscaledTransposeRestriction();
 
 			var relaxation = new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4);
 			var candidateRelaxationStrategies = new List<INearNullspaceCandidatesRelaxationStrategy>();
@@ -118,7 +118,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 			var candidateFittingStrategy = new ScalarCandidatesFitting(orthonormalizationTolerance);
 			IJacobiWeightingStrategy weightingStrategy = new SpectralRadiusJacobiWeighting(dampingFactor: 4.0 / 3.0, new SystemRandomRng(seed: 13));
 			var prolongationSmoothing = new JacobiProlongationSmoothing(weightingStrategy, smoothingDegree);
-			var restrictionStrategy = new SimpleTransposeRestriction();
+			var restrictionStrategy = new UnscaledTransposeRestriction();
 
 			var relaxation = new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4);
 			var candidateRelaxationStrategies = new List<INearNullspaceCandidatesRelaxationStrategy>();

@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction
+namespace MGroup.Solvers.Multigrid.Restriction
 {
 	using System;
 	using System.Collections.Generic;

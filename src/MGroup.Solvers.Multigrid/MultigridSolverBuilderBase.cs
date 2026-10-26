@@ -20,6 +20,7 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
 	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.Multigrid.Smoothing;
+	using MGroup.Solvers.Multigrid.Restriction;
 
 	/// <summary>
 	/// Sets up a Multigrid solver.

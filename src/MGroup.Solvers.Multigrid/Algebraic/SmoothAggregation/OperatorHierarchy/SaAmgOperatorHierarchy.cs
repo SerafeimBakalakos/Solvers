@@ -10,12 +10,12 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
-	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Restriction;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.CoarseMatrix;
 	using MGroup.Solvers.Multigrid.Logging;
+	using MGroup.Solvers.Multigrid.Restriction;
 
-	public class SaAmgOperatorHierarchy
+	public class SaAmgOperatorHierarchy : IMultigridOperatorHierarchy
 	{
 		private readonly int numLevelsRequested;
 		private readonly bool discardIntermediateData;
@@ -70,6 +70,8 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 		}
 
 		public int NumLevels { get; private set; }
+
+		MultigridOperatorHierarchyLog IMultigridOperatorHierarchy.Log => Log;
 
 		public SaAmgHierarchyLog Log { get; private set; }
 

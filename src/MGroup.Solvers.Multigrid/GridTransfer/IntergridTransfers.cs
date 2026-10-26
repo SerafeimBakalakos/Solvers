@@ -10,6 +10,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Multigrid.GridDefinition;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.Multigrid.Restriction;
 
 	public class IntergridTransfers
 	{
@@ -56,11 +57,9 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 				int[] freeDofsCoarse = FindFreeDofsCoarse(prolongation, freeDofsFine);
 				freeDofMaps.Add(freeDofsCoarse);
 
-				DokRowMajor prolongationFree = prolongation.GetSubmatrix(freeDofsFine, freeDofsCoarse);
-				prolongations[lvl] = prolongationFree.BuildCsrMatrix(true);
-
-				DokRowMajor restrictionFree = restrictionStrategy.CreateRestrictionMatrix(prolongationFree);
-				restrictions[lvl] = restrictionFree.BuildCsrMatrix(true);
+				DokRowMajor prolongationFreeDok = prolongation.GetSubmatrix(freeDofsFine, freeDofsCoarse);
+				prolongations[lvl] = prolongationFreeDok.BuildCsrMatrix(true);
+				restrictions[lvl] = restrictionStrategy.CalcRestrictionMatrix(prolongations[lvl]);
 			}
 		}
 

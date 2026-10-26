@@ -55,7 +55,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 		{
 			var residualHistory = new ResidualNormHistory();
 			PrepareHierarchyAndOperators(systemMatrix);
-			PrepareSystemVectors(rhsVector);
+			PrepareSystemVectors();
 
 			var watch = new Stopwatch();
 			watch.Start();
@@ -132,7 +132,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			Logger.LogTaskDuration("Prepare coarsest level solver", watch.ElapsedMilliseconds);
 		}
 
-		private void PrepareSystemVectors(Vector rhsVector)
+		private void PrepareSystemVectors()
 		{
 			var watch = new Stopwatch();
 			watch.Start();
@@ -143,7 +143,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			vectorsWork = new Vector[numLevels];
 
 			// Finest grid. The rest must be done whenever a system is solved
-			vectorsWork[0] = Vector.CreateZero(rhsVector.Length);
+			vectorsWork[0] = Vector.CreateZero(hierarchy.GetSystemMatrix(level: 0).NumColumns);
 
 			// Coarse grids
 			for (int lvl = 1; lvl < numLevels; lvl++)
