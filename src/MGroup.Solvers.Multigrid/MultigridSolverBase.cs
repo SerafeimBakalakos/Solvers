@@ -42,7 +42,7 @@ namespace MGroup.Solvers.Multigrid
 		protected readonly int maxCycles;
 		private readonly GmgOperatorHierarchyGalerkin operatorHierarchy;
 		protected readonly double residualTolerance;
-		protected readonly MultigridSmoothers smoothers;
+		protected readonly MultigridSmoothersHierarchy smoothersHierarchy;
 
 		protected readonly Vector[] vectorsLhs;
 		protected readonly Vector[] vectorsRhs;
@@ -52,7 +52,7 @@ namespace MGroup.Solvers.Multigrid
 		protected bool mustRebuildHierarchy = true;
 		protected LevelProgression levelProgression;
 
-		internal MultigridSolverBase(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevelsRequested, IUniformGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices, string name)
+		internal MultigridSolverBase(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevelsRequested, IUniformGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices, string name)
 		{
 			Name = name;
 			Logger = new SolverLogger(Name);
@@ -63,7 +63,7 @@ namespace MGroup.Solvers.Multigrid
 			this.LinearSystem = algebraicModel.LinearSystem;
 			LinearSystem.Observers.Add(this);
 
-			this.smoothers = smoothers;
+			this.smoothersHierarchy = smoothersHierarchy;
 			this.coarsestSystemSolver = coarsestSystemSolver;
 			this.cycleSchedule = cycleSchedule;
 			this.maxCycles = maxCycles;
@@ -144,7 +144,7 @@ namespace MGroup.Solvers.Multigrid
 			// Smoothers
 			for (int lvl = 0; lvl < gridHierarchy.NumLevels - 1;  lvl++)
 			{
-				smoothers.Update(lvl, operatorHierarchy.GetSystemMatrix(lvl), areDofsModified: true);
+				smoothersHierarchy.Update(lvl, operatorHierarchy.GetSystemMatrix(lvl), areDofsModified: true);
 			}
 
 			// Coarsest level solver
@@ -193,7 +193,7 @@ namespace MGroup.Solvers.Multigrid
 					Vector rf = vectorsWork[lvl];
 
 					// MG operations
-					smoothers.ApplyPreSmoothing(lvl, bf, xf);
+					smoothersHierarchy.ApplyPreSmoothing(lvl, bf, xf);
 					Af.MultiplyIntoResult(xf, rf);
 					rf.LinearCombinationIntoThis(-1, bf, 1);
 					R.MultiplyIntoResult(rf, rc);
@@ -214,7 +214,7 @@ namespace MGroup.Solvers.Multigrid
 					// MG operations
 					if (lvl < gridHierarchy.NumLevels - 1)
 					{
-						smoothers.ApplyPostSmoothing(lvl, rc, ec);
+						smoothersHierarchy.ApplyPostSmoothing(lvl, rc, ec);
 					}
 					else
 					{
@@ -235,7 +235,7 @@ namespace MGroup.Solvers.Multigrid
 					Vector x = vectorsLhs[0];
 					Vector b = vectorsRhs[0];
 
-					smoothers.ApplyPostSmoothing(0, b, x);
+					smoothersHierarchy.ApplyPostSmoothing(0, b, x);
 
 					// Prepare for next step
 					break;

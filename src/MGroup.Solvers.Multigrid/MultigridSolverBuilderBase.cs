@@ -33,7 +33,7 @@ namespace MGroup.Solvers.Multigrid
 		protected readonly int maxCycles;
 		protected readonly IProlongationStrategy prolongation;
 
-		protected MultigridSmoothers smoothers;
+		protected MultigridSmoothersHierarchy smoothersHierarchy;
 		protected bool useGalerkinCoarseMatrices = true;
 
 		public MultigridSolverBuilderBase(int numLevels, IUniformGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
@@ -44,8 +44,8 @@ namespace MGroup.Solvers.Multigrid
 			this.numLevels = numLevels;
 
 			var defaultSmoother = new StationaryIterationSmoother(new GaussSeidelIterationCsr(forwardDirection: true), numSteps: 2);
-			smoothers = new MultigridSmoothers(numLevels);
-			smoothers.DefineSmoother(defaultSmoother);
+			smoothersHierarchy = new MultigridSmoothersHierarchy(numLevels);
+			smoothersHierarchy.DefineSmoother(defaultSmoother);
 
 			this.prolongation = prolongation;
 			this.maxCycles = maxCycles;
@@ -91,17 +91,17 @@ namespace MGroup.Solvers.Multigrid
 
 		public void SetSmoothers(IMultigridSmoother commonSmoother)
 		{
-			this.smoothers.DefineSmoother(commonSmoother);
+			this.smoothersHierarchy.DefineSmoother(commonSmoother);
 		}
 
-		public void SetSmoothers(MultigridSmoothers allSmoothers)
+		public void SetSmoothers(MultigridSmoothersHierarchy allSmoothers)
 		{
 			if (allSmoothers.NumLevelsTotal != this.numLevels)
 			{
 				throw new ArgumentException("The smoothers aggregate must have as many levels as the whole multigrid solver.");
 			}
 
-			this.smoothers = allSmoothers;
+			this.smoothersHierarchy = allSmoothers;
 		}
 
 		protected int[] FinalizeCoarseningRatios()

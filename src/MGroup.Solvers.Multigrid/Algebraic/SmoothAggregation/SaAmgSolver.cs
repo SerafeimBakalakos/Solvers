@@ -25,19 +25,19 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 		private readonly SaAmgOperatorHierarchy hierarchy;
 		private readonly int maxCycles;
 		private readonly double residualTolerance;
-		private readonly MultigridSmoothers smoothers;
+		private readonly MultigridSmoothersHierarchy smoothersHierarchy;
 
 		protected LevelProgression levelProgression;
 		protected Vector[] vectorsLhs;
 		protected Vector[] vectorsRhs;
 		protected Vector[] vectorsWork;
 
-		public SaAmgSolver(SaAmgOperatorHierarchy hierarchy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance)
+		public SaAmgSolver(SaAmgOperatorHierarchy hierarchy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance)
 		{
 			Logger = new MultigridSolverLogger<SaAmgHierarchyLog>(Name);
 
 			this.hierarchy = hierarchy;
-			this.smoothers = smoothers;
+			this.smoothersHierarchy = smoothersHierarchy;
 			this.coarsestSystemSolver = coarsestSystemSolver;
 			this.cycleSchedule = cycleSchedule;
 			this.maxCycles = maxCycles;
@@ -114,13 +114,13 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			Logger.LogTaskDuration("Prepare level progression", watch.ElapsedMilliseconds);
 
 			watch.Restart();
-			if (smoothers.NumLevelsTotal < numLevels)
+			if (smoothersHierarchy.NumLevelsTotal < numLevels)
 			{
 				throw new Exception($"Not enough smoothers are provided for the {numLevels} actual levels.");
 			}
 			for (int lvl = 0; lvl < numLevels - 1; lvl++)
 			{
-				smoothers.Update(lvl, hierarchy.GetSystemMatrix(lvl), areDofsModified: true);
+				smoothersHierarchy.Update(lvl, hierarchy.GetSystemMatrix(lvl), areDofsModified: true);
 			}
 			watch.Stop();
 			Logger.LogTaskDuration("Prepare smoothers", watch.ElapsedMilliseconds);
@@ -175,7 +175,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 					Vector rf = vectorsWork[lvl];
 
 					// MG operations
-					smoothers.ApplyPreSmoothing(lvl, bf, xf);
+					smoothersHierarchy.ApplyPreSmoothing(lvl, bf, xf);
 					Af.MultiplyIntoResult(xf, rf);
 					rf.LinearCombinationIntoThis(-1, bf, 1);
 					R.MultiplyIntoResult(rf, rc);
@@ -196,7 +196,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 					// MG operations
 					if (lvl < hierarchy.NumLevels - 1)
 					{
-						smoothers.ApplyPostSmoothing(lvl, rc, ec);
+						smoothersHierarchy.ApplyPostSmoothing(lvl, rc, ec);
 					}
 					else
 					{
@@ -217,7 +217,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 					Vector x = vectorsLhs[0];
 					Vector b = vectorsRhs[0];
 
-					smoothers.ApplyPostSmoothing(0, b, x);
+					smoothersHierarchy.ApplyPostSmoothing(0, b, x);
 
 					// Prepare for next step
 					break;

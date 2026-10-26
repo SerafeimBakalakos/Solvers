@@ -8,12 +8,12 @@ namespace MGroup.Solvers.Multigrid.Smoothing
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 
-	public class MultigridSmoothers
+	public class MultigridSmoothersHierarchy
 	{
 		private readonly IMultigridSmoother[] preSmoothers;
 		private readonly IMultigridSmoother[] postSmoothers;
 
-		public MultigridSmoothers(int numLevelsTotal)
+		public MultigridSmoothersHierarchy(int numLevelsTotal)
 		{
 			this.NumLevelsTotal = numLevelsTotal;
 			preSmoothers = new IMultigridSmoother[numLevelsTotal - 1];

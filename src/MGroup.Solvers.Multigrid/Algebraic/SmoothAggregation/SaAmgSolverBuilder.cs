@@ -33,7 +33,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 		private readonly int maxCycles;
 
 		private readonly INearNullspaceCandidatesRelaxationStrategy[] nullspaceCandidatesRelaxationStrategies;
-		private MultigridSmoothers smoothers;
+		private MultigridSmoothersHierarchy smoothersHierarchy;
 
 		public SaAmgSolverBuilder(int numLevelsRequested, int maxCycles)
 		{
@@ -41,8 +41,8 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			this.maxCycles = maxCycles;
 
 			var defaultSmoother = new StationaryIterationSmoother(new GaussSeidelIterationCsr(forwardDirection: true), numSteps: 2);
-			smoothers = new MultigridSmoothers(numLevelsRequested);
-			smoothers.DefineSmoother(defaultSmoother);
+			smoothersHierarchy = new MultigridSmoothersHierarchy(numLevelsRequested);
+			smoothersHierarchy.DefineSmoother(defaultSmoother);
 
 			nullspaceCandidatesRelaxationStrategies = new INearNullspaceCandidatesRelaxationStrategy[numLevelsRequested - 1];
 			var relaxation = new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4);
@@ -84,7 +84,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			var hierarchy = new SaAmgOperatorHierarchy(numLevelsRequested, CoarseningTermination, StrengthOfConnection, Aggregation, NullspaceCandidatesSelection, nullspaceCandidatesRelaxationStrategies, NullspaceCandidatesFitting, ProlongationSmoothing, Restriction, DiscardIntermediateHierarchyData);
 
 			CoarsestSystemSolver = FinalizeCoarsetSystemSolver();
-			return new SaAmgSolver(hierarchy, smoothers, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance);
+			return new SaAmgSolver(hierarchy, smoothersHierarchy, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance);
 		}
 
 		public void SetNullspaceCandidatesRelaxationAll(INearNullspaceCandidatesRelaxationStrategy commonRelaxation)
@@ -107,17 +107,17 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public void SetSmoothers(IMultigridSmoother commonSmoother)
 		{
-			this.smoothers.DefineSmoother(commonSmoother);
+			this.smoothersHierarchy.DefineSmoother(commonSmoother);
 		}
 
-		public void SetSmoothers(MultigridSmoothers allSmoothers)
+		public void SetSmoothers(MultigridSmoothersHierarchy allSmoothers)
 		{
 			if (allSmoothers.NumLevelsTotal != this.numLevelsRequested)
 			{
 				throw new ArgumentException("The smoothers aggregate must have as many levels as the whole multigrid solver.");
 			}
 
-			this.smoothers = allSmoothers;
+			this.smoothersHierarchy = allSmoothers;
 		}
 
 		private ICoarseSystemSolver FinalizeCoarsetSystemSolver()
