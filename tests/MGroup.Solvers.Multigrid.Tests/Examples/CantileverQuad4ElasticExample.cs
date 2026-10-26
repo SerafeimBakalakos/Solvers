@@ -16,7 +16,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.MSolve.Discretization.Meshes.Generation.Custom;
 	using MGroup.MSolve.Discretization.Meshes.Structured;
-	using MGroup.Solvers.Multigrid.GridDefinition;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 
 	public class CantileverQuad4ElasticExample
 	{
@@ -34,7 +34,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 
 		public bool ParallelToX { get; set; } = true;
 
-		public Model CreateFemModel(Grid2D grid)
+		public Model CreateFemModel(UniformGrid2D grid)
 		{
 			const int subdomainID = 0;
 

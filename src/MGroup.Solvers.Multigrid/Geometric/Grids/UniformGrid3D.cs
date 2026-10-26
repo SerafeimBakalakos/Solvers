@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.GridDefinition
+namespace MGroup.Solvers.Multigrid.Geometric.Grids
 {
 	using System;
 	using System.Collections.Generic;
@@ -7,15 +7,15 @@ namespace MGroup.Solvers.Multigrid.GridDefinition
 
 	using MGroup.MSolve.Discretization.Meshes.Structured;
 
-	public class Grid3D : IGrid
+	public class UniformGrid3D : IUniformGrid
 	{
-		public Grid3D(int numNodesX, int numNodesY, int numNodesZ)
+		public UniformGrid3D(int numNodesX, int numNodesY, int numNodesZ)
 		{
 			NumNodesPerAxis = new int[] { numNodesX, numNodesY, numNodesZ };
 			AxesMajorToMinor = OrderAxesDefault(NumNodesPerAxis);
 		}
 
-		public Grid3D(int[] numNodesPerAxis)
+		public UniformGrid3D(int[] numNodesPerAxis)
 		{
 			if (numNodesPerAxis.Length != 3) throw new ArgumentException();
 			NumNodesPerAxis = new int[] { numNodesPerAxis[0], numNodesPerAxis[1], numNodesPerAxis[2] };
@@ -28,16 +28,16 @@ namespace MGroup.Solvers.Multigrid.GridDefinition
 
 		public int[] NumNodesPerAxis { get; }
 
-		IGrid IGrid.CreateGridWithSameSettings(int[] numNodes) => CreateGridWithSameSettings(numNodes);
+		IUniformGrid IUniformGrid.CreateGridWithSameSettings(int[] numNodes) => CreateGridWithSameSettings(numNodes);
 
-		public Grid3D CreateGridWithSameSettings(int[] numNodes)
+		public UniformGrid3D CreateGridWithSameSettings(int[] numNodes)
 		{
-			var result = new Grid3D(numNodes);
+			var result = new UniformGrid3D(numNodes);
 			result.AxesMajorToMinor = AxesMajorToMinor;
 			return result;
 		}
 
-		IStructuredMesh IGrid.CreateMesh(double[] minCoords, double[] maxCoords) => CreateMesh(minCoords, maxCoords);
+		IStructuredMesh IUniformGrid.CreateMesh(double[] minCoords, double[] maxCoords) => CreateMesh(minCoords, maxCoords);
 
 		public UniformCartesianMesh3D CreateMesh(double[] minCoords, double[] maxCoords)
 		{

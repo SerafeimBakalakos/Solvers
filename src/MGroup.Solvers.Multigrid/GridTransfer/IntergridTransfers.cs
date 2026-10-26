@@ -8,9 +8,9 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DofOrdering;
-	using MGroup.Solvers.Multigrid.GridDefinition;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.Restriction;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 
 	public class IntergridTransfers
 	{
@@ -42,9 +42,9 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 
 		public IReadOnlyMatrix GetRestriction(int level) => restrictions[level];
 
-		public void Initialize(IGrid[] grids, ISubdomainFreeDofOrdering freeDofOrderingFinestGrid, ActiveDofs allDofs)
+		public void Initialize(IGridHierarchy gridHierarchy, ISubdomainFreeDofOrdering freeDofOrderingFinestGrid, ActiveDofs allDofs)
 		{
-			int numLevels = grids.Length;
+			int numLevels = gridHierarchy.NumLevels;
 			prolongations = new CsrMatrix[numLevels - 1];
 			restrictions = new CsrMatrix[numLevels - 1];
 			freeDofMaps.Capacity = numLevels;
@@ -52,7 +52,10 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 
 			for (int lvl  = 0; lvl < numLevels - 1; lvl++)
 			{
-				DokRowMajor prolongation = prolongationStrategy.CreateProlongationMatrix(grids[lvl], grids[lvl + 1]);
+				IUniformGrid fineGrid = gridHierarchy.GetGridAtLevel(lvl);
+				IUniformGrid coarseGrid = gridHierarchy.GetGridAtLevel(lvl + 1);
+
+				DokRowMajor prolongation = prolongationStrategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 				int[] freeDofsFine = freeDofMaps[lvl];
 				int[] freeDofsCoarse = FindFreeDofsCoarse(prolongation, freeDofsFine);
 				freeDofMaps.Add(freeDofsCoarse);

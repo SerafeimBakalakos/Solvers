@@ -5,7 +5,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 	using System.Text;
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
-	using MGroup.Solvers.Multigrid.GridDefinition;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 
 	public class Prolongation1DStrategy : IProlongationStrategy
 	{
@@ -21,7 +21,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 			this.tolerance = tolerance;
 		}
 
-		public DokRowMajor CreateProlongationMatrix(IGrid fineGrid, IGrid coarseGrid)
+		public DokRowMajor CreateProlongationMatrix(IUniformGrid fineGrid, IUniformGrid coarseGrid)
 		{
 			if ((fineGrid.Dimension != 1) || (coarseGrid.Dimension != 1))
 			{

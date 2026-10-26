@@ -5,7 +5,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 	using System.Text;
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
-	using MGroup.Solvers.Multigrid.GridDefinition;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 	using MGroup.Solvers.Multigrid.Utilities;
 
 	public class Prolongation3DStrategy : IProlongationStrategy
@@ -21,7 +21,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 			prolongation1D = new Prolongation1DStrategy(1, tolerance);
 		}
 
-		public DokRowMajor CreateProlongationMatrix(IGrid fineGrid, IGrid coarseGrid)
+		public DokRowMajor CreateProlongationMatrix(IUniformGrid fineGrid, IUniformGrid coarseGrid)
 		{
 			//TODO: the order of operations matters: Pz*(Py*Px) vs (Pz*Py)*Px. Optimize it.
 			ProlongationUtilities.CheckGrids3D(fineGrid, coarseGrid);

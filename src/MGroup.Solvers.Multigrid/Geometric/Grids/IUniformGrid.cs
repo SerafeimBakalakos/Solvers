@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.GridDefinition
+namespace MGroup.Solvers.Multigrid.Geometric.Grids
 {
 	using System;
 	using System.Collections.Generic;
@@ -6,7 +6,7 @@ namespace MGroup.Solvers.Multigrid.GridDefinition
 
 	using MGroup.MSolve.Discretization.Meshes.Structured;
 
-	public interface IGrid
+	public interface IUniformGrid
 	{
 		int[] AxesMajorToMinor { get; }
 
@@ -17,7 +17,7 @@ namespace MGroup.Solvers.Multigrid.GridDefinition
 
 		int[] NumNodesPerAxis {get;}
 
-		IGrid CreateGridWithSameSettings(int[] numNodes);
+		IUniformGrid CreateGridWithSameSettings(int[] numNodes);
 
 		IStructuredMesh CreateMesh(double[] minCoords, double[] maxCoords);
 	}

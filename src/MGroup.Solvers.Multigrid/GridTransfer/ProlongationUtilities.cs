@@ -5,7 +5,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 	using System.Text;
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
-	using MGroup.Solvers.Multigrid.GridDefinition;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 
 	public static class ProlongationUtilities
 	{
@@ -27,7 +27,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 			}
 		}
 
-		public static void CheckGrids2D(IGrid fineGrid, IGrid coarseGrid)
+		public static void CheckGrids2D(IUniformGrid fineGrid, IUniformGrid coarseGrid)
 		{
 			if (fineGrid.Dimension != 2 || coarseGrid.Dimension != 2)
 			{
@@ -65,7 +65,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 			}
 		}
 
-		public static void CheckGrids3D(IGrid fineGrid, IGrid coarseGrid)
+		public static void CheckGrids3D(IUniformGrid fineGrid, IUniformGrid coarseGrid)
 		{
 			if (fineGrid.Dimension != 3 || coarseGrid.Dimension != 3)
 			{

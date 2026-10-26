@@ -7,12 +7,12 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 	using System.Threading.Tasks;
 
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 	using MGroup.Solvers.Multigrid.GridTransfer;
 	using MGroup.Solvers.Multigrid.GridTransfer.Geometric;
-	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 
 	using Xunit;
-	using MGroup.Solvers.Multigrid.GridDefinition;
 
 	public class Prolongation1DStrategyTests
 	{
@@ -29,8 +29,8 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation1DStrategy(1, tol);
-			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
-			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
+			var fineGrid = new UniformGrid1D(gridNodes.NumNodesFinePerAxis);
+			var coarseGrid = new UniformGrid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.FineDofsDependOnLimitedCoarseDofs(matrix, 1);
 		}
@@ -41,8 +41,8 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation1DStrategy(1, tol);
-			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
-			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
+			var fineGrid = new UniformGrid1D(gridNodes.NumNodesFinePerAxis);
+			var coarseGrid = new UniformGrid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.ReproducesLinearField1D(matrix, gridNodes, tol);
 		}
@@ -53,8 +53,8 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation1DStrategy(1, tol);
-			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
-			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
+			var fineGrid = new UniformGrid1D(gridNodes.NumNodesFinePerAxis);
+			var coarseGrid = new UniformGrid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.RowsSumToOne(matrix);
 		}
@@ -65,8 +65,8 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation1DStrategy(1, tol);
-			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
-			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
+			var fineGrid = new UniformGrid1D(gridNodes.NumNodesFinePerAxis);
+			var coarseGrid = new UniformGrid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.WeightsAre1ForCoincidentNodes1D(matrix, gridNodes, tol);
 		}
@@ -77,8 +77,8 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation1DStrategy(1, tol);
-			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
-			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
+			var fineGrid = new UniformGrid1D(gridNodes.NumNodesFinePerAxis);
+			var coarseGrid = new UniformGrid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.WeightsAreInRange0to1(matrix);
 		}
@@ -89,8 +89,8 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation1DStrategy(1, tol);
-			var fineGrid = new Grid1D(gridNodes.NumNodesFinePerAxis);
-			var coarseGrid = new Grid1D(gridNodes.NumNodesCoarsePerAxis);
+			var fineGrid = new UniformGrid1D(gridNodes.NumNodesFinePerAxis);
+			var coarseGrid = new UniformGrid1D(gridNodes.NumNodesCoarsePerAxis);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			var matrixExpected = Matrix.CreateFromArray(GetExpectedProlongation(gridNodes));
 			Assert.True(matrix.Equals(matrixExpected, tol));

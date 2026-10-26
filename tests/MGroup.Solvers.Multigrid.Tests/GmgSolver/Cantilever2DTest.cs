@@ -23,7 +23,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
-	using MGroup.Solvers.Multigrid.GridDefinition;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 	using MGroup.Solvers.Multigrid.GridTransfer.Geometric;
 	using MGroup.Solvers.Multigrid.Smoothing;
 	using MGroup.Solvers.Multigrid.Tests;
@@ -49,7 +49,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 		private static void RunTest(int numLevels, Cycles cycle, Smoothers smoother, double relaxFactor, int smoothingSteps, int numCyclesExpected)
 		{
 			int[] numElements = [32, 160];
-			var grid = new Grid2D(numElements[0] + 1, numElements[1] + 1);
+			var grid = new UniformGrid2D(numElements[0] + 1, numElements[1] + 1);
 			grid.SetMajorAxis(0);
 
 			// Model

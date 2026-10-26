@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.GridDefinition
+namespace MGroup.Solvers.Multigrid.Geometric.Grids
 {
 	using System;
 	using System.Collections.Generic;
@@ -6,14 +6,14 @@ namespace MGroup.Solvers.Multigrid.GridDefinition
 
 	using MGroup.MSolve.Discretization.Meshes.Structured;
 
-	public class Grid1D : IGrid
+	public class UniformGrid1D : IUniformGrid
 	{
-		public Grid1D(int numNodes)
+		public UniformGrid1D(int numNodes)
 		{
 			NumNodesPerAxis = new int[] { numNodes };
 		}
 
-		public Grid1D(int[] numNodesPerAxis)
+		public UniformGrid1D(int[] numNodesPerAxis)
 		{
 			if (numNodesPerAxis.Length != 1) throw new ArgumentException();
 			NumNodesPerAxis = new int[] { numNodesPerAxis[0] };
@@ -25,7 +25,7 @@ namespace MGroup.Solvers.Multigrid.GridDefinition
 
 		public int[] NumNodesPerAxis { get; }
 
-		public IGrid CreateGridWithSameSettings(int[] numNodes) => new Grid1D(numNodes);
+		public IUniformGrid CreateGridWithSameSettings(int[] numNodes) => new UniformGrid1D(numNodes);
 
 		public IStructuredMesh CreateMesh(double[] minCoords, double[] maxCoords)
 		{

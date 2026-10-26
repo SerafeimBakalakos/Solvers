@@ -15,12 +15,12 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
-	using MGroup.Solvers.Multigrid.GridDefinition;
 	using MGroup.Solvers.Multigrid.GridTransfer;
 	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
 	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.Multigrid.Smoothing;
 	using MGroup.Solvers.Multigrid.Restriction;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 
 	/// <summary>
 	/// Sets up a Multigrid solver.
@@ -28,7 +28,7 @@ namespace MGroup.Solvers.Multigrid
 	public class MultigridSolverBuilderBase
 	{
 		protected readonly int numLevels;
-		protected readonly IGrid finestGrid;
+		protected readonly IUniformGrid finestGrid;
 		protected readonly IDofOrderer dofOrderer;
 		protected readonly int maxCycles;
 		protected readonly IProlongationStrategy prolongation;
@@ -36,7 +36,7 @@ namespace MGroup.Solvers.Multigrid
 		protected MultigridSmoothers smoothers;
 		protected bool useGalerkinCoarseMatrices = true;
 
-		public MultigridSolverBuilderBase(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
+		public MultigridSolverBuilderBase(int numLevels, IUniformGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
 		{
 			this.finestGrid = finestGrid;
 

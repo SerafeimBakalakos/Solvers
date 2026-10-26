@@ -69,11 +69,11 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 			tentativeProlongationsPerLevel = new List<CsrMatrix>(numLevelsRequested);
 		}
 
-		public int NumLevels { get; private set; }
-
 		MultigridOperatorHierarchyLog IMultigridOperatorHierarchy.Log => Log;
 
 		public SaAmgHierarchyLog Log { get; private set; }
+
+		public int NumLevels { get; private set; }
 
 		public void BuildOperators(CsrMatrix finestLevelSystemMatrix)
 		{

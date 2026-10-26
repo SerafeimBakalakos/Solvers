@@ -7,7 +7,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 	using System.Threading.Tasks;
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
-	using MGroup.Solvers.Multigrid.GridDefinition;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 	using MGroup.Solvers.Multigrid.GridTransfer;
 	using MGroup.Solvers.Multigrid.GridTransfer.Geometric;
 
@@ -32,9 +32,9 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation2DStrategy(1, tol);
-			var fineGrid = new Grid2D(gridNodes.NumNodesFinePerAxis);
+			var fineGrid = new UniformGrid2D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorAxis(0);
-			var coarseGrid = new Grid2D(gridNodes.NumNodesCoarsePerAxis);
+			var coarseGrid = new UniformGrid2D(gridNodes.NumNodesCoarsePerAxis);
 			coarseGrid.SetMajorAxis(0);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.FineDofsDependOnLimitedCoarseDofs(matrix, dimension:2);
@@ -46,9 +46,9 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation2DStrategy(1, tol);
-			var fineGrid = new Grid2D(gridNodes.NumNodesFinePerAxis);
+			var fineGrid = new UniformGrid2D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorAxis(0);
-			var coarseGrid = new Grid2D(gridNodes.NumNodesCoarsePerAxis);
+			var coarseGrid = new UniformGrid2D(gridNodes.NumNodesCoarsePerAxis);
 			coarseGrid.SetMajorAxis(0);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.ReproducesLinearField2D(matrix, gridNodes, dofsPerNode:1, tol);
@@ -60,9 +60,9 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation2DStrategy(1, tol);
-			var fineGrid = new Grid2D(gridNodes.NumNodesFinePerAxis);
+			var fineGrid = new UniformGrid2D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorAxis(0);
-			var coarseGrid = new Grid2D(gridNodes.NumNodesCoarsePerAxis);
+			var coarseGrid = new UniformGrid2D(gridNodes.NumNodesCoarsePerAxis);
 			coarseGrid.SetMajorAxis(0);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.RowsSumToOne(matrix);
@@ -74,9 +74,9 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation2DStrategy(1, tol);
-			var fineGrid = new Grid2D(gridNodes.NumNodesFinePerAxis);
+			var fineGrid = new UniformGrid2D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorAxis(0);
-			var coarseGrid = new Grid2D(gridNodes.NumNodesCoarsePerAxis);
+			var coarseGrid = new UniformGrid2D(gridNodes.NumNodesCoarsePerAxis);
 			coarseGrid.SetMajorAxis(0);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.WeightsAre1ForCoincidentNodes2D(matrix, gridNodes, dofsPerNode:1, tol);
@@ -88,9 +88,9 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		{
 			double tol = 1E-12;
 			var strategy = new Prolongation2DStrategy(1, tol);
-			var fineGrid = new Grid2D(gridNodes.NumNodesFinePerAxis);
+			var fineGrid = new UniformGrid2D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorAxis(0);
-			var coarseGrid = new Grid2D(gridNodes.NumNodesCoarsePerAxis);
+			var coarseGrid = new UniformGrid2D(gridNodes.NumNodesCoarsePerAxis);
 			coarseGrid.SetMajorAxis(0);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 			ProlongationMatrixAssertions.WeightsAreInRange0to1(matrix);
@@ -102,9 +102,9 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 			var gridNodes = GridNodeCounts.Create2D(5, 10, 3, 4);
 			double tol = 1E-12;
 			var strategy = new Prolongation2DStrategy(1, tol);
-			var fineGrid = new Grid2D(gridNodes.NumNodesFinePerAxis);
+			var fineGrid = new UniformGrid2D(gridNodes.NumNodesFinePerAxis);
 			fineGrid.SetMajorAxis(0);
-			var coarseGrid = new Grid2D(gridNodes.NumNodesCoarsePerAxis);
+			var coarseGrid = new UniformGrid2D(gridNodes.NumNodesCoarsePerAxis);
 			coarseGrid.SetMajorAxis(0);
 			DokRowMajor matrix = strategy.CreateProlongationMatrix(fineGrid, coarseGrid);
 

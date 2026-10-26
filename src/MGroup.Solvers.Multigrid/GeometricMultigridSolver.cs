@@ -23,16 +23,16 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.Solvers.Multigrid.CoarseMatrix;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
-	using MGroup.Solvers.Multigrid.GridDefinition;
 	using MGroup.Solvers.Multigrid.GridTransfer;
 	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
 	using MGroup.Solvers.LinearAlgebraExtensions.Reordering;
 	using MGroup.Solvers.Multigrid.Smoothing;
 	using MGroup.Solvers.Multigrid.Restriction;
+	using MGroup.Solvers.Multigrid.Geometric.Grids;
 
 	public class GeometricMultigridSolver : MultigridSolverBase
 	{
-		internal GeometricMultigridSolver(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevels, IGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices)
+		internal GeometricMultigridSolver(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevels, IUniformGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothers smoothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices)
 			: base(algebraicModel, model, dofsPerNode, numLevels, finestGrid, coarseningRatios, prolongationStrategy, restrictionStrategy, smoothers, coarsestSystemSolver, cycleSchedule, maxCycles, residualTolerance, useGalerkinCoarseMatrices, "GeometricMultigridSolver")
 		{
 		}
@@ -84,7 +84,7 @@ namespace MGroup.Solvers.Multigrid
 
 		public class Builder : MultigridSolverBuilderBase
 		{
-			public Builder(int numLevels, IGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
+			public Builder(int numLevels, IUniformGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
 				: base(numLevels, finestGrid, prolongation, maxCycles)
 			{
 			}
