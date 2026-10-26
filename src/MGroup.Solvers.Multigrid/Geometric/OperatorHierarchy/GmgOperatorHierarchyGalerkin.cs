@@ -9,7 +9,7 @@ namespace MGroup.Solvers.Multigrid.Geometric.OperatorHierarchy
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.GalerkinProducts;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
-	using MGroup.Solvers.Multigrid.GridTransfer;
+	using MGroup.Solvers.Multigrid.Geometric.Prolongations;
 	using MGroup.Solvers.Multigrid.Logging;
 	using MGroup.Solvers.Multigrid.Restriction;
 

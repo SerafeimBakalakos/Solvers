@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
+namespace MGroup.Solvers.Multigrid.Geometric.Prolongations
 {
 	using System;
 	using System.Collections.Generic;
@@ -31,8 +31,8 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 			int ncx = coarseGrid.NumNodesPerAxis[0];
 			int ncy = coarseGrid.NumNodesPerAxis[1];
 
-			DokRowMajor? Px = (nfx > ncx) ? prolongation1D.CreateProlongationMatrix(nfx, ncx) : null;
-			DokRowMajor? Py = (nfy > ncy) ? prolongation1D.CreateProlongationMatrix(nfy, ncy) : null;
+			DokRowMajor? Px = nfx > ncx ? prolongation1D.CreateProlongationMatrix(nfx, ncx) : null;
+			DokRowMajor? Py = nfy > ncy ? prolongation1D.CreateProlongationMatrix(nfy, ncy) : null;
 
 			// Combine them to 2D using tensor products
 			int majorAxis = fineGrid.AxesMajorToMinor[0];

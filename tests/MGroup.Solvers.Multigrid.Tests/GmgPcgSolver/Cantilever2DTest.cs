@@ -24,7 +24,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgPcgSolver
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
-	using MGroup.Solvers.Multigrid.GridTransfer.Geometric;
+	using MGroup.Solvers.Multigrid.Geometric.Prolongations;
 	using MGroup.Solvers.Multigrid.Smoothing;
 	using MGroup.Solvers.Multigrid.Tests;
 	using MGroup.Solvers.Multigrid.Tests.Examples;

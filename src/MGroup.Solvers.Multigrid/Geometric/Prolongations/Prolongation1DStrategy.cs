@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
+namespace MGroup.Solvers.Multigrid.Geometric.Prolongations
 {
 	using System;
 	using System.Collections.Generic;
@@ -23,7 +23,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 
 		public DokRowMajor CreateProlongationMatrix(IUniformGrid fineGrid, IUniformGrid coarseGrid)
 		{
-			if ((fineGrid.Dimension != 1) || (coarseGrid.Dimension != 1))
+			if (fineGrid.Dimension != 1 || coarseGrid.Dimension != 1)
 			{
 				throw new ArgumentException("The fine and coarse grids must be 1D");
 			}

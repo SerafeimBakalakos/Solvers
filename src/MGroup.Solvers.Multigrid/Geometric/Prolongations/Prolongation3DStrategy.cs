@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
+namespace MGroup.Solvers.Multigrid.Geometric.Prolongations
 {
 	using System;
 	using System.Collections.Generic;
@@ -33,7 +33,7 @@ namespace MGroup.Solvers.Multigrid.GridTransfer.Geometric
 			{
 				int nf = fineGrid.NumNodesPerAxis[d];
 				int nc = coarseGrid.NumNodesPerAxis[d];
-				prolongations1D[d] = (nf > nc) ? prolongation1D.CreateProlongationMatrix(nf, nc) : null;
+				prolongations1D[d] = nf > nc ? prolongation1D.CreateProlongationMatrix(nf, nc) : null;
 				numRowsOfProlongations1D[d] = nf;
 			}
 

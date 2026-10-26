@@ -8,8 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
-	using MGroup.Solvers.Multigrid.GridTransfer;
-	using MGroup.Solvers.Multigrid.GridTransfer.Geometric;
+	using MGroup.Solvers.Multigrid.Geometric.Prolongations;
 
 	using Xunit;
 

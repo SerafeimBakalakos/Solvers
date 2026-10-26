@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.GridTransfer
+namespace MGroup.Solvers.Multigrid.Geometric.Prolongations
 {
 	using System;
 	using System.Collections.Generic;

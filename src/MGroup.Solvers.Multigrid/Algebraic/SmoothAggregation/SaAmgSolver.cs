@@ -15,7 +15,6 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
-	using MGroup.Solvers.Multigrid.GridTransfer;
 	using MGroup.Solvers.Multigrid.Logging;
 	using MGroup.Solvers.Multigrid.Smoothing;
 

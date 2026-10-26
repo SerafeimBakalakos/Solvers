@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.GridTransfer
+namespace MGroup.Solvers.Multigrid.Geometric.Prolongations
 {
 	using System;
 	using System.Collections.Generic;
@@ -125,15 +125,15 @@ namespace MGroup.Solvers.Multigrid.GridTransfer
 		/// <exception cref="Exception"></exception>
 		public static DokRowMajor? KroneckerProduct(DokRowMajor? majorAxisP, int numRowsMajorP, DokRowMajor? minorAxisP, int numRowsMinorP)
 		{
-			if ((majorAxisP != null) && (minorAxisP != null))
+			if (majorAxisP != null && minorAxisP != null)
 			{
 				return minorAxisP.KroneckerProduct(majorAxisP);
 			}
-			else if ((majorAxisP == null) && (minorAxisP != null))
+			else if (majorAxisP == null && minorAxisP != null)
 			{
 				return minorAxisP.KroneckerProductThisTimesIdentity(numRowsMajorP);
 			}
-			else if ((majorAxisP != null) && (minorAxisP == null))
+			else if (majorAxisP != null && minorAxisP == null)
 			{
 				return majorAxisP.KroneckerProductIdentityTimesThis(numRowsMinorP);
 			}
