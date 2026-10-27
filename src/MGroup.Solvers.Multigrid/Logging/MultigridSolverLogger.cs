@@ -2,6 +2,7 @@ namespace MGroup.Solvers.Multigrid.Logging
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Text;
 
 	using MGroup.Solvers.Logging;

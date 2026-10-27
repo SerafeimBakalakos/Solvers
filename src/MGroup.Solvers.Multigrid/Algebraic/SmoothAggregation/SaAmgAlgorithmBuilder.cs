@@ -27,7 +27,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.Solvers.Multigrid.Restriction;
 	using MGroup.Solvers.Multigrid.Smoothing;
 
-	public class SaAmgSolverBuilder
+	public class SaAmgAlgorithmBuilder
 	{
 		private readonly int numLevelsRequested;
 		private readonly int maxCycles;
@@ -35,7 +35,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 		private readonly INearNullspaceCandidatesRelaxationStrategy[] nullspaceCandidatesRelaxationStrategies;
 		private MultigridSmoothersHierarchy smoothersHierarchy;
 
-		public SaAmgSolverBuilder(int numLevelsRequested, int maxCycles)
+		public SaAmgAlgorithmBuilder(int numLevelsRequested, int maxCycles)
 		{
 			this.numLevelsRequested = numLevelsRequested;
 			this.maxCycles = maxCycles;
@@ -79,12 +79,12 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public IStrengthOfConnection StrengthOfConnection { get; set; } = new SymmetricStrengthOfConnection(theta: 0.0);
 
-		public SaAmgSolver BuildSolver()
+		public SaAmgAlgorithm BuildAlgorithm()
 		{
 			var hierarchy = new SaAmgOperatorHierarchy(numLevelsRequested, CoarseningTermination, StrengthOfConnection, Aggregation, NullspaceCandidatesSelection, nullspaceCandidatesRelaxationStrategies, NullspaceCandidatesFitting, ProlongationSmoothing, Restriction, DiscardIntermediateHierarchyData);
 
-			CoarsestSystemSolver = FinalizeCoarsetSystemSolver();
-			return new SaAmgSolver(hierarchy, smoothersHierarchy, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance);
+			CoarsestSystemSolver = FinalizeCoarsestSystemSolver();
+			return new SaAmgAlgorithm(hierarchy, smoothersHierarchy, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance);
 		}
 
 		public void SetNullspaceCandidatesRelaxationAll(INearNullspaceCandidatesRelaxationStrategy commonRelaxation)
@@ -120,7 +120,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			this.smoothersHierarchy = allSmoothers;
 		}
 
-		private ICoarseSystemSolver FinalizeCoarsetSystemSolver()
+		private ICoarseSystemSolver FinalizeCoarsestSystemSolver()
 		{
 			if (CoarsestSystemSolver is null)
 			{

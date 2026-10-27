@@ -35,7 +35,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 
 	using Xunit;
 
-	public static class SaAmgSolverTestsElasticity
+	public static class SaAmgAlgorithmTestsElasticity
 	{
 		[Fact]
 		public static void TestForCantilever2D_8x4Elements()
@@ -52,12 +52,14 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			var candidateSelectionStrategy = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, [Lx / 2.0, Ly / 2.0]);
 
 			// Solver
-			SaAmgSolverBuilder solverBuilder = ChooseDefaultSolver();
-			solverBuilder.NullspaceCandidatesSelection = candidateSelectionStrategy;
-			solverBuilder.ResidualTolerance = 1E-8;
-			SaAmgSolver solver = solverBuilder.BuildSolver();
+			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			mgBuilder.NullspaceCandidatesSelection = candidateSelectionStrategy;
+			mgBuilder.ResidualTolerance = 1E-8;
+			SaAmgAlgorithm mg = mgBuilder.BuildAlgorithm();
 			Vector solution = Vector.CreateZero(rhs.Length);
-			solver.Solve(systemMatrix, rhs, solution);
+
+			mg.PrepareForNewLinearSystemMatrix(systemMatrix);
+			mg.SolveLinearSystem(rhs, solution);
 
 			// Expected output
 			var solutionExpected = Vector.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.Solution);
@@ -89,10 +91,10 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(3);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-11);
 			comparer.AssertEqual(solutionExpected, solution);
-			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);
+			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-6);
 		}
 
@@ -111,14 +113,14 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			var candidatesSelection = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, domainCentroid);
 
 			// Solver
-			SaAmgSolverBuilder solverBuilder = ChooseDefaultSolver();
-			solverBuilder.NullspaceCandidatesSelection = candidatesSelection;
-			solverBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
-			solverBuilder.ResidualTolerance = 1E-8;
+			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			mgBuilder.NullspaceCandidatesSelection = candidatesSelection;
+			mgBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
+			mgBuilder.ResidualTolerance = 1E-8;
 
-			SaAmgSolver solver = solverBuilder.BuildSolver();
+			SaAmgAlgorithm mg = mgBuilder.BuildAlgorithm();
 			Vector solution = Vector.CreateZero(rhs.Length);
-			
+
 			#region Temporary checks
 			//Assert.Equal(1224, systemMatrix.NumRows);
 			//Assert.Equal(1224, systemMatrix.NumColumns);
@@ -127,7 +129,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			//throw new NotImplementedException();
 			#endregion
 
-			solver.Solve(systemMatrix, rhs, solution);
+			mg.PrepareForNewLinearSystemMatrix(systemMatrix);
+			mg.SolveLinearSystem(rhs, solution);
 
 			// Expected output
 			var solutionExpected = Vector.CreateFromArray(new double[]
@@ -166,10 +169,10 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(3);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-6);
 			comparer.AssertEqual(solutionExpected, solution);
-			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);
+			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-5);
 		}
 
@@ -188,11 +191,11 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			var candidatesSelection = new Elasticity3DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, StructuralDof.TranslationZ, domainCentroid);
 
 			// Solver
-			SaAmgSolverBuilder solverBuilder = ChooseDefaultSolver();
-			solverBuilder.NullspaceCandidatesSelection = candidatesSelection;
-			solverBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
-			solverBuilder.ResidualTolerance = 1E-8;
-			SaAmgSolver solver = solverBuilder.BuildSolver();
+			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			mgBuilder.NullspaceCandidatesSelection = candidatesSelection;
+			mgBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
+			mgBuilder.ResidualTolerance = 1E-8;
+			SaAmgAlgorithm mg = mgBuilder.BuildAlgorithm();
 			Vector solution = Vector.CreateZero(rhs.Length);
 
 			#region Temporary checks
@@ -203,7 +206,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			//throw new NotImplementedException();
 			#endregion
 
-			solver.Solve(systemMatrix, rhs, solution);
+			mg.PrepareForNewLinearSystemMatrix(systemMatrix);
+			mg.SolveLinearSystem(rhs, solution);
 
 			// Expected output
 			var solutionExpected = Vector.CreateFromArray(new double[]
@@ -242,30 +246,30 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(6);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, solver.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-10);
 			comparer.AssertEqual(solutionExpected, solution);
-			ResidualNormHistory residualHistory = solver.Logger.GetResidualHistory(analysisStep: 0);
+			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-5);
 		}
 
-		private static SaAmgSolverBuilder ChooseDefaultSolver()
+		private static SaAmgAlgorithmBuilder ChooseDefaultSolver()
 		{
-			var solverBuilder = new SaAmgSolverBuilder(numLevelsRequested: 10, maxCycles: 1000);
-			solverBuilder.ResidualTolerance = 1E-8;
-			solverBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);
-			solverBuilder.Aggregation = new StandardAggregation();
-			solverBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
-			solverBuilder.NullspaceCandidatesFitting = new BlockCandidatesFitting(orthonormalizationTolerance: 1E-10);
+			var mgBuilder = new SaAmgAlgorithmBuilder(numLevelsRequested: 10, maxCycles: 1000);
+			mgBuilder.ResidualTolerance = 1E-8;
+			mgBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);
+			mgBuilder.Aggregation = new StandardAggregation();
+			mgBuilder.SetNullspaceCandidatesRelaxationAll(new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4));
+			mgBuilder.NullspaceCandidatesFitting = new BlockCandidatesFitting(orthonormalizationTolerance: 1E-10);
 			IJacobiWeightingStrategy weighting = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
-			solverBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
-			solverBuilder.Restriction = new UnscaledTransposeRestriction();
-			solverBuilder.SetSmoothers(new StationaryIterationSmoother(new SgsIterationCsr(), numSteps: 1));
-			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
-			solverBuilder.CycleSchedule = new VCycleSchedule();
-			solverBuilder.DiscardIntermediateHierarchyData = false;
+			mgBuilder.ProlongationSmoothing = new JacobiProlongationSmoothing(weighting, degree: 1);
+			mgBuilder.Restriction = new UnscaledTransposeRestriction();
+			mgBuilder.SetSmoothers(new StationaryIterationSmoother(new SgsIterationCsr(), numSteps: 1));
+			mgBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(mgBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
+			mgBuilder.CycleSchedule = new VCycleSchedule();
+			mgBuilder.DiscardIntermediateHierarchyData = false;
 
-			return solverBuilder;
+			return mgBuilder;
 		}
 	}
 }

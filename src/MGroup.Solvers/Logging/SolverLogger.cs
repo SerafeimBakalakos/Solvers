@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
+
 using MGroup.MSolve.Solution;
 
 //TODO: Use enums instead of strings for the solver task and dof category. Or use interfaces & enum classes, to adhere to 
@@ -27,6 +29,15 @@ namespace MGroup.Solvers.Logging
 		}
 
 		public string ExtraInfo { get; set; }
+
+		public void ExecuteTimeAndLog(string taskName, Action operation)
+		{
+			var watch = new Stopwatch();
+			watch.Start();
+			operation();
+			watch.Stop();
+			LogTaskDuration(taskName, watch.ElapsedMilliseconds);
+		}
 
 		public int GetNumDofs(int analysisStep, string category) => numDofsPerCategory[analysisStep][category];
 

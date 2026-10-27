@@ -13,30 +13,29 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
+	using MGroup.Solvers.Multigrid.Algorithms;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.Logging;
 	using MGroup.Solvers.Multigrid.Smoothing;
 
-	public class SaAmgSolver
+	public class SaAmgAlgorithm : IMultigridAlgorithm
 	{
 		private readonly ICoarseSystemSolver coarsestSystemSolver;
 		private readonly ICycleSchedule cycleSchedule;
-		private readonly SaAmgOperatorHierarchy hierarchy;
+		private readonly SaAmgOperatorHierarchy operatorHierarchy;
 		private readonly int maxCycles;
 		private readonly double residualTolerance;
 		private readonly MultigridSmoothersHierarchy smoothersHierarchy;
+		private readonly MultigridVectorHierarchy vectorHierarchy = new();
 
-		protected LevelProgression levelProgression;
-		protected Vector[] vectorsLhs;
-		protected Vector[] vectorsRhs;
-		protected Vector[] vectorsWork;
+		private LevelProgression levelProgression;
 
-		public SaAmgSolver(SaAmgOperatorHierarchy hierarchy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance)
+		public SaAmgAlgorithm(SaAmgOperatorHierarchy hierarchy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance)
 		{
 			Logger = new MultigridSolverLogger<SaAmgHierarchyLog>(Name);
 
-			this.hierarchy = hierarchy;
+			this.operatorHierarchy = hierarchy;
 			this.smoothersHierarchy = smoothersHierarchy;
 			this.coarsestSystemSolver = coarsestSystemSolver;
 			this.cycleSchedule = cycleSchedule;
@@ -48,32 +47,80 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 		public MultigridSolverLogger<SaAmgHierarchyLog> Logger { get; }
 		
-		public SaAmgOperatorHierarchy OperatorHierarchy => hierarchy;
+		public SaAmgOperatorHierarchy OperatorHierarchy => operatorHierarchy;
 
-		public void Solve(CsrMatrix systemMatrix, Vector rhsVector, Vector solution)
+		public void Initialize() { } // Everything depends on the system matrix
+		
+		public void PrepareForNewLinearSystemMatrix(CsrMatrix systemMatrix)
 		{
-			var residualHistory = new ResidualNormHistory();
-			PrepareHierarchyAndOperators(systemMatrix);
-			PrepareSystemVectors();
+			Logger.ExecuteTimeAndLog("Prepare prolongations, restrictions and coarse matrices", () =>
+			{
+				operatorHierarchy.BuildOperators(systemMatrix);
+			});
+			Logger.LogOperatorHierarchy(operatorHierarchy.Log);
+			int numLevels = operatorHierarchy.NumLevels;
+
+			Logger.ExecuteTimeAndLog("Prepare level progression", () =>
+			{
+				levelProgression = cycleSchedule.CreateProgression(operatorHierarchy.NumLevels);
+			});
+
+			Logger.ExecuteTimeAndLog("Prepare smoothers", () =>
+			{
+				if (smoothersHierarchy.NumLevelsTotal < numLevels)
+				{
+					throw new Exception($"Not enough smoothers are provided for the {numLevels} actual levels.");
+				}
+				for (int lvl = 0; lvl < numLevels - 1; lvl++)
+				{
+					smoothersHierarchy.Update(lvl, operatorHierarchy.GetSystemMatrix(lvl), areDofsModified: true);
+				}
+			});
+
+			Logger.ExecuteTimeAndLog("Prepare coarsest level solver", () =>
+			{
+				coarsestSystemSolver.Initialize(operatorHierarchy.GetSystemMatrix(numLevels - 1));
+			});
+
+			Logger.ExecuteTimeAndLog("Prepare system vectors", () =>
+			{
+				vectorHierarchy.AllocateVectors(operatorHierarchy);
+			});
+		}
+
+		public void RunSingleCycle(Vector rhsVector, Vector solution)
+		{
+			vectorHierarchy.SetFinestLevelVectors(rhsVector, solution);
+			RunCycle();
+		}
+
+		public void SolveLinearSystem(Vector rhsVector, Vector solution)
+		{
+			Logger.ExecuteTimeAndLog("Prepare system vectors", () =>
+			{
+				vectorHierarchy.AllocateVectors(operatorHierarchy);
+			});
 
 			var watch = new Stopwatch();
 			watch.Start();
 
-			vectorsRhs[0] = rhsVector;
-			vectorsLhs[0] = solution;
+			CsrMatrix finestSystemMatrix = operatorHierarchy.GetSystemMatrix(0);
+			vectorHierarchy.SetFinestLevelVectors(rhsVector, solution);
 
+			var residualHistory = new ResidualNormHistory();
 			var res = Vector.CreateZero(rhsVector.Length);
 			double normRes0 = rhsVector.Norm2();
 			residualHistory.LogInitialResidual(normRes0);
+
 			double resRatio = 1.0;
 			int cycleIdx;
 			for (cycleIdx = 0; cycleIdx < maxCycles; cycleIdx++)
 			{
-				RunSingleCycle();
+				RunCycle();
 
 				// Calculate the residual of the coarsest grid.
 				//TODO: Perhaps this is already done inside the RunSingleCycle().
-				systemMatrix.MultiplyIntoResult(solution, res);
+				finestSystemMatrix.MultiplyIntoResult(solution, res);
 				res.LinearCombinationIntoThis(-1, rhsVector, 1);
 				double normRes = res.Norm2();
 				residualHistory.LogResidual(normRes);
@@ -97,67 +144,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			}
 		}
 
-		private void PrepareHierarchyAndOperators(CsrMatrix systemMatrix)
-		{
-			var watch = new Stopwatch();
-
-			watch.Start();
-			hierarchy.BuildOperators(systemMatrix);
-			int numLevels = hierarchy.NumLevels;
-			watch.Stop();
-			Logger.LogTaskDuration("Prepare prolongations, restrictions and coarse matrices", watch.ElapsedMilliseconds);
-			Logger.LogOperatorHierarchy(hierarchy.Log);
-
-			watch.Restart();
-			levelProgression = cycleSchedule.CreateProgression(hierarchy.NumLevels);
-			watch.Stop();
-			Logger.LogTaskDuration("Prepare level progression", watch.ElapsedMilliseconds);
-
-			watch.Restart();
-			if (smoothersHierarchy.NumLevelsTotal < numLevels)
-			{
-				throw new Exception($"Not enough smoothers are provided for the {numLevels} actual levels.");
-			}
-			for (int lvl = 0; lvl < numLevels - 1; lvl++)
-			{
-				smoothersHierarchy.Update(lvl, hierarchy.GetSystemMatrix(lvl), areDofsModified: true);
-			}
-			watch.Stop();
-			Logger.LogTaskDuration("Prepare smoothers", watch.ElapsedMilliseconds);
-
-			watch.Restart();
-			coarsestSystemSolver.Initialize(hierarchy.GetSystemMatrix(numLevels - 1));
-			watch.Stop();
-			Logger.LogTaskDuration("Prepare coarsest level solver", watch.ElapsedMilliseconds);
-		}
-
-		private void PrepareSystemVectors()
-		{
-			var watch = new Stopwatch();
-			watch.Start();
-
-			int numLevels = hierarchy.NumLevels;
-			vectorsLhs = new Vector[numLevels];
-			vectorsRhs = new Vector[numLevels];
-			vectorsWork = new Vector[numLevels];
-
-			// Finest grid. The rest must be done whenever a system is solved
-			vectorsWork[0] = Vector.CreateZero(hierarchy.GetSystemMatrix(level: 0).NumColumns);
-
-			// Coarse grids
-			for (int lvl = 1; lvl < numLevels; lvl++)
-			{
-				int numDofs = hierarchy.GetSystemMatrix(lvl).NumColumns;
-				vectorsRhs[lvl] = Vector.CreateZero(numDofs);
-				vectorsLhs[lvl] = Vector.CreateZero(numDofs);
-				vectorsWork[lvl] = Vector.CreateZero(numDofs);
-			}
-
-			watch.Stop();
-			Logger.LogTaskDuration("Prepare system vectors", watch.ElapsedMilliseconds);
-		}
-
-		private void RunSingleCycle()
+		private void RunCycle()
 		{
 			int lvl = 0; // Each cycle starts at finest grid
 			while (true)
@@ -166,13 +153,13 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 				if (direction == 1) // Fine -> coarse
 				{
 					// Access the correct matrices and vectors
-					IReadOnlyMatrix Af = hierarchy.GetSystemMatrix(lvl);
-					IReadOnlyMatrix R = hierarchy.GetRestriction(lvl);
-					Vector xf = vectorsLhs[lvl];
-					Vector bf = vectorsRhs[lvl];
-					Vector xc = vectorsLhs[lvl + 1];
-					Vector rc = vectorsRhs[lvl + 1]; // Fine residual becomes coarse rhs
-					Vector rf = vectorsWork[lvl];
+					IReadOnlyMatrix Af = operatorHierarchy.GetSystemMatrix(lvl);
+					IReadOnlyMatrix R = operatorHierarchy.GetRestriction(lvl);
+					Vector xf = vectorHierarchy.GetLhsVector(lvl);
+					Vector bf = vectorHierarchy.GetRhsVector(lvl);
+					Vector xc = vectorHierarchy.GetLhsVector(lvl + 1);
+					Vector rc = vectorHierarchy.GetRhsVector(lvl + 1); // Fine residual becomes coarse rhs
+					Vector rf = vectorHierarchy.GetWorkVector(lvl);
 
 					// MG operations
 					smoothersHierarchy.ApplyPreSmoothing(lvl, bf, xf);
@@ -187,14 +174,14 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 				else if (direction == -1) // Coarse -> fine
 				{
 					// Access the correct matrices and vectors
-					IReadOnlyMatrix P = hierarchy.GetProlongation(lvl - 1);
-					Vector ec = vectorsLhs[lvl];
-					Vector rc = vectorsRhs[lvl];
-					Vector xf = vectorsLhs[lvl - 1];
-					Vector ef = vectorsWork[lvl - 1];
+					IReadOnlyMatrix P = operatorHierarchy.GetProlongation(lvl - 1);
+					Vector ec = vectorHierarchy.GetLhsVector(lvl);
+					Vector rc = vectorHierarchy.GetRhsVector(lvl);
+					Vector xf = vectorHierarchy.GetLhsVector(lvl - 1);
+					Vector ef = vectorHierarchy.GetWorkVector(lvl - 1);
 
 					// MG operations
-					if (lvl < hierarchy.NumLevels - 1)
+					if (lvl < operatorHierarchy.NumLevels - 1)
 					{
 						smoothersHierarchy.ApplyPostSmoothing(lvl, rc, ec);
 					}
@@ -214,8 +201,8 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 					Debug.Assert(lvl == 0);
 
 					// Access the correct matrices and vectors
-					Vector x = vectorsLhs[0];
-					Vector b = vectorsRhs[0];
+					Vector x = vectorHierarchy.GetLhsVector(0);
+					Vector b = vectorHierarchy.GetRhsVector(0);
 
 					smoothersHierarchy.ApplyPostSmoothing(0, b, x);
 
