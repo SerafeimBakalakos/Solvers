@@ -23,7 +23,9 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
+	using MGroup.Solvers.Multigrid.Geometric;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
+	using MGroup.Solvers.Multigrid.Geometric.OperatorHierarchy;
 	using MGroup.Solvers.Multigrid.Geometric.Prolongations;
 	using MGroup.Solvers.Multigrid.Smoothing;
 	using MGroup.Solvers.Multigrid.Tests;
@@ -64,21 +66,23 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 			Model model = example.CreateFemModel(grid);
 			IDofType[] dofsPerNode = [StructuralDof.TranslationX, StructuralDof.TranslationY];
 
-			// Setup solver
+			// Setup multigrid algorithm
 			var prolongation = new Prolongation2DStrategy(2);
-			var solverBuilder = new GeometricMultigridSolver.Builder(numLevels: numLevels, grid, prolongation, maxCycles: 100);
-			solverBuilder.LinearAlgebraProvider = new ManagedSequentialImplementationProvider();
-			solverBuilder.CycleSchedule = cycle.Translate();
+			var mgBuilder = new GmgAlgorithm.Builder(prolongation, grid, numLevels, maxCycles: 100);
+			mgBuilder.LinearAlgebraProvider = new ManagedSequentialImplementationProvider();
+			mgBuilder.CycleSchedule = cycle.Translate();
 			IStationaryIteration stationaryIteration = smoother.Translate(relaxFactor);
-			solverBuilder.SetSmoothers(new StationaryIterationSmoother(stationaryIteration, smoothingSteps));
-			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
-			solverBuilder.ResidualTolerance = 1E-10;
+			mgBuilder.SetSmoothers(new StationaryIterationSmoother(stationaryIteration, smoothingSteps));
+			mgBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(mgBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
+			mgBuilder.ResidualTolerance = 1E-10;
+
+			// Setup multigrid solver
+			var solverBuilder = new GmgSolverBuilder(mgBuilder);
 			solverBuilder.DropToleranceForSmallEntriesOfSystemMatrix = 1E-10;
+			StandaloneMultigridSolver solver = solverBuilder.BuildStandaloneSolver(model, dofsPerNode);
 
 			// Run analysis
-			GlobalAlgebraicModel<CsrMatrix> algebraicModel = solverBuilder.BuildAlgebraicModel(model);
-			GeometricMultigridSolver solver = solverBuilder.BuildSolver(model, dofsPerNode, algebraicModel);
-			IVector solution = RunAnalysis(model, algebraicModel, solver);
+			IVector solution = RunAnalysis(model, solver.AlgebraicModel, solver);
 
 			// Reference solution
 			Model refModel = example.CreateFemModel(grid);
@@ -91,7 +95,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 			Assert.InRange(normRelative, 0, solutionTol);
 
 			// Check convergence
-			double resTolExpected = solverBuilder.ResidualTolerance;
+			double resTolExpected = mgBuilder.ResidualTolerance;
 			int analysisStep = 0;
 			int numCycles = solver.Logger.GetNumIterationsOfIterativeAlgorithm(analysisStep);
 			double resTol = solver.Logger.GetResidualNormRatioOfIterativeAlgorithm(analysisStep);

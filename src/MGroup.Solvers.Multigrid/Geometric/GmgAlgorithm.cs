@@ -27,6 +27,7 @@ namespace MGroup.Solvers.Multigrid.Geometric
 		public GmgAlgorithm(IGridHierarchy gridHierarchy, GmgOperatorHierarchyGalerkin operatorHierarchy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance)
 			: base(operatorHierarchy, smoothersHierarchy, coarsestSystemSolver, cycleSchedule, maxCycles, residualTolerance, name)
 		{
+			this.gridHierarchy = gridHierarchy;
 			this.gmgOperatorHierarchy = operatorHierarchy;
 		}
 

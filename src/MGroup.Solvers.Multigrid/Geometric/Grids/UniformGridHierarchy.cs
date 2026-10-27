@@ -25,6 +25,8 @@ namespace MGroup.Solvers.Multigrid.Geometric.Grids
 		/// </param>
 		public UniformGridHierarchy(int numLevelsRequested, IUniformGrid finestGrid, int[] targetCoarseningRatios)
 		{
+			this.Dimension = finestGrid.Dimension;
+
 			if (numLevelsRequested < 2)
 			{
 				throw new ArgumentException("The number of levels must be integer >= 2.");
@@ -68,7 +70,6 @@ namespace MGroup.Solvers.Multigrid.Geometric.Grids
 
 			this.numLevelsRequested = numLevelsRequested;
 			this.finestGrid = finestGrid;
-			Dimension = finestGrid.Dimension;
 			this.targetCoarseningRatios = targetCoarseningRatios;
 		}
 
