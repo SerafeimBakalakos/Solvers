@@ -22,10 +22,7 @@ namespace MGroup.Solvers.Multigrid.Geometric.Grids
 		/// <summary>
 		/// Calculate the exact grids that will be used.
 		/// </summary>
-		/// <param name="numLevelsRequested">
-		/// How many grids to use, including the finerst. Must be > 1. It may not be possible to create all these levels. Check <see cref="NumLevels"/> for the actual count.
-		/// </param>
-		void DefineGrids(int numLevelsRequested);
+		void DefineGrids();
 
 		IUniformGrid GetGridAtLevel(int level);
 	}

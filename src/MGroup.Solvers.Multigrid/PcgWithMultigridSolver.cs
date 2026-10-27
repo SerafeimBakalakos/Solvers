@@ -41,7 +41,7 @@ namespace MGroup.Solvers.Multigrid
 		private readonly PcgAlgorithm pcg;
 		private readonly MultigridPreconditioner preconditioner;
 
-		internal PcgWithMultigridSolver(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevels, IUniformGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices, PcgAlgorithm pcg)
+		internal PcgWithMultigridSolver(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevels, IUniformGrid finestGrid, int[] coarseningRatios, IGeometricProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices, PcgAlgorithm pcg)
 			: base(algebraicModel, model, dofsPerNode, numLevels, finestGrid, coarseningRatios, prolongationStrategy, restrictionStrategy, smoothersHierarchy, coarsestSystemSolver, cycleSchedule, maxCycles, residualTolerance, useGalerkinCoarseMatrices, "PcgWithMultigridPreconditionerSolver")
 		{
 			this.pcg = pcg;
@@ -80,7 +80,7 @@ namespace MGroup.Solvers.Multigrid
 
 		public class Builder : MultigridSolverBuilderBase
 		{
-			public Builder(int numLevels, IUniformGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
+			public Builder(int numLevels, IUniformGrid finestGrid, IGeometricProlongationStrategy prolongation, int maxCycles)
 				: base(numLevels, finestGrid, prolongation, maxCycles)
 			{
 			}

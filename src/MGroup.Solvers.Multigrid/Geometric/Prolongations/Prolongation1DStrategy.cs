@@ -7,7 +7,7 @@ namespace MGroup.Solvers.Multigrid.Geometric.Prolongations
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
 
-	public class Prolongation1DStrategy : IProlongationStrategy
+	public class Prolongation1DStrategy : IGeometricProlongationStrategy
 	{
 		private readonly int numDofsPerNode;
 		private double tolerance;

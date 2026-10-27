@@ -18,8 +18,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 			// 17 nodes -> 9 -> 5 -> 3
 			// With 4 levels, ratio 2 remains feasible at every step.
 			var finestGrid = new UniformGrid1D(17);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [2]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 4);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 4, finestGrid, targetCoarseningRatios: [2]);
+			gridHierarchy.DefineGrids();
 			int[,] expected = { { 17 }, { 9 }, { 5 }, { 3 } };
 			AssertEqualNodes(expected, gridHierarchy);
 		}
@@ -33,8 +33,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 			// 3 nodes = 2 elements: ratio 2 -> 2 nodes
 			// The ratio remains 2 for the remaining levels.
 			var finestGrid = new UniformGrid1D(13);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [3]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 4);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 4, finestGrid, targetCoarseningRatios: [3]);
+			gridHierarchy.DefineGrids();
 			int[,] expected = { { 13 }, { 5 }, { 3 }, { 2 } };
 			AssertEqualNodes(expected, gridHierarchy);
 		}
@@ -44,8 +44,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 		{
 			// Both axes coarsen by 2 at every level.
 			var finestGrid = new UniformGrid2D(9, 17);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [2, 2]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 4);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 4, finestGrid, targetCoarseningRatios: [2, 2]);
+			gridHierarchy.DefineGrids();
 			int[,] expected = { { 9, 17 }, { 5, 9 }, { 3, 5 }, { 2, 3 } };
 			AssertEqualNodes(expected, gridHierarchy);
 		}
@@ -55,8 +55,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 		{
 			// X coarsens by 2, Y coarsens by 3.
 			var finestGrid = new UniformGrid2D(17, 28);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [2, 3]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 3);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 3, finestGrid, targetCoarseningRatios: [2, 3]);
+			gridHierarchy.DefineGrids();
 			int[,] expected = { { 17, 28 }, { 9, 10 }, { 5, 4 } };
 			AssertEqualNodes(expected, gridHierarchy);
 		}
@@ -68,8 +68,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 			// X: 17 -> 9 -> 5 -> 3 -> 2 
 			// Y: 5 -> 3 -> 2 -> 2 -> 2
 			var finestGrid = new UniformGrid2D(17, 5);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [2, 2]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 5);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 5, finestGrid, targetCoarseningRatios: [2, 2]);
+			gridHierarchy.DefineGrids();
 			int[,] expected = { { 17, 5 }, { 9, 3 }, { 5, 2 }, { 3, 2 }, { 2, 2 } };
 			AssertEqualNodes(expected, gridHierarchy);
 		}
@@ -87,8 +87,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 			// 65 -> 33 -> 17 -> 9 -> 5
 
 			var finestGrid = new UniformGrid2D(25, 65);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [4, 2]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 5);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 5, finestGrid, targetCoarseningRatios: [4, 2]);
+			gridHierarchy.DefineGrids();
 			int[,] expected = { { 25, 65 }, { 7, 33 }, { 3, 17 }, { 2, 9 }, { 2, 5 } }; 
 			AssertEqualNodes(expected, gridHierarchy);
 		}
@@ -98,8 +98,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 		{
 			// All three axes coarsen by 2.
 			var finestGrid = new UniformGrid3D(33, 17, 25);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [2, 2, 2]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 4);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 4, finestGrid, targetCoarseningRatios: [2, 2, 2]);
+			gridHierarchy.DefineGrids();
 			int[,] expected = { { 33, 17, 25 }, { 17, 9, 13 }, { 9, 5, 7 }, { 5, 3, 4 } };
 			AssertEqualNodes(expected, gridHierarchy);
 		}
@@ -109,8 +109,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 		{
 			// Different coarsening ratios on all three axes.
 			var finestGrid = new UniformGrid3D(811, 321, 1281);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [3, 2, 4]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 5);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 5, finestGrid, targetCoarseningRatios: [3, 2, 4]);
+			gridHierarchy.DefineGrids();
 			int[,] expected =
 			{ 
 				{ 811, 321, 1281 }, 
@@ -130,8 +130,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 			// Y: 5 -> 3 -> 2 -> 2 -> 2 
 			// Z: 3 -> 2 -> 2 -> 2 -> 2
 			var finestGrid = new UniformGrid3D(17, 5, 3);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [2, 2, 2]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 5);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 5, finestGrid, targetCoarseningRatios: [2, 2, 2]);
+			gridHierarchy.DefineGrids();
 			int[,] expected = { { 17, 5, 3 }, { 9, 3, 2 }, { 5, 2, 2 }, { 3, 2, 2 }, { 2, 2, 2 } };
 			AssertEqualNodes(expected, gridHierarchy);
 		}
@@ -140,8 +140,8 @@ namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 		public static void Test3D_CannotCreateAllRequestedLevels()
 		{
 			var finestGrid = new UniformGrid3D(9, 9, 9);
-			var gridHierarchy = new UniformGridHierarchy(finestGrid, targetCoarseningRatios: [2, 2, 2]);
-			gridHierarchy.DefineGrids(numLevelsRequested: 10);
+			var gridHierarchy = new UniformGridHierarchy(numLevelsRequested: 10, finestGrid, targetCoarseningRatios: [2, 2, 2]);
+			gridHierarchy.DefineGrids();
 			Assert.Equal(4, gridHierarchy.NumLevels);
 		}
 

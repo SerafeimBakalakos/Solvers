@@ -6,6 +6,7 @@ namespace MGroup.Solvers.Multigrid.Geometric.Grids
 
 	public class UniformGridHierarchy : IGridHierarchy
 	{
+		private readonly int numLevelsRequested;
 		private readonly IUniformGrid finestGrid;
 		private readonly int[] targetCoarseningRatios;
 
@@ -15,13 +16,19 @@ namespace MGroup.Solvers.Multigrid.Geometric.Grids
 		/// <summary>
 		/// Constructor
 		/// </summary>
+		/// <param name="numLevelsRequested">
+		/// How many grids to use, including the finerst. Must be > 1. It may not be possible to create all these levels. Check <see cref="NumLevels"/> for the actual count.
+		/// </param>
 		/// <param name="targetCoarseningRatios">
 		/// (1 x <paramref name="finestGrid"/>.Dimension) arrays containing the coarsening ratio along each axis, i.e. how many fine elements fit inside one coarse element along that axis. 
 		/// The given coarsening ratio along an axis may be lowered, when the requested ratio is no longer feasible along that axis.
 		/// </param>
-		public UniformGridHierarchy(IUniformGrid finestGrid, int[] targetCoarseningRatios)
+		public UniformGridHierarchy(int numLevelsRequested, IUniformGrid finestGrid, int[] targetCoarseningRatios)
 		{
-			Dimension = finestGrid.Dimension;
+			if (numLevelsRequested < 2)
+			{
+				throw new ArgumentException("The number of levels must be integer >= 2.");
+			}
 
 			if (Dimension != 1 && Dimension != 2 && Dimension != 3)
 			{
@@ -59,7 +66,9 @@ namespace MGroup.Solvers.Multigrid.Geometric.Grids
 				throw new ArgumentException("There must be at least one axis along which the coarsening ratio is > 1.");
 			}
 
+			this.numLevelsRequested = numLevelsRequested;
 			this.finestGrid = finestGrid;
+			Dimension = finestGrid.Dimension;
 			this.targetCoarseningRatios = targetCoarseningRatios;
 		}
 
@@ -67,13 +76,8 @@ namespace MGroup.Solvers.Multigrid.Geometric.Grids
 
 		public int NumLevels { get; private set; } = -1;
 
-		public void DefineGrids(int numLevelsRequested)
+		public void DefineGrids()
 		{
-			if (numLevelsRequested < 2)
-			{
-				throw new ArgumentException("The number of levels must be integer >= 2.");
-			}
-
 			// Clear existing data
 			gridNodes.Clear();
 			gridNodes.Capacity = numLevelsRequested;

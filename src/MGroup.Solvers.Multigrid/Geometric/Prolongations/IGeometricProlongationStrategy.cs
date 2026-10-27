@@ -7,7 +7,7 @@ namespace MGroup.Solvers.Multigrid.Geometric.Prolongations
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
 
-	public interface IProlongationStrategy
+	public interface IGeometricProlongationStrategy
 	{
 		DokRowMajor CreateProlongationMatrix(IUniformGrid fineGrid, IUniformGrid coarseGrid);
 	}

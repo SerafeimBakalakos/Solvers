@@ -17,7 +17,7 @@ namespace MGroup.Solvers.Multigrid.Geometric.OperatorHierarchy
 	public class GmgOperatorHierarchyGalerkin : IMultigridOperatorHierarchy
 	{
 		private readonly IGridHierarchy gridHierarchy;
-		private readonly IProlongationStrategy prolongationStrategy;
+		private readonly IGeometricProlongationStrategy prolongationStrategy;
 		private readonly IRestrictionStrategy restrictionStrategy;
 		private readonly GalerkinProductCsr galerkinProductStrategy = new();
 		private readonly IFreeDofProvider freeDofProvider;
@@ -30,7 +30,7 @@ namespace MGroup.Solvers.Multigrid.Geometric.OperatorHierarchy
 		// Optional
 		private readonly List<int[]> freeDofMapPerLevel = new();
 
-		public GmgOperatorHierarchyGalerkin(IGridHierarchy gridHierarchy, IFreeDofProvider freeDofProvider, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy)
+		public GmgOperatorHierarchyGalerkin(IGridHierarchy gridHierarchy, IFreeDofProvider freeDofProvider, IGeometricProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy)
 		{
 			this.gridHierarchy = gridHierarchy;
 			this.prolongationStrategy = prolongationStrategy;

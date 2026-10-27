@@ -31,12 +31,12 @@ namespace MGroup.Solvers.Multigrid
 		protected readonly IUniformGrid finestGrid;
 		protected readonly IDofOrderer dofOrderer;
 		protected readonly int maxCycles;
-		protected readonly IProlongationStrategy prolongation;
+		protected readonly IGeometricProlongationStrategy prolongation;
 
 		protected MultigridSmoothersHierarchy smoothersHierarchy;
 		protected bool useGalerkinCoarseMatrices = true;
 
-		public MultigridSolverBuilderBase(int numLevels, IUniformGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
+		public MultigridSolverBuilderBase(int numLevels, IUniformGrid finestGrid, IGeometricProlongationStrategy prolongation, int maxCycles)
 		{
 			this.finestGrid = finestGrid;
 

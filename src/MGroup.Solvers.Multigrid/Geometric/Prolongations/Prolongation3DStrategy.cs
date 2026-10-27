@@ -8,7 +8,7 @@ namespace MGroup.Solvers.Multigrid.Geometric.Prolongations
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
 	using MGroup.Solvers.Multigrid.Utilities;
 
-	public class Prolongation3DStrategy : IProlongationStrategy
+	public class Prolongation3DStrategy : IGeometricProlongationStrategy
 	{
 		private readonly int numDofsPerNode;
 		private readonly Prolongation1DStrategy prolongation1D;

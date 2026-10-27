@@ -32,7 +32,7 @@ namespace MGroup.Solvers.Multigrid
 
 	public class GeometricMultigridSolver : MultigridSolverBase
 	{
-		internal GeometricMultigridSolver(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevels, IUniformGrid finestGrid, int[] coarseningRatios, IProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothersHierarchy smsmoothersHierarchyothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices)
+		internal GeometricMultigridSolver(GlobalAlgebraicModel<CsrMatrix> algebraicModel, Model model, IDofType[] dofsPerNode, int numLevels, IUniformGrid finestGrid, int[] coarseningRatios, IGeometricProlongationStrategy prolongationStrategy, IRestrictionStrategy restrictionStrategy, MultigridSmoothersHierarchy smsmoothersHierarchyothers, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, bool useGalerkinCoarseMatrices)
 			: base(algebraicModel, model, dofsPerNode, numLevels, finestGrid, coarseningRatios, prolongationStrategy, restrictionStrategy, smsmoothersHierarchyothers, coarsestSystemSolver, cycleSchedule, maxCycles, residualTolerance, useGalerkinCoarseMatrices, "GeometricMultigridSolver")
 		{
 		}
@@ -84,7 +84,7 @@ namespace MGroup.Solvers.Multigrid
 
 		public class Builder : MultigridSolverBuilderBase
 		{
-			public Builder(int numLevels, IUniformGrid finestGrid, IProlongationStrategy prolongation, int maxCycles)
+			public Builder(int numLevels, IUniformGrid finestGrid, IGeometricProlongationStrategy prolongation, int maxCycles)
 				: base(numLevels, finestGrid, prolongation, maxCycles)
 			{
 			}
