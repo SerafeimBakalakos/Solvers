@@ -23,6 +23,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
+	using MGroup.Solvers.Multigrid.Algorithms;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.Logging;
@@ -52,7 +53,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			var candidateSelectionStrategy = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, [Lx / 2.0, Ly / 2.0]);
 
 			// Solver
-			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
 			mgBuilder.NullspaceCandidatesSelection = candidateSelectionStrategy;
 			mgBuilder.ResidualTolerance = 1E-8;
 			SaAmgAlgorithm mg = mgBuilder.BuildAlgorithm();
@@ -91,7 +92,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(3);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.SaAmgLogger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-11);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
@@ -113,7 +114,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			var candidatesSelection = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, domainCentroid);
 
 			// Solver
-			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
 			mgBuilder.NullspaceCandidatesSelection = candidatesSelection;
 			mgBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
 			mgBuilder.ResidualTolerance = 1E-8;
@@ -169,7 +170,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(3);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.SaAmgLogger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-6);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
@@ -191,7 +192,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			var candidatesSelection = new Elasticity3DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, StructuralDof.TranslationZ, domainCentroid);
 
 			// Solver
-			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
 			mgBuilder.NullspaceCandidatesSelection = candidatesSelection;
 			mgBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
 			mgBuilder.ResidualTolerance = 1E-8;
@@ -246,16 +247,16 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(6);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.SaAmgLogger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-10);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-5);
 		}
 
-		private static SaAmgAlgorithmBuilder ChooseDefaultSolver()
+		private static SaAmgAlgorithm.Builder ChooseDefaultSolver()
 		{
-			var mgBuilder = new SaAmgAlgorithmBuilder(numLevelsRequested: 10, maxCycles: 1000);
+			var mgBuilder = new SaAmgAlgorithm.Builder(numLevelsRequested: 10, maxCycles: 1000);
 			mgBuilder.ResidualTolerance = 1E-8;
 			mgBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);
 			mgBuilder.Aggregation = new StandardAggregation();

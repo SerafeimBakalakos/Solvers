@@ -19,6 +19,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
+	using MGroup.Solvers.Multigrid.Algorithms;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.Logging;
@@ -39,7 +40,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			CsrMatrix systemMatrix = Poisson1D_12Elements_SaAmgResults.GetSystemMatrix(level: 0);
 			Vector rhs = Vector.CreateFromArray(Poisson1D_12Elements_SaAmgResults.RhsVector);
 
-			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
 			SaAmgAlgorithm mg = mgBuilder.BuildAlgorithm();
 			Vector solution = Vector.CreateZero(rhs.Length);
 
@@ -65,7 +66,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(1);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.SaAmgLogger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-15);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
@@ -78,7 +79,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			(DokRowMajor dokA, Vector rhs) = Poisson1DProblem.CreateLinearSystemWithConstantSource(100, source: 1.0);
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
-			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
 			SaAmgAlgorithm mg = mgBuilder.BuildAlgorithm();
 			Vector solution = Vector.CreateZero(rhs.Length);
 
@@ -127,7 +128,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(1);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.SaAmgLogger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-14);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
@@ -140,7 +141,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			(DokRowMajor dokA, Vector rhs) = Poisson2DProblem.CreateLinearSystem(numElementsX: 35, numElementsY: 35, constantSourceFunction: 1.0);
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
-			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
 			SaAmgAlgorithm mg = mgBuilder.BuildAlgorithm();
 			Vector solution = Vector.CreateZero(rhs.Length);
 
@@ -193,7 +194,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(1);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.SaAmgLogger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-14);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
@@ -206,7 +207,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			(DokRowMajor dokA, Vector rhs) = Poisson3DProblem.CreateLinearSystem(numElementsX: 11, numElementsY: 11, numElementsZ: 11, constantSourceFunction: 1.0);
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
-			SaAmgAlgorithmBuilder mgBuilder = ChooseDefaultSolver();
+			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
 			SaAmgAlgorithm mg = mgBuilder.BuildAlgorithm();
 			Vector solution = Vector.CreateZero(rhs.Length);
 
@@ -250,16 +251,16 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			expectedHierarchy.LogNumNullspaceCandidateVectors(1);
 
 			// Comparisons
-			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.Logger.GetOperatorHierarchy(analysisStep: 0));
+			AssertUtilities.AssertEqualHierarchyLogs(expectedHierarchy, mg.SaAmgLogger.GetOperatorHierarchy(analysisStep: 0));
 			var comparer = new MatrixComparer(tolerance: 1E-14);
 			comparer.AssertEqual(solutionExpected, solution);
 			ResidualNormHistory residualHistory = mg.Logger.GetResidualHistory(analysisStep: 0);
 			AssertUtilities.AssertEqualResidualHistories(residualNormsExpected, residualHistory, tolerance: 1E-9);
 		}
 
-		private static SaAmgAlgorithmBuilder ChooseDefaultSolver()
+		private static SaAmgAlgorithm.Builder ChooseDefaultSolver()
 		{
-			var mgBuilder = new SaAmgAlgorithmBuilder(numLevelsRequested: 10, maxCycles: 1000);
+			var mgBuilder = new SaAmgAlgorithm.Builder(numLevelsRequested: 10, maxCycles: 1000);
 			mgBuilder.ResidualTolerance = 1E-10;
 			mgBuilder.CoarseningTermination = new SystemSizeBasedTermination(10);
 			mgBuilder.StrengthOfConnection = new SymmetricStrengthOfConnection(theta: 0.0);

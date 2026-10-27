@@ -10,209 +10,111 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Solution;
 	using MGroup.MSolve.Solution.AlgebraicModel;
+	using MGroup.Solvers.LinearAlgebraExtensions.Iterative.Stationary.CSR;
+	using MGroup.Solvers.LinearAlgebraExtensions.Random;
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.Algorithms;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.Logging;
 	using MGroup.Solvers.Multigrid.Smoothing;
 
-	public class SaAmgAlgorithm : IMultigridAlgorithm
+	public class SaAmgAlgorithm : MultigridAlgorithmBase
 	{
-		private readonly ICoarseSystemSolver coarsestSystemSolver;
-		private readonly ICycleSchedule cycleSchedule;
-		private readonly SaAmgOperatorHierarchy operatorHierarchy;
-		private readonly int maxCycles;
-		private readonly double residualTolerance;
-		private readonly MultigridSmoothersHierarchy smoothersHierarchy;
-		private readonly MultigridVectorHierarchy vectorHierarchy = new();
+		private const string name = "Smooth Aggregation AMG";
+		private readonly SaAmgOperatorHierarchy saOperatorHierarchy;
 
-		private LevelProgression levelProgression;
-
-		public SaAmgAlgorithm(SaAmgOperatorHierarchy hierarchy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance)
+		public SaAmgAlgorithm(SaAmgOperatorHierarchy operatorHierarchy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance)
+			: base(operatorHierarchy, smoothersHierarchy, coarsestSystemSolver, cycleSchedule, maxCycles, residualTolerance, name)
 		{
-			Logger = new MultigridSolverLogger<SaAmgHierarchyLog>(Name);
-
-			this.operatorHierarchy = hierarchy;
-			this.smoothersHierarchy = smoothersHierarchy;
-			this.coarsestSystemSolver = coarsestSystemSolver;
-			this.cycleSchedule = cycleSchedule;
-			this.maxCycles = maxCycles;
-			this.residualTolerance = residualTolerance;
+			this.saOperatorHierarchy = operatorHierarchy;
+			SaAmgLogger = new MultigridSolverLogger<SaAmgHierarchyLog>(Name);
 		}
 
-		public string Name { get; } = "Smooth Aggregation AMG solver";
+		public override SolverLogger Logger => SaAmgLogger;
 
-		public MultigridSolverLogger<SaAmgHierarchyLog> Logger { get; }
+		public MultigridSolverLogger<SaAmgHierarchyLog> SaAmgLogger { get; }
 		
-		public SaAmgOperatorHierarchy OperatorHierarchy => operatorHierarchy;
+		public override void Initialize() { } // Everything depends on the system matrix
+		
+		protected override void PrepareLevelProgression()
+		{
+			Logger.ExecuteTimeAndLog("Prepare level progression", () =>
+			{
+				levelProgression = cycleSchedule.CreateProgression(saOperatorHierarchy.NumLevels);
+			});
+		}
 
-		public void Initialize() { } // Everything depends on the system matrix
-		
-		public void PrepareForNewLinearSystemMatrix(CsrMatrix systemMatrix)
+		protected override void PrepareOperatorHierarchy(CsrMatrix systemMatrix)
 		{
 			Logger.ExecuteTimeAndLog("Prepare prolongations, restrictions and coarse matrices", () =>
 			{
-				operatorHierarchy.BuildOperators(systemMatrix);
-			});
-			Logger.LogOperatorHierarchy(operatorHierarchy.Log);
-			int numLevels = operatorHierarchy.NumLevels;
-
-			Logger.ExecuteTimeAndLog("Prepare level progression", () =>
-			{
-				levelProgression = cycleSchedule.CreateProgression(operatorHierarchy.NumLevels);
+				saOperatorHierarchy.BuildOperators(systemMatrix);
 			});
 
-			Logger.ExecuteTimeAndLog("Prepare smoothers", () =>
-			{
-				if (smoothersHierarchy.NumLevelsTotal < numLevels)
-				{
-					throw new Exception($"Not enough smoothers are provided for the {numLevels} actual levels.");
-				}
-				for (int lvl = 0; lvl < numLevels - 1; lvl++)
-				{
-					smoothersHierarchy.Update(lvl, operatorHierarchy.GetSystemMatrix(lvl), areDofsModified: true);
-				}
-			});
-
-			Logger.ExecuteTimeAndLog("Prepare coarsest level solver", () =>
-			{
-				coarsestSystemSolver.Initialize(operatorHierarchy.GetSystemMatrix(numLevels - 1));
-			});
-
-			Logger.ExecuteTimeAndLog("Prepare system vectors", () =>
-			{
-				vectorHierarchy.AllocateVectors(operatorHierarchy);
-			});
+			SaAmgLogger.LogOperatorHierarchy(saOperatorHierarchy.Log);
 		}
 
-		public void RunSingleCycle(Vector rhsVector, Vector solution)
+		public class Builder : MultigridAlgorithmBuilderBase
 		{
-			vectorHierarchy.SetFinestLevelVectors(rhsVector, solution);
-			RunCycle();
-		}
+			private readonly INearNullspaceCandidatesRelaxationStrategy[] nullspaceCandidatesRelaxationStrategies;
 
-		public void SolveLinearSystem(Vector rhsVector, Vector solution)
-		{
-			Logger.ExecuteTimeAndLog("Prepare system vectors", () =>
+			public Builder(int numLevelsRequested, int maxCycles)
+				: base(numLevelsRequested, maxCycles)
 			{
-				vectorHierarchy.AllocateVectors(operatorHierarchy);
-			});
-
-			var watch = new Stopwatch();
-			watch.Start();
-
-			CsrMatrix finestSystemMatrix = operatorHierarchy.GetSystemMatrix(0);
-			vectorHierarchy.SetFinestLevelVectors(rhsVector, solution);
-
-			var residualHistory = new ResidualNormHistory();
-			var res = Vector.CreateZero(rhsVector.Length);
-			double normRes0 = rhsVector.Norm2();
-			residualHistory.LogInitialResidual(normRes0);
-
-			double resRatio = 1.0;
-			int cycleIdx;
-			for (cycleIdx = 0; cycleIdx < maxCycles; cycleIdx++)
-			{
-				RunCycle();
-
-				// Calculate the residual of the coarsest grid.
-				//TODO: Perhaps this is already done inside the RunSingleCycle().
-				finestSystemMatrix.MultiplyIntoResult(solution, res);
-				res.LinearCombinationIntoThis(-1, rhsVector, 1);
-				double normRes = res.Norm2();
-				residualHistory.LogResidual(normRes);
-				
-				resRatio = normRes / normRes0;
-				if (resRatio <= residualTolerance)
+				nullspaceCandidatesRelaxationStrategies = new INearNullspaceCandidatesRelaxationStrategy[numLevelsRequested - 1];
+				var relaxation = new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4);
+				for (int i = 0; i < numLevelsRequested - 1; i++)
 				{
-					break;
+					nullspaceCandidatesRelaxationStrategies[i] = relaxation.CopyWithInitialSettings();
+				}
+
+				IJacobiWeightingStrategy weightingStrategy = new SpectralRadiusJacobiWeighting(dampingFactor: 4.0 / 3.0, new SystemRandomRng(seed: 13));
+				ProlongationSmoothing = new JacobiProlongationSmoothing(weightingStrategy, degree: 1);
+			}
+
+			public IAggregationStrategy Aggregation { get; set; } = new StandardAggregation();
+
+			public IAmgCoarseningTerminationCriterion CoarseningTermination { get; set; } = new SystemSizeBasedTermination(targetMinSize: 10);
+
+			public INullspaceCandidatesFittingStrategy NullspaceCandidatesFitting { get; set; } = new ScalarCandidatesFitting(orthonormalizationTolerance: 1E-10);
+
+			public INearNullspaceCandidatesSelectionStrategy NullspaceCandidatesSelection { get; set; } = new ConstantCandidateSelection();
+
+			public IProlongationSmoothingStrategy ProlongationSmoothing { get; set; }
+
+			public IStrengthOfConnection StrengthOfConnection { get; set; } = new SymmetricStrengthOfConnection(theta: 0.0);
+
+			public SaAmgAlgorithm BuildAlgorithm()
+			{
+				var hierarchy = new SaAmgOperatorHierarchy(numLevelsRequested, CoarseningTermination, StrengthOfConnection, Aggregation, NullspaceCandidatesSelection, nullspaceCandidatesRelaxationStrategies, NullspaceCandidatesFitting, ProlongationSmoothing, Restriction, DiscardIntermediateHierarchyData);
+
+				CoarsestSystemSolver = FinalizeCoarsestSystemSolver();
+				return new SaAmgAlgorithm(hierarchy, smoothersHierarchy, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance);
+			}
+
+			public void SetNullspaceCandidatesRelaxationAll(INearNullspaceCandidatesRelaxationStrategy commonRelaxation)
+			{
+				for (int i = 0; i < numLevelsRequested - 1; i++)
+				{
+					nullspaceCandidatesRelaxationStrategies[i] = commonRelaxation.CopyWithInitialSettings();
 				}
 			}
 
-			watch.Stop();
-			Logger.LogIterativeAlgorithm(cycleIdx + 1, resRatio);
-			Logger.LogResidualHistory(residualHistory);
-			Logger.LogTaskDuration("Execution of cycles", watch.ElapsedMilliseconds);
-
-			if (resRatio > residualTolerance)
+			public void SetNullspaceCandidatesRelaxationAtLevel(int level, INearNullspaceCandidatesRelaxationStrategy relaxation)
 			{
-				throw new IterativeSolverNotConvergedException(
-					$"{Name} did not converge to a solution. The solver ran for {maxCycles} cycles iterations and ||b-A*x|| / ||b|| is {resRatio}.");
-			}
-		}
-
-		private void RunCycle()
-		{
-			int lvl = 0; // Each cycle starts at finest grid
-			while (true)
-			{
-				int direction = levelProgression.MoveNext();
-				if (direction == 1) // Fine -> coarse
+				if (level >= numLevelsRequested - 1)
 				{
-					// Access the correct matrices and vectors
-					IReadOnlyMatrix Af = operatorHierarchy.GetSystemMatrix(lvl);
-					IReadOnlyMatrix R = operatorHierarchy.GetRestriction(lvl);
-					Vector xf = vectorHierarchy.GetLhsVector(lvl);
-					Vector bf = vectorHierarchy.GetRhsVector(lvl);
-					Vector xc = vectorHierarchy.GetLhsVector(lvl + 1);
-					Vector rc = vectorHierarchy.GetRhsVector(lvl + 1); // Fine residual becomes coarse rhs
-					Vector rf = vectorHierarchy.GetWorkVector(lvl);
-
-					// MG operations
-					smoothersHierarchy.ApplyPreSmoothing(lvl, bf, xf);
-					Af.MultiplyIntoResult(xf, rf);
-					rf.LinearCombinationIntoThis(-1, bf, 1);
-					R.MultiplyIntoResult(rf, rc);
-
-					// Prepare for next step
-					xc.Clear();
-					lvl++;
+					throw new ArgumentOutOfRangeException("This setting applies to levels other than the last");
 				}
-				else if (direction == -1) // Coarse -> fine
-				{
-					// Access the correct matrices and vectors
-					IReadOnlyMatrix P = operatorHierarchy.GetProlongation(lvl - 1);
-					Vector ec = vectorHierarchy.GetLhsVector(lvl);
-					Vector rc = vectorHierarchy.GetRhsVector(lvl);
-					Vector xf = vectorHierarchy.GetLhsVector(lvl - 1);
-					Vector ef = vectorHierarchy.GetWorkVector(lvl - 1);
 
-					// MG operations
-					if (lvl < operatorHierarchy.NumLevels - 1)
-					{
-						smoothersHierarchy.ApplyPostSmoothing(lvl, rc, ec);
-					}
-					else
-					{
-						coarsestSystemSolver.Solve(rc, ec);
-					}
-
-					P.MultiplyIntoResult(ec, ef);
-					xf.AddIntoThis(ef);
-
-					// Prepare for next step
-					lvl--;
-				}
-				else if (direction == 0) // Cycle ends here => we are at finest grid
-				{
-					Debug.Assert(lvl == 0);
-
-					// Access the correct matrices and vectors
-					Vector x = vectorHierarchy.GetLhsVector(0);
-					Vector b = vectorHierarchy.GetRhsVector(0);
-
-					smoothersHierarchy.ApplyPostSmoothing(0, b, x);
-
-					// Prepare for next step
-					break;
-				}
-				else
-				{
-					throw new Exception("Invalid direction in Multigrid cycle schedule");
-				}
+				nullspaceCandidatesRelaxationStrategies[level] = relaxation.CopyWithInitialSettings();
 			}
 		}
 	}
