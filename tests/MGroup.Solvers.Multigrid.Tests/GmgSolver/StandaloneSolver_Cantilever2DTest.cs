@@ -35,7 +35,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 
 	using Xunit;
 
-	public static class Cantilever2DTest
+	public static class StandaloneSolver_Cantilever2DTest
 	{
 		[Theory]
 		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 2, 13)]

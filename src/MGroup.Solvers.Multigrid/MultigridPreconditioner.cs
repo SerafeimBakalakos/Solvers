@@ -7,21 +7,23 @@ namespace MGroup.Solvers.Multigrid
 	using MGroup.LinearAlgebra.Iterative.Preconditioning;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.Solvers.Multigrid.Algorithms;
 
 	public class MultigridPreconditioner : IPreconditioner
 	{
-		private readonly Action<IReadOnlyVector, IVector> runMGCycle;
+		private readonly IMultigridAlgorithm multigrid;
 
-		public MultigridPreconditioner(Action<IReadOnlyVector, IVector> runMGCycle)
+		public MultigridPreconditioner(IMultigridAlgorithm multigrid)
 		{
-			this.runMGCycle = runMGCycle;
+			this.multigrid = multigrid;
 		}
 
-		public IPreconditioner CopyWithInitialSettings() => new MultigridPreconditioner(runMGCycle);
+		public IPreconditioner CopyWithInitialSettings() => new MultigridPreconditioner(multigrid);
 
 		public void SolveLinearSystem(IReadOnlyVector rhsVector, IVector lhsVector)
 		{
-			runMGCycle(rhsVector, lhsVector);
+			lhsVector.Clear();
+			multigrid.RunSingleCycle((Vector)rhsVector, (Vector)lhsVector);
 		}
 
 		public void UpdateMatrix(IReadOnlyMatrix matrix, bool isPatternModified) 

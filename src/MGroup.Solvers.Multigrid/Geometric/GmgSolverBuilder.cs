@@ -4,6 +4,7 @@ namespace MGroup.Solvers.Multigrid.Geometric
 	using System.Collections.Generic;
 	using System.Text;
 
+	using MGroup.LinearAlgebra.Iterative.PreconditionedConjugateGradient;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
@@ -36,6 +37,15 @@ namespace MGroup.Solvers.Multigrid.Geometric
 			GmgAlgorithm mg = multigridBuilder.Build(freeDofProvider);
 
 			return new StandaloneMultigridSolver(algebraicModel, mg);
+		}
+
+		public PcgSolverWithMultigridPreconditioner BuildPcgSolver(Model model, IDofType[] dofsPerNode, PcgAlgorithm pcg)
+		{
+			GlobalAlgebraicModel<CsrMatrix> algebraicModel = BuildAlgebraicModel(model);
+			var freeDofProvider = new StandardFreeDofProvider(model, dofsPerNode, () => algebraicModel.SubdomainFreeDofOrdering);
+			GmgAlgorithm mg = multigridBuilder.Build(freeDofProvider);
+
+			return new PcgSolverWithMultigridPreconditioner(algebraicModel, mg, pcg);
 		}
 
 		private GlobalAlgebraicModel<CsrMatrix> BuildAlgebraicModel(Model model)

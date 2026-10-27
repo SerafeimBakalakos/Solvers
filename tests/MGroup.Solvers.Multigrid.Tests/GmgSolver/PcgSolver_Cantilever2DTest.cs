@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.GmgPcgSolver
+namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,6 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgPcgSolver
 
 	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Implementations.Managed;
+	using MGroup.LinearAlgebra.Iterative.PreconditionedConjugateGradient;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Dofs;
@@ -23,17 +24,17 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgPcgSolver
 	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Multigrid.CoarseSystemSolvers;
 	using MGroup.Solvers.Multigrid.CycleSchedules;
+	using MGroup.Solvers.Multigrid.Geometric;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
 	using MGroup.Solvers.Multigrid.Geometric.Prolongations;
 	using MGroup.Solvers.Multigrid.Smoothing;
-	using MGroup.Solvers.Multigrid.Tests;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 	using MGroup.Solvers.Multigrid.Tests.TestOptions;
 
 	using Xunit;
 
-	public static class Cantilever2DTest
+	public static class PcgSolver_Cantilever2DTest
 	{
 		[Theory]
 		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 2, 8)]
@@ -56,21 +57,28 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgPcgSolver
 			Model model = example.CreateFemModel(grid);
 			IDofType[] dofsPerNode = [StructuralDof.TranslationX, StructuralDof.TranslationY];
 
-			// Setup solver
+			// Setup multigrid algorithm
 			var prolongation = new Prolongation2DStrategy(2);
-			var solverBuilder = new PcgWithMultigridSolver.Builder(numLevels: numLevels, grid, prolongation, maxCycles: 100);
-			solverBuilder.LinearAlgebraProvider = new ManagedSequentialImplementationProvider();
-			solverBuilder.CycleSchedule = cycle.Translate();
+			var mgBuilder = new GmgAlgorithm.Builder(prolongation, grid, numLevels, maxCycles: 100);
+			mgBuilder.LinearAlgebraProvider = new ManagedSequentialImplementationProvider();
+			mgBuilder.CycleSchedule = cycle.Translate();
 			IStationaryIteration stationaryIteration = smoother.Translate(relaxFactor);
-			solverBuilder.SetSmoothers(new StationaryIterationSmoother(stationaryIteration, smoothingSteps));
-			solverBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(solverBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
-			solverBuilder.ResidualTolerance = 1E-10;
+			mgBuilder.SetSmoothers(new StationaryIterationSmoother(stationaryIteration, smoothingSteps));
+			mgBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(mgBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
+			mgBuilder.ResidualTolerance = 1E-10;
+
+			// Setup PCG
+			var pcgBuilder = new PcgAlgorithm.Factory();
+			pcgBuilder.ResidualTolerance = 1E-10;
+			PcgAlgorithm pcg = pcgBuilder.Build();
+
+			// Setup multigrid solver
+			var solverBuilder = new GmgSolverBuilder(mgBuilder);
 			solverBuilder.DropToleranceForSmallEntriesOfSystemMatrix = 1E-10;
+			PcgSolverWithMultigridPreconditioner solver = solverBuilder.BuildPcgSolver(model, dofsPerNode, pcg);
 
 			// Run analysis
-			GlobalAlgebraicModel<CsrMatrix> algebraicModel = solverBuilder.BuildAlgebraicModel(model);
-			PcgWithMultigridSolver solver = solverBuilder.BuildSolver(model, dofsPerNode, algebraicModel);
-			IVector solution = RunAnalysis(model, algebraicModel, solver);
+			IVector solution = RunAnalysis(model, solver.AlgebraicModel, solver);
 
 			// Reference solution
 			Model refModel = example.CreateFemModel(grid);
@@ -83,7 +91,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgPcgSolver
 			Assert.InRange(normRelative, 0, solutionTol);
 
 			// Check convergence
-			double resTolExpected = solverBuilder.ResidualTolerance;
+			double resTolExpected = mgBuilder.ResidualTolerance;
 			int analysisStep = 0;
 			int numCycles = solver.Logger.GetNumIterationsOfIterativeAlgorithm(analysisStep);
 			double resTol = solver.Logger.GetResidualNormRatioOfIterativeAlgorithm(analysisStep);
