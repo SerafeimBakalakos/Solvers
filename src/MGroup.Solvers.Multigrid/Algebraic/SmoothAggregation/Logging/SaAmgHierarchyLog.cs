@@ -1,4 +1,6 @@
-namespace MGroup.Solvers.Multigrid.Logging
+using MGroup.Solvers.Multigrid.Logging;
+
+namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Logging
 {
 	using System;
 	using System.Collections.Generic;

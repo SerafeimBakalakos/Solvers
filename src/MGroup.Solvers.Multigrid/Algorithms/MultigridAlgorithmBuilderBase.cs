@@ -54,7 +54,7 @@ namespace MGroup.Solvers.Multigrid.Algorithms
 
 		public double ResidualTolerance = 1E-7;
 
-		public IRestrictionStrategy Restriction { get; set;  } = new UnscaledTransposeRestriction();
+		public IRestrictionStrategy RestrictionStrategy { get; set;  } = new UnscaledTransposeRestriction();
 
 		public void SetSmoothers(IMultigridSmoother commonSmoother)
 		{

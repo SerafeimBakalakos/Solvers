@@ -7,19 +7,18 @@ namespace MGroup.Solvers.Multigrid.Logging
 
 	using MGroup.Solvers.Logging;
 
-	public class MultigridSolverLogger<THierarchyLog> : SolverLogger
-		where THierarchyLog : MultigridOperatorHierarchyLog
+	public class MultigridSolverLogger : SolverLogger
 	{
-		private readonly List<THierarchyLog> operatorHierarchies = new ();
+		protected readonly List<MultigridOperatorHierarchyLog> operatorHierarchies = new();
 
 		public MultigridSolverLogger(string solverName)
 			: base(solverName)
 		{
 		}
 
-		public THierarchyLog GetOperatorHierarchy(int analysisStep) => operatorHierarchies[analysisStep];
+		public MultigridOperatorHierarchyLog GetOperatorHierarchy(int analysisStep) => operatorHierarchies[analysisStep];
 
 
-		public void LogOperatorHierarchy(THierarchyLog hierarchyLog) => operatorHierarchies.Add(hierarchyLog);
+		public void LogOperatorHierarchy(MultigridOperatorHierarchyLog hierarchyLog) => operatorHierarchies.Add(hierarchyLog);
 	}
 }

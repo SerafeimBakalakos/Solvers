@@ -74,8 +74,8 @@ namespace MGroup.Solvers.Multigrid
 			var freeDofProvider = new StandardFreeDofProvider(model, dofsPerNode, () => algebraicModel.SubdomainFreeDofOrdering);
 
 			// Grids
-			gridHierarchy = new UniformGridHierarchy(finestGrid, coarseningRatios);
-			gridHierarchy.DefineGrids(numLevelsRequested); // could go into Initialize.
+			gridHierarchy = new UniformGridHierarchy(numLevelsRequested, finestGrid, coarseningRatios);
+			gridHierarchy.DefineGrids(); // could go into Initialize.
 
 			// Prolongations, restrictions
 			operatorHierarchy = new GmgOperatorHierarchyGalerkin(gridHierarchy, freeDofProvider, prolongationStrategy, restrictionStrategy);

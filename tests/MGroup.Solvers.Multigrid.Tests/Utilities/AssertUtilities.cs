@@ -8,6 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Utilities
 
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.Logging;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Logging;
 	using MGroup.Solvers.Multigrid.Logging;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 
@@ -49,25 +50,28 @@ namespace MGroup.Solvers.Multigrid.Tests.Utilities
 			}
 		}
 
-		public static void AssertEqualHierarchyLogs(SaAmgHierarchyLog expectedlog, SaAmgHierarchyLog computedLog)
+		public static void AssertEqualHierarchyLogs(SaAmgHierarchyLog expectedlog, MultigridOperatorHierarchyLog computedLog)
 		{
-			Assert.Equal(expectedlog.NumLevels, computedLog.NumLevels);
+			Assert.True(computedLog is SaAmgHierarchyLog);
+			var actualLog = (SaAmgHierarchyLog)computedLog;
+
+			Assert.Equal(expectedlog.NumLevels, actualLog.NumLevels);
 			int maxLevel = expectedlog.NumLevels - 1;
 
 			for (int lvl = 0; lvl < maxLevel; lvl++)
 			{
-				AssertEqualMatrixSizes(expectedlog.GetSystemMatrixSize(lvl), computedLog.GetSystemMatrixSize(lvl));
-				AssertEqualMatrixSizes(expectedlog.GetProlongationSize(lvl), computedLog.GetProlongationSize(lvl));
-				AssertEqualMatrixSizes(expectedlog.GetRestrictionSize(lvl), computedLog.GetRestrictionSize(lvl));
+				AssertEqualMatrixSizes(expectedlog.GetSystemMatrixSize(lvl), actualLog.GetSystemMatrixSize(lvl));
+				AssertEqualMatrixSizes(expectedlog.GetProlongationSize(lvl), actualLog.GetProlongationSize(lvl));
+				AssertEqualMatrixSizes(expectedlog.GetRestrictionSize(lvl), actualLog.GetRestrictionSize(lvl));
 
-				AssertEqualMatrixSizes(expectedlog.GetStrengthOfConnectionSize(lvl), computedLog.GetStrengthOfConnectionSize(lvl));
-				Assert.Equal(expectedlog.GetNumAggregates(lvl), computedLog.GetNumAggregates(lvl));
-				Assert.Equal(expectedlog.GetNumNullspaceCandidateVectors(lvl), computedLog.GetNumNullspaceCandidateVectors(lvl));
-				AssertEqualMatrixSizes(expectedlog.GetTentativeProlongationSize(lvl), computedLog.GetTentativeProlongationSize(lvl));
+				AssertEqualMatrixSizes(expectedlog.GetStrengthOfConnectionSize(lvl), actualLog.GetStrengthOfConnectionSize(lvl));
+				Assert.Equal(expectedlog.GetNumAggregates(lvl), actualLog.GetNumAggregates(lvl));
+				Assert.Equal(expectedlog.GetNumNullspaceCandidateVectors(lvl), actualLog.GetNumNullspaceCandidateVectors(lvl));
+				AssertEqualMatrixSizes(expectedlog.GetTentativeProlongationSize(lvl), actualLog.GetTentativeProlongationSize(lvl));
 			}
 
-			AssertEqualMatrixSizes(expectedlog.GetSystemMatrixSize(maxLevel), computedLog.GetSystemMatrixSize(maxLevel));
-			Assert.Equal(expectedlog.GetNumNullspaceCandidateVectors(maxLevel), computedLog.GetNumNullspaceCandidateVectors(maxLevel));
+			AssertEqualMatrixSizes(expectedlog.GetSystemMatrixSize(maxLevel), actualLog.GetSystemMatrixSize(maxLevel));
+			Assert.Equal(expectedlog.GetNumNullspaceCandidateVectors(maxLevel), actualLog.GetNumNullspaceCandidateVectors(maxLevel));
 		}
 
 		public static void AssertEqualMatrixSizes(SparseMatrixSizeLog expected, SparseMatrixSizeLog computed)

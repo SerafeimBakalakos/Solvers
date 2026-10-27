@@ -32,6 +32,7 @@ namespace MGroup.Solvers.Multigrid.Algorithms
 		public MultigridAlgorithmBase(IMultigridOperatorHierarchy operatorHierarchy, MultigridSmoothersHierarchy smoothersHierarchy, ICoarseSystemSolver coarsestSystemSolver, ICycleSchedule cycleSchedule, int maxCycles, double residualTolerance, string name)
 		{
 			Name = name;
+			Logger = new MultigridSolverLogger(name);
 
 			this.operatorHierarchy = operatorHierarchy;
 			this.smoothersHierarchy = smoothersHierarchy;
@@ -41,8 +42,9 @@ namespace MGroup.Solvers.Multigrid.Algorithms
 			this.residualTolerance = residualTolerance;
 		}
 
-		public string Name { get; }
+		public MultigridSolverLogger Logger { get; }
 
+		public string Name { get; }
 		
 		public IMultigridOperatorHierarchy OperatorHierarchy => operatorHierarchy;
 
@@ -203,8 +205,6 @@ namespace MGroup.Solvers.Multigrid.Algorithms
 				}
 			}
 		}
-
-		public abstract SolverLogger Logger { get; }
 
 		public abstract void Initialize();
 

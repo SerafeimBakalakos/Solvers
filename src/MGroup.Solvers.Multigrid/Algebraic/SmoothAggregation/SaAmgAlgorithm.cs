@@ -6,6 +6,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using System.Text;
 
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.LinearAlgebra.SchurComplements.SubmatrixExtractors;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.DataStructures;
 	using MGroup.MSolve.Solution;
@@ -16,6 +17,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 	using MGroup.Solvers.Logging;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Logging;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
@@ -34,12 +36,11 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 			: base(operatorHierarchy, smoothersHierarchy, coarsestSystemSolver, cycleSchedule, maxCycles, residualTolerance, name)
 		{
 			this.saOperatorHierarchy = operatorHierarchy;
-			SaAmgLogger = new MultigridSolverLogger<SaAmgHierarchyLog>(Name);
 		}
 
-		public override SolverLogger Logger => SaAmgLogger;
+		//public override MultigridSolverLogger Logger => SaAmgLogger;
 
-		public MultigridSolverLogger<SaAmgHierarchyLog> SaAmgLogger { get; }
+		//public SaAmgSolverLogger SaAmgLogger { get; }
 		
 		public override void Initialize() { } // Everything depends on the system matrix
 		
@@ -58,7 +59,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 				saOperatorHierarchy.BuildOperators(systemMatrix);
 			});
 
-			SaAmgLogger.LogOperatorHierarchy(saOperatorHierarchy.Log);
+			Logger.LogOperatorHierarchy(saOperatorHierarchy.Log);
 		}
 
 		public class Builder : MultigridAlgorithmBuilderBase
@@ -91,12 +92,12 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation
 
 			public IStrengthOfConnection StrengthOfConnection { get; set; } = new SymmetricStrengthOfConnection(theta: 0.0);
 
-			public SaAmgAlgorithm BuildAlgorithm()
+			public SaAmgAlgorithm Build()
 			{
-				var hierarchy = new SaAmgOperatorHierarchy(numLevelsRequested, CoarseningTermination, StrengthOfConnection, Aggregation, NullspaceCandidatesSelection, nullspaceCandidatesRelaxationStrategies, NullspaceCandidatesFitting, ProlongationSmoothing, Restriction, DiscardIntermediateHierarchyData);
+				var operatorHierarchy = new SaAmgOperatorHierarchy(numLevelsRequested, CoarseningTermination, StrengthOfConnection, Aggregation, NullspaceCandidatesSelection, nullspaceCandidatesRelaxationStrategies, NullspaceCandidatesFitting, ProlongationSmoothing, RestrictionStrategy, DiscardIntermediateHierarchyData);
 
 				CoarsestSystemSolver = FinalizeCoarsestSystemSolver();
-				return new SaAmgAlgorithm(hierarchy, smoothersHierarchy, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance);
+				return new SaAmgAlgorithm(operatorHierarchy, smoothersHierarchy, CoarsestSystemSolver, CycleSchedule, maxCycles, ResidualTolerance);
 			}
 
 			public void SetNullspaceCandidatesRelaxationAll(INearNullspaceCandidatesRelaxationStrategy commonRelaxation)

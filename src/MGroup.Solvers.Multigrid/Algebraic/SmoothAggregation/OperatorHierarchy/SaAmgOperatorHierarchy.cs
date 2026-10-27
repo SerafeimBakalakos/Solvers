@@ -9,6 +9,7 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Aggregates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.ConnectionStrength;
+	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Logging;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.Algorithms;
