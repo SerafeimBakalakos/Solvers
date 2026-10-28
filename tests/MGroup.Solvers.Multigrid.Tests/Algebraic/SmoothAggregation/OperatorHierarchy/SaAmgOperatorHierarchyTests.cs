@@ -20,6 +20,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.OperatorHierarchy;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.Smoothing;
 	using MGroup.Solvers.Multigrid.Restriction;
+	using MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 	using MGroup.Solvers.Multigrid.Tests.Utilities;
@@ -31,15 +32,9 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 		[Fact]
 		public static void TestBuildOperators_Cantilever8x4Elements()
 		{
-			int numElementsY = 4;
-			double Lx = Cantilever2DElasticityProblem.LengthX;
-			double Ly = Cantilever2DElasticityProblem.LengthY;
-			IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
-			ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
+			int numLevelsRequested = 5;
 			CsrMatrix systemMatrix = Cantilever2D_8x4Elements_SaAmgResults.GetSystemMatrix(level: 0);
 
-			int numLevelsRequested = 5;
-			var candidateSelectionStrategy = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, [Lx / 2.0, Ly / 2.0]);
 			var terminationCriterion = new SystemSizeBasedTermination(10);
 			var socStrategy = new SymmetricStrengthOfConnection(theta: 0);
 			var aggregationStrategy = new StandardAggregation();
@@ -47,13 +42,22 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.OperatorHie
 			IJacobiWeightingStrategy weightingStrategy = new GershgorinJacobiWeighting(dampingFactor: 4.0 / 3);
 			var prolongationSmoothing = new JacobiProlongationSmoothing(weightingStrategy, degree: 1);
 			var restrictionStrategy = new UnscaledTransposeRestriction();
-
+			
 			var relaxation = new StationaryIterationCandidatesRelaxation(new SgsIterationCsr(), numSteps: 4);
 			var candidateRelaxationStrategies = new List<INearNullspaceCandidatesRelaxationStrategy>();
 			for (int i = 0; i < numLevelsRequested - 1; i++)
 			{
 				candidateRelaxationStrategies.Add(relaxation.CopyWithInitialSettings());
 			}
+
+			double[,] matrixB = Cantilever2D_8x4Elements_SaAmgResults.GetNullspaceCandidatesInitial(level: 0);
+			var candidateSelectionStrategy = new MockElasticityNullspaceCandidateSelection(matrixB);
+			//int numElementsY = 4;
+			//double Lx = Cantilever2DElasticityProblem.LengthX;
+			//double Ly = Cantilever2DElasticityProblem.LengthY;
+			//IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
+			//ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
+			//var candidateSelectionStrategy = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, [Lx / 2.0, Ly / 2.0]);
 
 			var hierarchy = new SaAmgOperatorHierarchy(numLevelsRequested, terminationCriterion, socStrategy, aggregationStrategy, candidateSelectionStrategy, candidateRelaxationStrategies, candidateFittingStrategy, prolongationSmoothing, restrictionStrategy, discardIntermediateData: false);
 			hierarchy.BuildOperators(systemMatrix);

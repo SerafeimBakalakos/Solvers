@@ -30,6 +30,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 	using MGroup.Solvers.Multigrid.Logging;
 	using MGroup.Solvers.Multigrid.Restriction;
 	using MGroup.Solvers.Multigrid.Smoothing;
+	using MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
 	using MGroup.Solvers.Multigrid.Tests.Utilities;
@@ -46,12 +47,15 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			Vector rhs = Vector.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.RhsVector);
 
 			// Elasticity 2D nullspace candidate vectors
-			int numElementsY = 4;
-			double Lx = Cantilever2DElasticityProblem.LengthX;
-			double Ly = Cantilever2DElasticityProblem.LengthY;
-			IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
-			ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
-			var candidateSelectionStrategy = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, [Lx / 2.0, Ly / 2.0]);
+			double[,] matrixB = Cantilever2D_8x4Elements_SaAmgResults.GetNullspaceCandidatesInitial(level: 0);
+			var candidateSelectionStrategy = new MockElasticityNullspaceCandidateSelection(matrixB);
+			//int numElementsY = 4;
+			//double Lx = Cantilever2DElasticityProblem.LengthX;
+			//double Ly = Cantilever2DElasticityProblem.LengthY;
+			//IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
+			//ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
+			//var candidateSelectionStrategy = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, [Lx / 2.0, Ly / 2.0]);
+
 
 			// Solver
 			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
@@ -110,14 +114,16 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
 			// Nullspace for 2D elasticity
-			double[] domainCentroid = [Cantilever2DElasticityProblem.LengthX / 2.0, Cantilever2DElasticityProblem.LengthY / 2.0];
-			IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
-			ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
-			var candidatesSelection = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, domainCentroid);
+			double[,] matrixB = Cantilever2DElasticityProblem.CreateNullspaceCandidateVectors(numElementsY);
+			var candidateSelectionStrategy = new MockElasticityNullspaceCandidateSelection(matrixB);
+			//double[] domainCentroid = [Cantilever2DElasticityProblem.LengthX / 2.0, Cantilever2DElasticityProblem.LengthY / 2.0];
+			//IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
+			//ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
+			//var candidatesSelection = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, domainCentroid);
 
 			// Solver
 			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
-			mgBuilder.NullspaceCandidatesSelection = candidatesSelection;
+			mgBuilder.NullspaceCandidatesSelection = candidateSelectionStrategy;
 			mgBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
 			mgBuilder.ResidualTolerance = 1E-8;
 
@@ -181,14 +187,16 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic
 			CsrMatrix systemMatrix = dokA.BuildCsrMatrix(sortColsOfEachRow: true);
 
 			// Nullspace for 3D elasticity
-			double[] domainCentroid = [Cantilever3DElasticityProblem.LengthX / 2.0, Cantilever3DElasticityProblem.LengthY / 2.0, Cantilever3DElasticityProblem.LengthZ / 2.0];
-			IModel model = Cantilever3DElasticityProblem.CreateModel(numElementsY);
-			ISubdomainFreeDofOrdering dofOrdering = Cantilever3DElasticityProblem.OrderDofs(numElementsY);
-			var candidatesSelection = new Elasticity3DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, StructuralDof.TranslationZ, domainCentroid);
+			double[,] matrixB = Cantilever3DElasticityProblem.CreateNullspaceCandidateVectors(numElementsY);
+			var candidateSelectionStrategy = new MockElasticityNullspaceCandidateSelection(matrixB);
+			//double[] domainCentroid = [Cantilever3DElasticityProblem.LengthX / 2.0, Cantilever3DElasticityProblem.LengthY / 2.0, Cantilever3DElasticityProblem.LengthZ / 2.0];
+			//IModel model = Cantilever3DElasticityProblem.CreateModel(numElementsY);
+			//ISubdomainFreeDofOrdering dofOrdering = Cantilever3DElasticityProblem.OrderDofs(numElementsY);
+			//var candidatesSelection = new Elasticity3DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, StructuralDof.TranslationZ, domainCentroid);
 
 			// Solver
 			SaAmgAlgorithm.Builder mgBuilder = ChooseDefaultSolver();
-			mgBuilder.NullspaceCandidatesSelection = candidatesSelection;
+			mgBuilder.NullspaceCandidatesSelection = candidateSelectionStrategy;
 			mgBuilder.CoarseningTermination = new SystemSizeBasedTermination(targetMinSize: 20);
 			mgBuilder.ResidualTolerance = 1E-8;
 			SaAmgAlgorithm mg = mgBuilder.Build();

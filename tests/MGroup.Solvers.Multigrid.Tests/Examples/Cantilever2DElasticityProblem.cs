@@ -3,11 +3,18 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Reflection;
 	using System.Text;
 	using System.Threading.Tasks;
 
 	using MGroup.Constitutive.Structural;
+	using MGroup.Constitutive.Structural.BoundaryConditions;
+	using MGroup.Constitutive.Structural.Planar;
+	using MGroup.Constitutive.Structural.Transient;
+	using MGroup.FEM.Structural.Continuum;
+	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DofOrdering;
@@ -21,6 +28,7 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 		private const double TotalLoad = 6000.0;
 		private const double ElasticityModulus = 9.0e5;
 		private const double PoissonRatio = 0.3;
+		private const double Thickness = 1;
 
 		private static readonly int[] LocalDx = { 0, 1, 1, 0 };
 		private static readonly int[] LocalDy = { 0, 0, 1, 1 };
@@ -123,6 +131,9 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 			double hy = LengthY / numElementsY;
 
 			var model = new Model();
+			model.SubdomainsDictionary[0] = new Subdomain(0);
+
+			// Nodes
 			for (int j = 0; j < numNodesY; j++)
 			{
 				for (int i = 0; i < numNodesX; i++)
@@ -134,7 +145,91 @@ namespace MGroup.Solvers.Multigrid.Tests.Examples
 				}
 			}
 
+			// Materials
+			var material = new ElasticMaterial2D(ElasticityModulus, PoissonRatio, StressState2D.PlaneStress);
+			var dynamicProps = new TransientAnalysisProperties(1.0, 0.0, 0.0);
+
+			// Elements
+			var elemFactory = new ContinuumElement2DFactory(Thickness, material, dynamicProps);
+			int elementID = 0;
+			for (int j = 0; j < numElementsY; j++)
+			{
+				for (int i = 0; i < numElementsX; i++)
+				{
+					INode[] nodes =
+					{
+						model.GetNode(GlobalNode(i,     j,     numElementsX)),
+						model.GetNode(GlobalNode(i + 1, j,     numElementsX)),
+						model.GetNode(GlobalNode(i + 1, j + 1, numElementsX)),
+						model.GetNode(GlobalNode(i,     j + 1, numElementsX))
+					};
+
+					ContinuumElement2D element = elemFactory.CreateElement(CellType.Quad4, nodes);
+					element.ID = elementID;
+					model.ElementsDictionary.Add(elementID, element);
+					model.SubdomainsDictionary[0].Elements.Add(element);
+
+					elementID++;
+				}
+			}
+
+			// Clamp boundary condition at one end
+			var tol = 1E-10; //TODO: this should be chosen w.r.t. the element size along X
+			var dirichletBCs = new List<INodalDisplacementBoundaryCondition>();
+			foreach (var node in model.NodesDictionary.Values.Where(node => Math.Abs(node.X) <= tol))
+			{
+				dirichletBCs.Add(new NodalDisplacement(node, StructuralDof.TranslationX, 0));
+				dirichletBCs.Add(new NodalDisplacement(node, StructuralDof.TranslationY, 0));
+			}
+
+			// Apply concentrated load at the other end
+			var loadedNodes = model.NodesDictionary.Values.Where(node => Math.Abs(node.X - LengthX) <= tol).ToArray();
+			var loadPerNode = - TotalLoad / loadedNodes.Length;
+			var neumannBCs = new List<INodalLoadBoundaryCondition>();
+			foreach (var node in loadedNodes)
+			{
+				neumannBCs.Add(new NodalLoad(node, StructuralDof.TranslationY, loadPerNode));
+			}
+
+			model.BoundaryConditions.Add(new StructuralBoundaryConditionSet(dirichletBCs, neumannBCs));
+
+
 			return model;
+		}
+
+		public static double[,] CreateNullspaceCandidateVectors(int numElementsY)
+		{
+			int numElementsX = 2 * numElementsY;
+			int numNodesX = numElementsX + 1;
+			int numNodesXFree = numNodesX - 1; // The system retains nodes with i = 1, ..., numElementsX.
+			int numNodesY = numElementsY + 1;
+			double hx = LengthX / numElementsX;
+			double hy = LengthY / numElementsY;
+
+			double xc = LengthX / 2.0;
+			double yc = LengthY / 2.0;
+
+			int numDofsFree = 2 * numNodesXFree * numNodesY;
+			var B = new double[numDofsFree, 3];
+
+			for (int j = 0; j < numNodesY; j++)
+			{
+				for (int i = 1; i < numNodesX; i++)
+				{
+					int nodeID = j * numNodesXFree + (i - 1);
+					int ux = 2 * nodeID;
+					int uy = 2 * nodeID + 1;
+					double x = i * hx;
+					double y = j * hy;
+
+					B[ux, 0] = 1.0;
+					B[uy, 1] = 1.0;
+					B[ux, 2] = -(y - yc);
+					B[uy, 2] = x - xc;
+				}
+			}
+
+			return B;
 		}
 
 		public static ISubdomainFreeDofOrdering OrderDofs(int numElementsY)
