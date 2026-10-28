@@ -75,7 +75,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 			// Setup multigrid solver
 			var solverBuilder = new GmgSolverBuilder(mgBuilder);
 			solverBuilder.DropToleranceForSmallEntriesOfSystemMatrix = 1E-10;
-			PcgSolverWithMultigridPreconditioner solver = solverBuilder.BuildPcgSolver(model, dofsPerNode, pcg);
+			PcgSolverWithMultigridPreconditioner solver = solverBuilder.BuildPcgMultigridSolver(model, dofsPerNode, pcg);
 
 			// Run analysis
 			IVector solution = RunAnalysis(model, solver.AlgebraicModel, solver);

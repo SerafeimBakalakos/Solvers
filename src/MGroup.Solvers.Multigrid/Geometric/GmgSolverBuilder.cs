@@ -39,7 +39,7 @@ namespace MGroup.Solvers.Multigrid.Geometric
 			return new StandaloneMultigridSolver(algebraicModel, mg);
 		}
 
-		public PcgSolverWithMultigridPreconditioner BuildPcgSolver(Model model, IDofType[] dofsPerNode, PcgAlgorithm pcg)
+		public PcgSolverWithMultigridPreconditioner BuildPcgMultigridSolver(Model model, IDofType[] dofsPerNode, PcgAlgorithm pcg)
 		{
 			GlobalAlgebraicModel<CsrMatrix> algebraicModel = BuildAlgebraicModel(model);
 			var freeDofProvider = new StandardFreeDofProvider(model, dofsPerNode, () => algebraicModel.SubdomainFreeDofOrdering);
