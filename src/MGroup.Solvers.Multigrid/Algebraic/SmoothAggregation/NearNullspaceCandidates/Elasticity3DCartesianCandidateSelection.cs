@@ -11,46 +11,56 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.LinearSystem;
 
-	public class Elasticity3DCartesianCandidateSelection : INearNullspaceCandidatesSelectionStrategy
+	public class Elasticity3DCartesianCandidateSelection : IProblemDependentNullspaceCandidateSelectionStrategy
 	{
-		private readonly IModel model;
-		private readonly int dofUx;
-		private readonly int dofUy;
-		private readonly int dofUz;
 		private readonly double xc;
 		private readonly double yc;
 		private readonly double zc;
-		private readonly ISubdomainFreeDofOrdering dofOrdering;
+		private readonly IDofType[] translationDofs;
+
+		private IGlobalAlgebraicModel algebraicModel;
+		private IModel model;
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="model">The FEM model.</param>
+		/// <param name="translationDofs">The 3 translation dofs, one along each axis.</param>
 		/// <param name="referencePoint">
 		/// The (x,y) coordinates of a reference points around which the local numspaces will be centered. The origin or domain centroid are common choices. 
 		/// </param>
-		public Elasticity3DCartesianCandidateSelection(IModel model, ISubdomainFreeDofOrdering dofOrdering, IDofType translationX, IDofType translationY, IDofType translationZ, double[] referencePoint)
+		public Elasticity3DCartesianCandidateSelection(IDofType[] translationDofs, double[]? referencePoint = null)
 		{
-			this.model = model;
-			this.dofOrdering = dofOrdering;
+			if (referencePoint == null)
+			{
+				referencePoint = new double[3];
+			}
 
 			if (referencePoint.Length != 3)
 			{
-				throw new ArgumentException("A reference point with 3 coordinates (x, y, z) must be provided.");
+				throw new ArgumentException("A reference point with 3 coordinates (x, y, y) must be provided.");
 			}
+
+			if (translationDofs.Length != 3)
+			{
+				throw new ArgumentException("Three translation dofs must be provided, one along each axis.");
+			}
+
 			this.xc = referencePoint[0];
 			this.yc = referencePoint[1];
 			this.zc = referencePoint[2];
-
-			this.dofUx = dofOrdering.AllDofs.GetIdOfDof(translationX);
-			this.dofUy = dofOrdering.AllDofs.GetIdOfDof(translationY);
-			this.dofUz = dofOrdering.AllDofs.GetIdOfDof(translationZ);
+			this.translationDofs = translationDofs;
 		}
 
 
 		public Matrix ChooseCandidateVectors(IReadOnlyMatrix systemMatrix)
 		{
+			ISubdomainFreeDofOrdering dofOrdering = algebraicModel.SubdomainFreeDofOrdering;
+			int dofUx = dofOrdering.AllDofs.GetIdOfDof(translationDofs[0]);
+			int dofUy = dofOrdering.AllDofs.GetIdOfDof(translationDofs[1]);
+			int dofUz = dofOrdering.AllDofs.GetIdOfDof(translationDofs[2]);
+
 			if (systemMatrix.NumColumns != dofOrdering.NumFreeDofs)
 			{
 				throw new NonMatchingDimensionsException(
@@ -90,6 +100,12 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 			}
 
 			return matrixB;
+		}
+
+		public void SetModel(IModel model, IGlobalAlgebraicModel algebraicModel)
+		{
+			this.model = model;
+			this.algebraicModel = algebraicModel;
 		}
 	}
 }

@@ -20,7 +20,7 @@ using MGroup.Solvers.Results;
 
 namespace MGroup.Solvers.LinearSystem
 {
-	public class GlobalAlgebraicModel<TMatrix> : IAlgebraicModel
+	public class GlobalAlgebraicModel<TMatrix> : IGlobalAlgebraicModel
 		where TMatrix : class, IMatrix
 	{
 		private readonly ISubdomain subdomain;

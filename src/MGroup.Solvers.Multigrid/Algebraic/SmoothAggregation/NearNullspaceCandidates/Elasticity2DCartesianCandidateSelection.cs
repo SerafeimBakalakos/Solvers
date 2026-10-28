@@ -8,43 +8,55 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.MSolve.Solution.AlgebraicModel;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.LinearSystem;
 
-	public class Elasticity2DCartesianCandidateSelection : INearNullspaceCandidatesSelectionStrategy
+	public class Elasticity2DCartesianCandidateSelection : IProblemDependentNullspaceCandidateSelectionStrategy
 	{
-		private readonly IModel model;
-		private readonly int dofUx;
-		private readonly int dofUy;
 		private readonly double xc;
 		private readonly double yc;
-		private readonly ISubdomainFreeDofOrdering dofOrdering;
+		private readonly IDofType[] translationDofs;
+
+		private IGlobalAlgebraicModel algebraicModel;
+		private IModel model;
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="model">The FEM model.</param>
+		/// <param name="translationDofs">The 2 translation dofs, one along each axis.</param>
 		/// <param name="referencePoint">
 		/// The (x,y) coordinates of a reference points around which the local numspaces will be centered. The origin or domain centroid are common choices. 
 		/// </param>
-		public Elasticity2DCartesianCandidateSelection(IModel model, ISubdomainFreeDofOrdering dofOrdering, IDofType translationX, IDofType translationY, double[] referencePoint)
+		public Elasticity2DCartesianCandidateSelection(IDofType[] translationDofs, double[]? referencePoint = null)
 		{
-			this.model = model;
-			this.dofOrdering = dofOrdering;
+			if (referencePoint == null)
+			{
+				referencePoint = new double[2];
+			}
 
 			if (referencePoint.Length != 2)
 			{
 				throw new ArgumentException("A reference point with 2 coordinates (x, y) must be provided.");
 			}
+
+			if (translationDofs.Length != 2)
+			{
+				throw new ArgumentException("Two translation dofs must be provided, one along each axis.");
+			}
+
 			this.xc = referencePoint[0];
 			this.yc = referencePoint[1];
-
-			this.dofUx = dofOrdering.AllDofs.GetIdOfDof(translationX);
-			this.dofUy = dofOrdering.AllDofs.GetIdOfDof(translationY);
+			this.translationDofs = translationDofs;
 		}
 
 
 		public Matrix ChooseCandidateVectors(IReadOnlyMatrix systemMatrix)
 		{
+			ISubdomainFreeDofOrdering dofOrdering = algebraicModel.SubdomainFreeDofOrdering;
+			int dofUx = dofOrdering.AllDofs.GetIdOfDof(translationDofs[0]);
+			int dofUy = dofOrdering.AllDofs.GetIdOfDof(translationDofs[1]);
+
 			if (systemMatrix.NumColumns != dofOrdering.NumFreeDofs)
 			{
 				throw new NonMatchingDimensionsException(
@@ -78,6 +90,12 @@ namespace MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCand
 			}
 
 			return matrixB;
+		}
+
+		public void SetModel(IModel model, IGlobalAlgebraicModel algebraicModel)
+		{
+			this.model = model;
+			this.algebraicModel = algebraicModel;
 		}
 	}
 }

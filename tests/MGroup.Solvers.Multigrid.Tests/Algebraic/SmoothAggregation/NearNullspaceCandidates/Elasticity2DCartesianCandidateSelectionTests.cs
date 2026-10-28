@@ -8,11 +8,16 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 
 	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Matrices;
+	using MGroup.MSolve.Discretization.Dofs;
 	using MGroup.MSolve.Discretization.Entities;
+	using MGroup.Solvers.Assemblers;
 	using MGroup.Solvers.DofOrdering;
+	using MGroup.Solvers.DofOrdering.Reordering;
+	using MGroup.Solvers.LinearSystem;
 	using MGroup.Solvers.Multigrid.Algebraic.SmoothAggregation.NearNullspaceCandidates;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
 	using MGroup.Solvers.Multigrid.Tests.LinearAlgebraExtensions.Unchanged;
+	using MGroup.Solvers.Tests.Mocks;
 
 	using Xunit;
 
@@ -21,18 +26,37 @@ namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.NearNullspa
 		[Fact]
 		public static void TestChooseCandidateVectors_Cantilever8x4Elements()
 		{
-			int numElementsY = 4;
-			IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY);
 			CsrMatrix systemMatrix = Cantilever2D_8x4Elements_SaAmgResults.GetSystemMatrix(0);
-			double[] domainCentroid = [Cantilever2DElasticityProblem.LengthX / 2.0, Cantilever2DElasticityProblem.LengthY / 2.0];
-			ISubdomainFreeDofOrdering dofOrdering = Cantilever2DElasticityProblem.OrderDofs(numElementsY);
+			double Lx = Cantilever2DElasticityProblem.LengthX;
+			double Ly = Cantilever2DElasticityProblem.LengthY;
 
-			var candidatesSelection = new Elasticity2DCartesianCandidateSelection(model, dofOrdering, StructuralDof.TranslationX, StructuralDof.TranslationY, domainCentroid);
-			Matrix computedB = candidatesSelection.ChooseCandidateVectors(systemMatrix);
+			double[] centroid = [Lx / 2.0, Ly / 2.0];
+			IDofType[] translationDofs = [StructuralDof.TranslationX, StructuralDof.TranslationY];
+			var candidateSelectionStrategy = new Elasticity2DCartesianCandidateSelection(translationDofs, centroid);
+
+			IModel model = Cantilever2DElasticityProblem.CreateModel(numElementsY: 4);
+			IGlobalAlgebraicModel algebraicModel = CreateAlgebraicModelAndOrderDofs(model);
+			
+			candidateSelectionStrategy.SetModel(model, algebraicModel);
+			Matrix computedB = candidateSelectionStrategy.ChooseCandidateVectors(systemMatrix);
 
 			var expectedB = Matrix.CreateFromArray(Cantilever2D_8x4Elements_SaAmgResults.GetNullspaceCandidatesInitial(level: 0));
 			var comparer = new MatrixComparer(1E-30);
 			comparer.AssertEqual(expectedB, computedB);
+		}
+
+		private static IGlobalAlgebraicModel CreateAlgebraicModelAndOrderDofs(IModel model)
+		{
+			var dofOrderer = new DofOrderer(new NodeMajorDofOrderingStrategy(), new NullReordering());
+			var assembler = new CsrMatrixAssembler(isMatrixSymmetric: true);
+			assembler.SortColsOfEachRow = true;
+			assembler.DropEntryTolerance = 1E-10;
+			
+			var algebraicModel = new GlobalAlgebraicModel<CsrMatrix>(model, dofOrderer, assembler);
+			algebraicModel.BoundaryConditionsInterpreter = new MockBCInterpreter(model);
+			algebraicModel.OrderDofs();
+			
+			return algebraicModel;
 		}
 	}
 }
