@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
+namespace MGroup.Solvers.Multigrid.Tests.Geometric.Prolongations
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,6 +8,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
+	using MGroup.Solvers.Multigrid.Tests.Geometric.Grids;
 
 	using Xunit;
 
@@ -240,7 +241,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 			{
 				for (int j = 0; j < nfy; j++)
 				{
-					if ((i % ratioX != 0) || (j % ratioY != 0) ) // Fine node does not coincide with a coarse node.
+					if (i % ratioX != 0 || j % ratioY != 0 ) // Fine node does not coincide with a coarse node.
 					{
 						continue;
 					}
@@ -291,7 +292,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 				{
 					for (int k = 0; k < nfz; k++)
 					{
-						if ((i % ratioX != 0) || (j % ratioY != 0) || (k % ratioZ != 0)) // Fine node does not coincide with a coarse node.
+						if (i % ratioX != 0 || j % ratioY != 0 || k % ratioZ != 0) // Fine node does not coincide with a coarse node.
 						{
 							continue;
 						}

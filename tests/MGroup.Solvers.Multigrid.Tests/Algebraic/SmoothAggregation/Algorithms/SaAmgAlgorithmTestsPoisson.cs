@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.Algebraic
+namespace MGroup.Solvers.Multigrid.Tests.Algebraic.SmoothAggregation.Algorithms
 {
 	using System;
 	using System.Collections.Generic;

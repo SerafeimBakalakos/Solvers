@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
+namespace MGroup.Solvers.Multigrid.Tests.Geometric.Solvers
 {
 	using System;
 	using System.Collections.Generic;
@@ -8,7 +8,6 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 
 	using MGroup.Constitutive.Structural;
 	using MGroup.LinearAlgebra.Implementations.Managed;
-	using MGroup.LinearAlgebra.Iterative.PreconditionedConjugateGradient;
 	using MGroup.LinearAlgebra.Matrices;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Dofs;
@@ -26,6 +25,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 	using MGroup.Solvers.Multigrid.CycleSchedules;
 	using MGroup.Solvers.Multigrid.Geometric;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
+	using MGroup.Solvers.Multigrid.Geometric.OperatorHierarchy;
 	using MGroup.Solvers.Multigrid.Geometric.Prolongations;
 	using MGroup.Solvers.Multigrid.Smoothing;
 	using MGroup.Solvers.Multigrid.Tests.Examples;
@@ -34,11 +34,19 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 
 	using Xunit;
 
-	public static class PcgSolver_Cantilever2DTest
+	public static class StandaloneSolver_Cantilever2DTest
 	{
 		[Theory]
-		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 2, 8)]
-		[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 2, 7)]
+		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 2, 13)]
+		[InlineData(4, Cycles.V, Smoothers.GS, 1.0, 3, 11)]
+		[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 1, 15)]
+		[InlineData(4, Cycles.V, Smoothers.SGS, 1.0, 2, 11)]
+		[InlineData(4, Cycles.V, Smoothers.SOR, 1.1, 2, 12)]
+		[InlineData(4, Cycles.V, Smoothers.SSOR, 1.1, 2, 11)]
+		[InlineData(4, Cycles.W, Smoothers.GS, 1.0, 2, 10)]
+		[InlineData(4, Cycles.F, Smoothers.GS, 1.0, 2, 10)]
+		[InlineData(3, Cycles.V, Smoothers.GS, 1.0, 2, 12)]
+		[InlineData(2, Cycles.V, Smoothers.GS, 1.0, 2, 10)]
 		private static void RunTest(int numLevels, Cycles cycle, Smoothers smoother, double relaxFactor, int smoothingSteps, int numCyclesExpected)
 		{
 			int[] numElements = [32, 160];
@@ -67,15 +75,10 @@ namespace MGroup.Solvers.Multigrid.Tests.GmgSolver
 			mgBuilder.CoarsestSystemSolver = new CholeskyCscCoarseSolver(mgBuilder.LinearAlgebraProvider, new AmdSymmetricOrdering());
 			mgBuilder.ResidualTolerance = 1E-10;
 
-			// Setup PCG
-			var pcgBuilder = new PcgAlgorithm.Factory();
-			pcgBuilder.ResidualTolerance = 1E-10;
-			PcgAlgorithm pcg = pcgBuilder.Build();
-
 			// Setup multigrid solver
 			var solverBuilder = new GmgSolverBuilder(mgBuilder);
 			solverBuilder.DropToleranceForSmallEntriesOfSystemMatrix = 1E-10;
-			PcgSolverWithMultigridPreconditioner solver = solverBuilder.BuildPcgMultigridSolver(model, dofsPerNode, pcg);
+			StandaloneMultigridSolver solver = solverBuilder.BuildStandaloneSolver(model, dofsPerNode);
 
 			// Run analysis
 			IVector solution = RunAnalysis(model, solver.AlgebraicModel, solver);

@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
+namespace MGroup.Solvers.Multigrid.Tests.Geometric.Prolongations
 {
 	using System;
 	using System.Collections.Generic;
@@ -10,6 +10,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 	using MGroup.Solvers.LinearAlgebraExtensions.Matrices.Builders;
 	using MGroup.Solvers.Multigrid.Geometric.Grids;
 	using MGroup.Solvers.Multigrid.Geometric.Prolongations;
+	using MGroup.Solvers.Multigrid.Tests.Geometric.Grids;
 
 	using Xunit;
 

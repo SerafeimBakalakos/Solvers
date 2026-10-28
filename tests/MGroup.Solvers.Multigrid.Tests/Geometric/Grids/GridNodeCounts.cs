@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
+namespace MGroup.Solvers.Multigrid.Tests.Geometric.Grids
 {
 	using System;
 	using System.Collections.Generic;
@@ -10,7 +10,7 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 	{
 		private GridNodeCounts(int[] numNodesFinePerAxis, int[] numNodesCoarsePerAxis)
 		{
-			this.Dimension = numNodesCoarsePerAxis.Length;
+			Dimension = numNodesCoarsePerAxis.Length;
 			NumNodesFinePerAxis = numNodesFinePerAxis;
 			NumNodesCoarsePerAxis = numNodesCoarsePerAxis;
 		}
@@ -33,12 +33,12 @@ namespace MGroup.Solvers.Multigrid.Tests.GridTransfer
 		public bool Equals(GridNodeCounts other)
 		{
 			bool result = true;
-			result &= other.NumNodesFinePerAxis.Length == this.NumNodesFinePerAxis.Length;
-			result &= other.NumNodesCoarsePerAxis.Length == this.NumNodesCoarsePerAxis.Length;
-			for (int d = 0; d < this.NumNodesCoarsePerAxis.Length;  d++)
+			result &= other.NumNodesFinePerAxis.Length == NumNodesFinePerAxis.Length;
+			result &= other.NumNodesCoarsePerAxis.Length == NumNodesCoarsePerAxis.Length;
+			for (int d = 0; d < NumNodesCoarsePerAxis.Length;  d++)
 			{
-				result &= other.NumNodesFinePerAxis[d] == this.NumNodesFinePerAxis[d];
-				result &= other.NumNodesCoarsePerAxis[d] == this.NumNodesCoarsePerAxis[d];
+				result &= other.NumNodesFinePerAxis[d] == NumNodesFinePerAxis[d];
+				result &= other.NumNodesCoarsePerAxis[d] == NumNodesCoarsePerAxis[d];
 			}
 			return result;
 		}
