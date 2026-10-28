@@ -1,4 +1,4 @@
-namespace MGroup.Solvers.DDM.Tests.Commons
+namespace MGroup.Solvers.Tests.Mocks
 {
 	using System;
 	using System.Collections.Generic;

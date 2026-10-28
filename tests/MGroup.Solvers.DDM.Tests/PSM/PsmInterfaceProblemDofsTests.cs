@@ -11,6 +11,7 @@ namespace MGroup.Solvers.DDM.Tests.PSM
 	using MGroup.Solvers.DDM.Tests.ExampleModels;
 	using MGroup.Solvers.DofOrdering;
 	using MGroup.Solvers.Tests;
+	using MGroup.Solvers.Tests.Mocks;
 	using MGroup.Solvers.Tests.TempUtilityClasses;
 
 	using Xunit;
